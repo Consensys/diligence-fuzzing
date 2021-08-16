@@ -17,10 +17,6 @@ from mythx_cli.formatter import FORMAT_RESOLVER
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
-from mythx_cli.group.close import group_close
-from mythx_cli.group.list import group_list
-from mythx_cli.group.open import group_open
-from mythx_cli.group.status import group_status
 from mythx_cli.project import project_list
 from mythx_cli.render.command import render
 from mythx_cli.util import update_context
@@ -226,26 +222,6 @@ def project() -> None:
 
 LOGGER.debug("Registering project commands")
 project.add_command(project_list)
-
-
-@cli.group()
-def group() -> None:
-    """Create, modify, and view analysis groups.
-
-    \f
-
-    This subcommand holds all group-related actions, such as creating,
-    listing, closing groups, as well as fetching the status of one
-    or more group IDs.
-    """
-    pass
-
-
-LOGGER.debug("Registering group commands")
-group.add_command(group_list)
-group.add_command(group_status)
-group.add_command(group_open)
-group.add_command(group_close)
 
 
 @cli.group()
