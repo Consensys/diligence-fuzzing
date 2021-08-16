@@ -25,10 +25,25 @@ def get_test_case(path: str, obj=None, raw=False):
 
     if obj is None:
         return dict_data
-    return obj.from_dict(dict_data)
+
+    if obj is DetectedIssuesResponse and type(dict_data) is list:
+        return obj(issue_reports=dict_data)
+    else:
+        return obj(**dict_data)
 
 
 AST = get_test_case("testdata/test-ast.json")
+
+
+@contextmanager
+def mock_faas_context():
+    with patch("mythx_cli.fuzz.rpc.RPCClient") as RPCClient_mock:
+        instance = RPCClient_mock.return_value
+        instance.get_all_blocks.return_value = get_test_case(
+            "testdata/ganache-all-blocks.json"
+        )
+        instance.contract_exists.return_value = True
+    yield
 
 
 @contextmanager
@@ -53,7 +68,7 @@ def mock_context(
     ) as analysis_list_patch, patch(
         "pythx.Client.group_list"
     ) as group_list_patch, patch(
-        "pythx.Client.status"
+        "pythx.Client.analysis_status"
     ) as status_patch, patch(
         "pythx.Client.group_status"
     ) as group_status_patch, patch(

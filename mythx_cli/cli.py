@@ -14,10 +14,14 @@ from mythx_cli.analysis.report import analysis_report
 from mythx_cli.analysis.status import analysis_status
 from mythx_cli.analyze.command import analyze
 from mythx_cli.formatter import FORMAT_RESOLVER
+from mythx_cli.fuzz.arm import fuzz_arm
+from mythx_cli.fuzz.disarm import fuzz_disarm
+from mythx_cli.fuzz.run import fuzz_run
 from mythx_cli.group.close import group_close
 from mythx_cli.group.list import group_list
 from mythx_cli.group.open import group_open
 from mythx_cli.group.status import group_status
+from mythx_cli.project import project_list
 from mythx_cli.render.command import render
 from mythx_cli.util import update_context
 from mythx_cli.version.command import version
@@ -160,9 +164,10 @@ def cli(
     else:
         parsed_config = {"analyze": {}}
 
-    # The analyze context is updated separately in the command
+    # The analyze/fuzz context is updated separately in the command
     # implementation
     ctx.obj["analyze"] = parsed_config.get("analyze", {})
+    ctx.obj["fuzz"] = parsed_config.get("fuzz", {})
 
     # overwrite context with top-level YAML config keys if necessary
     update_context(ctx.obj, "ci", parsed_config, "ci", False)
@@ -189,7 +194,8 @@ def cli(
         ctx.obj["client"] = Client(
             username=username, password=password, middlewares=[toolname_mw]
         )
-    else:
+    elif "fuzz" not in sys.argv:
+        # fuzz subcommand is exempt from API auth
         raise click.UsageError(
             (
                 "The trial user has been deprecated. You can still use the MythX CLI for free "
@@ -203,6 +209,23 @@ LOGGER.debug("Registering main commands")
 cli.add_command(analyze)
 cli.add_command(render)
 cli.add_command(version)
+
+
+@cli.group()
+def project() -> None:
+    """Create, modify, and view analysis projects.
+
+    \f
+
+    This subcommand holds all project-related actions, such as creating,
+    listing, and managing projects, as well as fetching the status of one
+    or more groups inside a project.
+    """
+    pass
+
+
+LOGGER.debug("Registering project commands")
+project.add_command(project_list)
 
 
 @cli.group()
@@ -242,6 +265,25 @@ LOGGER.debug("Registering analysis commands")
 analysis.add_command(analysis_status)
 analysis.add_command(analysis_list)
 analysis.add_command(analysis_report)
+
+
+@cli.group()
+def fuzz() -> None:
+    """Interact with the MythX FaaS solution.
+
+    \f
+
+    This subcommand holds all fuzz-related actions, such as initializing
+    new fuzzing campaigns, preparing projects for FaaS submission, and
+    launching new campaigns.
+    """
+    pass
+
+
+LOGGER.debug("Registering fuzz commands")
+fuzz.add_command(fuzz_run)
+fuzz.add_command(fuzz_arm)
+fuzz.add_command(fuzz_disarm)
 
 
 if __name__ == "__main__":

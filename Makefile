@@ -51,14 +51,14 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 format:
-	isort -rc mythx_cli tests
-	black -t py37 mythx_cli tests
+	isort mythx_cli tests
+	black -t py38 mythx_cli tests
 
 lint: ## check style with flake8
 	flake8 mythx_cli tests
 
 test: ## run tests quickly with the default Python
-	py.test -vv
+	pytest --cov-report html --cov-report term --cov mythx_cli tests/
 
 test-all: ## run tests on every Python version with tox
 	tox
@@ -89,4 +89,5 @@ dist: clean ## builds source and wheel package
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	pip install -r requirements_dev.txt
+	pip install -e .

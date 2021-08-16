@@ -1,10 +1,15 @@
 import json
+import os
 import subprocess
 import sys
 from collections import defaultdict
 from typing import List
 
 import click
+
+from mythx_cli.util import sol_files_by_directory
+
+SCRIBBLE_ARMING_META_FILE = ".scribble-arming.meta.json"
 
 
 class ScribbleMixin:
@@ -27,6 +32,7 @@ class ScribbleMixin:
         click.echo(process.stderr.decode())
         click.echo("=====STDOUT=====")
         click.echo(process.stdout.decode())
+
         sys.exit(process.returncode)
 
     def instrument_truffle_artifacts(
@@ -49,6 +55,7 @@ class ScribbleMixin:
                     "source": file_data["source"],
                     "id": payload["source_list"].index(filename),
                 }
+
                 stdin["contracts"][filename][payload["contract_name"]] = {
                     "evm": {
                         "bytecode": {
@@ -72,6 +79,7 @@ class ScribbleMixin:
         )
 
         self._handle_scribble_error(process)
+
         return json.loads(process.stdout.decode())
 
     def instrument_solc_file(
@@ -91,5 +99,101 @@ class ScribbleMixin:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
         self._handle_scribble_error(process)
+
         return json.loads(process.stdout.decode())
+
+    @staticmethod
+    def instrument_solc_in_place(
+        file_list: List[str],
+        scribble_path: str,
+        remappings: List[str] = None,
+        solc_version: str = None,
+    ) -> None:
+        """Instrument a collection of Solidity files in place.
+
+        :param file_list: List of paths to Solidity files to instrument
+        :param scribble_path: The path to the scribble executable
+        :param remappings: List of import remappings to pass to solc
+        :param solc_version: The solc compiler version to use
+        """
+        command = [
+            scribble_path,
+            "--arm",
+            "--output-mode=files",
+            f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
+        ]
+
+        if remappings:
+            command.append(f"--path-remapping={';'.join(remappings)}")
+
+        if solc_version:
+            command.append(f"--compiler-version={solc_version}")
+
+        # Scribble doesnt currently support directories as inputs
+        # so we create a list of all solidity files inside each of the targets
+        # and submit that to Scribble.
+
+        sol_files = []
+        for file in file_list:
+            target_files = sol_files_by_directory(file)
+            sol_files = [*sol_files, *target_files]
+
+        command.extend(sol_files)
+
+        process = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        ScribbleMixin._handle_scribble_error(process)
+
+    @staticmethod
+    def disarm_solc_in_place(
+        file_list: List[str],
+        scribble_path: str,
+        remappings: List[str] = None,
+        solc_version: str = None,
+    ) -> None:
+        """Un-instrument a collection of Solidity files in place.
+
+        :param file_list: List of paths to Solidity files to instrument
+        :param scribble_path: The path to the scribble executable
+        :param remappings: List of import remappings to pass to solc
+        :param solc_version: The solc compiler version to use
+        """
+        command = [scribble_path, "--disarm"]
+
+        if remappings:
+            command.append(f"--path-remapping={';'.join(remappings)}")
+
+        if solc_version:
+            command.append(f"--compiler-version={solc_version}")
+
+        # Scribble doesnt currently support directories as inputs
+        # so we create a list of all solidity files inside each of the targets
+        # and submit that to Scribble.
+
+        sol_files = []
+        for file in file_list:
+            target_files = sol_files_by_directory(file)
+            sol_files = [*sol_files, *target_files]
+
+        command.extend(sol_files)
+
+        if os.path.isfile(SCRIBBLE_ARMING_META_FILE):
+            os.remove(SCRIBBLE_ARMING_META_FILE)
+
+        process = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        ScribbleMixin._handle_scribble_error(process)
+
+    @staticmethod
+    def get_arming_instr_meta():
+        if os.path.exists(SCRIBBLE_ARMING_META_FILE):
+            with open(SCRIBBLE_ARMING_META_FILE, "r") as f:
+                return json.load(f)
+
+        return None
