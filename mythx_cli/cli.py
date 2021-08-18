@@ -127,29 +127,10 @@ def cli(
 LOGGER.debug("Registering main commands")
 
 
-# LOGGER.debug("Registering fuzz commands")
-# cli.add_command(fuzz_run)
-# cli.add_command(fuzz_arm)
-# cli.add_command(fuzz_disarm)
-
-@cli.group()
-def fuzz() -> None:
-    """Interact with the MythX FaaS solution.
-
-    \f
-
-    This subcommand holds all fuzz-related actions, such as initializing
-    new fuzzing campaigns, preparing projects for FaaS submission, and
-    launching new campaigns.
-    """
-    pass
-
-
 LOGGER.debug("Registering fuzz commands")
-fuzz.add_command(fuzz_run)
-fuzz.add_command(fuzz_arm)
-fuzz.add_command(fuzz_disarm)
-
+cli.add_command(fuzz_run)
+cli.add_command(fuzz_arm)
+cli.add_command(fuzz_disarm)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

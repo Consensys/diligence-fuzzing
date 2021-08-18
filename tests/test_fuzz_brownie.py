@@ -78,7 +78,7 @@ def test_fuzz_no_build_dir(tmp_path):
     with open(".mythx.yml", "w+") as conf_f:
         conf_f.write(generate_config_file(not_include=["build_directory"]))
 
-    result = runner.invoke(cli, ["fuzz", "run", "contracts"])
+    result = runner.invoke(cli, ["run", "contracts"])
     assert "Error: build_directory not found on .mythx.yml config file" in result.output
     assert result.exit_code != 0
 
@@ -88,7 +88,7 @@ def test_fuzz_no_deployed_address(tmp_path):
     with open(".mythx.yml", "w+") as conf_f:
         conf_f.write(generate_config_file(not_include=["deployed_contract_address"]))
 
-    result = runner.invoke(cli, ["fuzz", "run", "contracts"])
+    result = runner.invoke(cli, ["run", "contracts"])
     assert (
         "Error: deployed_contract_address not found on .mythx.yml config file."
         in result.output
@@ -101,7 +101,7 @@ def test_fuzz_no_target(tmp_path):
     with open(".mythx.yml", "w+") as conf_f:
         conf_f.write(generate_config_file(not_include=["targets"]))
 
-    result = runner.invoke(cli, ["fuzz", "run"])
+    result = runner.invoke(cli, ["run"])
     assert "Error: Target not provided." in result.output
     assert result.exit_code != 0
 
@@ -121,7 +121,7 @@ def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
         contract_exists_mock.return_value = False
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["fuzz", "run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert "Error: Unable to find a contract deployed" in result.output
     assert result.exit_code != 0
@@ -148,7 +148,7 @@ def test_faas_not_running(tmp_path, brownie_project):
         )
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["fuzz", "run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert (
         "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
@@ -182,7 +182,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
 
         runner = CliRunner()
         # we call the run command without the target parameter.
-        result = runner.invoke(cli, ["fuzz", "run"])
+        result = runner.invoke(cli, ["run"])
 
     assert (
         "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
@@ -199,7 +199,7 @@ def test_rpc_not_running(tmp_path):
         requests_mock.side_effect = RequestException()
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["fuzz", "run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert "HTTP error calling RPC method eth_getCode with parameters" in result.output
     assert result.exit_code != 0
@@ -224,7 +224,7 @@ def test_fuzz_run(tmp_path, brownie_project):
         start_faas_campaign_mock.return_value = campaign_id
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["fuzz", "run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"
@@ -283,7 +283,7 @@ def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
         start_faas_campaign_mock.return_value = campaign_id
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["fuzz", "run", "--map-to-original-source",f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", "--map-to-original-source",f"{tmp_path}/contracts"])
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"
@@ -331,7 +331,7 @@ def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
 def test_fuzz_subcommands_present(keyword):
     runner = CliRunner()
 
-    result = runner.invoke(cli, ["fuzz", "--help"])
+    result = runner.invoke(cli, ["--help"])
 
     assert keyword in result.output
 
@@ -339,7 +339,7 @@ def test_fuzz_subcommands_present(keyword):
 @patch("mythx_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
 def test_fuzz_arm(mock, tmp_path, brownie_project):
     runner = CliRunner()
-    result = runner.invoke(cli, ["fuzz", "arm", f"{tmp_path}/contracts/sample.sol"])
+    result = runner.invoke(cli, ["arm", f"{tmp_path}/contracts/sample.sol"])
 
     mock.assert_called()
     mock.assert_called_with(
@@ -354,7 +354,7 @@ def test_fuzz_arm(mock, tmp_path, brownie_project):
 @patch("mythx_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, brownie_project):
     runner = CliRunner()
-    result = runner.invoke(cli, ["fuzz", "disarm", f"{tmp_path}/contracts/sample.sol"])
+    result = runner.invoke(cli, ["disarm", f"{tmp_path}/contracts/sample.sol"])
 
     mock.assert_called()
     mock.assert_called_with(
