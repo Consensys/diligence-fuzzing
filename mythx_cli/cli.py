@@ -14,7 +14,6 @@ from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
 from mythx_cli.util import update_context
-# from mythx_cli.version.command import version
 
 
 
@@ -53,38 +52,6 @@ class APIErrorCatcherGroup(click.Group):
     envvar="MYTHX_DEBUG",
     help="Provide additional debug output",
 )
-# @click.option(
-#     "--api-key", envvar="MYTHX_API_KEY", help="Your MythX API key from the dashboard"
-# )
-# @click.option(
-#     "--username", envvar="MYTHX_USERNAME", help="Your MythX account's username"
-# )
-# @click.option(
-#     "--password", envvar="MYTHX_PASSWORD", help="Your MythX account's password"
-# )
-@click.option(
-    "--format",
-    "fmt",
-    default=None,
-    type=click.Choice(FORMAT_RESOLVER.keys()),
-    help="The format to display the results in",
-)
-@click.option(
-    "--ci",
-    is_flag=True,
-    default=None,
-    help="Return exit code 1 if high-severity issue is found",
-)
-@click.option(
-    "-y",
-    "--yes",
-    is_flag=True,
-    default=None,
-    help="Do not prompt for any confirmations",
-)
-@click.option(
-    "-o", "--output", default=None, help="Output file to write the results into"
-)
 @click.option(
     "-c",
     "--config",
@@ -92,26 +59,12 @@ class APIErrorCatcherGroup(click.Group):
     help="YAML config file for default parameters",
 )
 @click.option("--stdout", is_flag=True, default=False, help="Force printing to stdout")
-@click.option(
-    "--table-sort-key",
-    type=click.Choice(["line", "title", "severity", "description"]),
-    default="line",
-    help="The column to sort the default table output by",
-)
 @click.pass_context
 def cli(
     ctx,
     debug: bool,
-    # api_key: str,
-    # username: str,
-    # password: str,
-    fmt: str,
-    ci: bool,
-    output: str,
-    yes: bool,
     config: str,
     stdout: bool,
-    table_sort_key: str,
 ) -> None:
     """Your CLI for interacting with https://mythx.io/
 
@@ -137,15 +90,7 @@ def cli(
 
     ctx.obj = {
         "debug": debug,
-        # "api_key": api_key,
-        # "username": username,
-        # "password": password,
-        "fmt": fmt,
-        "ci": ci,
-        "output": output,
-        "yes": yes,
         "config": config,
-        "table_sort_key": table_sort_key,
     }
 
     LOGGER.debug("Initializing configuration context")
@@ -163,43 +108,29 @@ def cli(
     ctx.obj["fuzz"] = parsed_config.get("fuzz", {})
 
     # overwrite context with top-level YAML config keys if necessary
-    update_context(ctx.obj, "ci", parsed_config, "ci", False)
-    if stdout:
-        # if forced stdout, don't set output file
-        ctx.obj["output"] = None
-    else:
-        update_context(ctx.obj, "output", parsed_config, "output", None)
-    update_context(ctx.obj, "fmt", parsed_config, "format", "table")
-    update_context(ctx.obj, "yes", parsed_config, "confirm", False)
-    update_context(ctx.obj, "table_sort_key", parsed_config, "table-sort-key", "line")
+    # update_context(ctx.obj, "ci", parsed_config, "ci", False)
+    # if stdout:
+    #     # if forced stdout, don't set output file
+    #     ctx.obj["output"] = None
+    # else:
+    #     update_context(ctx.obj, "output", parsed_config, "output", None)
+    # update_context(ctx.obj, "fmt", parsed_config, "format", "table")
+    # update_context(ctx.obj, "yes", parsed_config, "confirm", False)
+    # update_context(ctx.obj, "table_sort_key", parsed_config, "table-sort-key", "line")
 
     # set return value - used for CI failures
     ctx.obj["retval"] = 0
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
-    toolname_mw = ClientToolNameMiddleware(name="mythx-cli-{}".format(__version__))
-
-    # if api_key is not None:
-    #     LOGGER.debug("Initializing client with API key")
-    #     ctx.obj["client"] = Client(api_key=api_key, middlewares=[toolname_mw])
-    # elif username and password:
-    #     LOGGER.debug("Initializing client with username and password")
-    #     ctx.obj["client"] = Client(
-    #         username=username, password=password, middlewares=[toolname_mw]
-    #     )
-    # elif "fuzz" not in sys.argv:
-    #     # fuzz subcommand is exempt from API auth
-    #     raise click.UsageError(
-    #         (
-    #             "The trial user has been deprecated. You can still use the MythX CLI for free "
-    #             "by signing up for a free account at https://mythx.io/ and entering your access "
-    #             "credentials."
-    #         )
-    #     )
 
 
 LOGGER.debug("Registering main commands")
-# cli.add_command(version)
+
+
+# LOGGER.debug("Registering fuzz commands")
+# cli.add_command(fuzz_run)
+# cli.add_command(fuzz_arm)
+# cli.add_command(fuzz_disarm)
 
 @cli.group()
 def fuzz() -> None:
