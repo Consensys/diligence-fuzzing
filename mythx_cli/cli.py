@@ -9,17 +9,17 @@ from pythx import Client, MythXAPIError
 from pythx.middleware.toolname import ClientToolNameMiddleware
 
 from mythx_cli import __version__
-from mythx_cli.analysis.list import analysis_list
-from mythx_cli.analysis.report import analysis_report
-from mythx_cli.analysis.status import analysis_status
-from mythx_cli.analyze.command import analyze
 from mythx_cli.formatter import FORMAT_RESOLVER
+from mythx_cli.analyze.command import analyze
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
 from mythx_cli.render.command import render
 from mythx_cli.util import update_context
 from mythx_cli.version.command import version
+
+
+
 
 LOGGER = logging.getLogger("mythx-cli")
 logging.basicConfig(level=logging.WARNING)
@@ -204,25 +204,6 @@ LOGGER.debug("Registering main commands")
 cli.add_command(analyze)
 cli.add_command(render)
 cli.add_command(version)
-
-@cli.group()
-def analysis() -> None:
-    """Get information on running and finished analyses.
-
-    \f
-
-    This subcommand holds all analysis-related actions, such as submitting new
-    analyses, listing existing ones, fetching their status, as well as fetching
-    the reports of one or more finished analysis jobs.
-    """
-    pass
-
-
-LOGGER.debug("Registering analysis commands")
-analysis.add_command(analysis_status)
-analysis.add_command(analysis_list)
-analysis.add_command(analysis_report)
-
 
 @cli.group()
 def fuzz() -> None:
