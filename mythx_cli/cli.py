@@ -14,7 +14,6 @@ from mythx_cli.analyze.command import analyze
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
-from mythx_cli.render.command import render
 from mythx_cli.util import update_context
 from mythx_cli.version.command import version
 
@@ -202,7 +201,6 @@ def cli(
 
 LOGGER.debug("Registering main commands")
 cli.add_command(analyze)
-cli.add_command(render)
 cli.add_command(version)
 
 @cli.group()
