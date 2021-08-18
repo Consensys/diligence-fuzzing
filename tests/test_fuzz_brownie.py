@@ -336,7 +336,7 @@ def test_fuzz_subcommands_present(keyword):
     assert keyword in result.output
 
 
-@patch("mythx_cli.analyze.scribble.ScribbleMixin.instrument_solc_in_place")
+@patch("mythx_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
 def test_fuzz_arm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["fuzz", "arm", f"{tmp_path}/contracts/sample.sol"])
@@ -351,7 +351,7 @@ def test_fuzz_arm(mock, tmp_path, brownie_project):
     assert result.exit_code == 0
 
 
-@patch("mythx_cli.analyze.scribble.ScribbleMixin.disarm_solc_in_place")
+@patch("mythx_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["fuzz", "disarm", f"{tmp_path}/contracts/sample.sol"])

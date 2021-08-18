@@ -10,12 +10,11 @@ from pythx.middleware.toolname import ClientToolNameMiddleware
 
 from mythx_cli import __version__
 from mythx_cli.formatter import FORMAT_RESOLVER
-from mythx_cli.analyze.command import analyze
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
 from mythx_cli.util import update_context
-from mythx_cli.version.command import version
+# from mythx_cli.version.command import version
 
 
 
@@ -54,15 +53,15 @@ class APIErrorCatcherGroup(click.Group):
     envvar="MYTHX_DEBUG",
     help="Provide additional debug output",
 )
-@click.option(
-    "--api-key", envvar="MYTHX_API_KEY", help="Your MythX API key from the dashboard"
-)
-@click.option(
-    "--username", envvar="MYTHX_USERNAME", help="Your MythX account's username"
-)
-@click.option(
-    "--password", envvar="MYTHX_PASSWORD", help="Your MythX account's password"
-)
+# @click.option(
+#     "--api-key", envvar="MYTHX_API_KEY", help="Your MythX API key from the dashboard"
+# )
+# @click.option(
+#     "--username", envvar="MYTHX_USERNAME", help="Your MythX account's username"
+# )
+# @click.option(
+#     "--password", envvar="MYTHX_PASSWORD", help="Your MythX account's password"
+# )
 @click.option(
     "--format",
     "fmt",
@@ -103,9 +102,9 @@ class APIErrorCatcherGroup(click.Group):
 def cli(
     ctx,
     debug: bool,
-    api_key: str,
-    username: str,
-    password: str,
+    # api_key: str,
+    # username: str,
+    # password: str,
     fmt: str,
     ci: bool,
     output: str,
@@ -138,9 +137,9 @@ def cli(
 
     ctx.obj = {
         "debug": debug,
-        "api_key": api_key,
-        "username": username,
-        "password": password,
+        # "api_key": api_key,
+        # "username": username,
+        # "password": password,
         "fmt": fmt,
         "ci": ci,
         "output": output,
@@ -180,28 +179,27 @@ def cli(
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
     toolname_mw = ClientToolNameMiddleware(name="mythx-cli-{}".format(__version__))
 
-    if api_key is not None:
-        LOGGER.debug("Initializing client with API key")
-        ctx.obj["client"] = Client(api_key=api_key, middlewares=[toolname_mw])
-    elif username and password:
-        LOGGER.debug("Initializing client with username and password")
-        ctx.obj["client"] = Client(
-            username=username, password=password, middlewares=[toolname_mw]
-        )
-    elif "fuzz" not in sys.argv:
-        # fuzz subcommand is exempt from API auth
-        raise click.UsageError(
-            (
-                "The trial user has been deprecated. You can still use the MythX CLI for free "
-                "by signing up for a free account at https://mythx.io/ and entering your access "
-                "credentials."
-            )
-        )
+    # if api_key is not None:
+    #     LOGGER.debug("Initializing client with API key")
+    #     ctx.obj["client"] = Client(api_key=api_key, middlewares=[toolname_mw])
+    # elif username and password:
+    #     LOGGER.debug("Initializing client with username and password")
+    #     ctx.obj["client"] = Client(
+    #         username=username, password=password, middlewares=[toolname_mw]
+    #     )
+    # elif "fuzz" not in sys.argv:
+    #     # fuzz subcommand is exempt from API auth
+    #     raise click.UsageError(
+    #         (
+    #             "The trial user has been deprecated. You can still use the MythX CLI for free "
+    #             "by signing up for a free account at https://mythx.io/ and entering your access "
+    #             "credentials."
+    #         )
+    #     )
 
 
 LOGGER.debug("Registering main commands")
-cli.add_command(analyze)
-cli.add_command(version)
+# cli.add_command(version)
 
 @cli.group()
 def fuzz() -> None:
