@@ -33,7 +33,7 @@ LOGGER = logging.getLogger("mythx-cli")
 def fuzz_arm(
     ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str
 ) -> None:
-    """Prepare the target files for FaaS submission.
+    """Prepare the target files for Diligence Fuzzing API submission.
 
     \f
 

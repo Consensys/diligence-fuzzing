@@ -42,7 +42,7 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
     description="A command line interface for the Diligence Fuzzing API",
-    entry_points={"console_scripts": ["diligence-fuzzing=mythx_cli.cli:cli"]},
+    entry_points={"console_scripts": ["fuzz=mythx_cli.cli:cli"]},
     install_requires=requirements,
     license="MIT license",
     long_description=readme + "\n\n" + history,

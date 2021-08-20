@@ -7,14 +7,8 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   mythx_cli.analysis
-   mythx_cli.analyze
    mythx_cli.formatter
    mythx_cli.fuzz
-   mythx_cli.group
-   mythx_cli.project
-   mythx_cli.render
-   mythx_cli.version
 
 Submodules
 ----------

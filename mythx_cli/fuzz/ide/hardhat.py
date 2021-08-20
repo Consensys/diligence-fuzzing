@@ -6,7 +6,7 @@ from typing import List
 from mythx_cli.fuzz.exceptions import BuildArtifactsError
 from mythx_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
 
-from ...util import sol_files_by_directory, get_content_from_file
+from ...util import get_content_from_file, sol_files_by_directory
 
 
 class HardhatArtifacts(IDEArtifacts):
@@ -99,17 +99,26 @@ class HardhatArtifacts(IDEArtifacts):
                     "ast": data["ast"],
                 }
 
-                if map_to_original_source and Path(source_file_dep+".original").is_file():
+                if (
+                    map_to_original_source
+                    and Path(source_file_dep + ".original").is_file()
+                ):
                     # we check if the current source file has a non instrumented version
                     # if it does, we include that one as the source code
-                    result_sources[source_file_dep]["source"] = get_content_from_file(source_file_dep+".original")
+                    result_sources[source_file_dep]["source"] = get_content_from_file(
+                        source_file_dep + ".original"
+                    )
 
         return result_contracts, result_sources
 
 
 class HardhatJob:
-    def __init__(self, target: List[str], build_dir: Path, map_to_original_source: bool):
-        artifacts = HardhatArtifacts(build_dir, targets=target, map_to_original_source=map_to_original_source)
+    def __init__(
+        self, target: List[str], build_dir: Path, map_to_original_source: bool
+    ):
+        artifacts = HardhatArtifacts(
+            build_dir, targets=target, map_to_original_source=map_to_original_source
+        )
         self._jb = JobBuilder(artifacts)
         self.payload = None
 

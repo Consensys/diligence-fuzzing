@@ -15,9 +15,6 @@ from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
 from mythx_cli.util import update_context
 
-
-
-
 LOGGER = logging.getLogger("mythx-cli")
 logging.basicConfig(level=logging.WARNING)
 
@@ -60,13 +57,8 @@ class APIErrorCatcherGroup(click.Group):
 )
 @click.option("--stdout", is_flag=True, default=False, help="Force printing to stdout")
 @click.pass_context
-def cli(
-    ctx,
-    debug: bool,
-    config: str,
-    stdout: bool,
-) -> None:
-    """Your CLI for interacting with https://mythx.io/
+def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
+    """Your CLI for interacting with https://fuzzing.diligence.tools
 
     \f
 
@@ -88,10 +80,7 @@ def cli(
         for name in logging.root.manager.loggerDict:
             logging.getLogger(name).setLevel(logging.DEBUG)
 
-    ctx.obj = {
-        "debug": debug,
-        "config": config,
-    }
+    ctx.obj = {"debug": debug, "config": config}
 
     LOGGER.debug("Initializing configuration context")
     config_file = config or ".mythx.yml"

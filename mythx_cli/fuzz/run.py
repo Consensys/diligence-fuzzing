@@ -58,7 +58,7 @@ def determine_ide() -> IDE:
     "--corpus-target",
     type=click.STRING,
     help="Project UUID, Campaign UUID or Corpus UUID to reuse the corpus from. "
-         "In case of a project, corpus from the project's latest submitted campaign will be used",
+    "In case of a project, corpus from the project's latest submitted campaign will be used",
     default=None,
     required=False,
 )
@@ -70,14 +70,12 @@ def determine_ide() -> IDE:
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
 )
-
 @click.option(
     "--dry-run",
     is_flag=True,
     default=False,
     help="Outputs the data to be sent to the FaaS API without making the request.",
 )
-
 @click.option(
     "-k",
     "--api-key",
@@ -87,7 +85,16 @@ def determine_ide() -> IDE:
     required=False,
 )
 @click.pass_obj
-def fuzz_run(ctx, address, more_addresses, corpus_target, map_to_original_source, dry_run, api_key, target):
+def fuzz_run(
+    ctx,
+    address,
+    more_addresses,
+    corpus_target,
+    map_to_original_source,
+    dry_run,
+    api_key,
+    target,
+):
     # read YAML config params from ctx dict, e.g. ganache rpc url
     #   Introduce a separate `fuzz` section in the YAML file
 
@@ -142,11 +149,7 @@ def fuzz_run(ctx, address, more_addresses, corpus_target, map_to_original_source
             else default_config["map_to_original_source"]
         )
     if not api_key:
-        api_key = (
-            analyze_config["api_key"]
-            if "api_key" in config_options
-            else None
-        )
+        api_key = analyze_config["api_key"] if "api_key" in config_options else None
     # Optional config parameters
     # Here we parse the config parameters from the config file and use defaults for non available values
     contract_address = analyze_config["deployed_contract_address"]
@@ -204,7 +207,11 @@ def fuzz_run(ctx, address, more_addresses, corpus_target, map_to_original_source
         )
         artifacts.generate_payload()
     elif ide == IDE.HARDHAT:
-        artifacts = HardhatJob(target, analyze_config["build_directory"], map_to_original_source=map_to_original_source)
+        artifacts = HardhatJob(
+            target,
+            analyze_config["build_directory"],
+            map_to_original_source=map_to_original_source,
+        )
         artifacts.generate_payload()
     elif ide == IDE.TRUFFLE:
         artifacts = TruffleJob(
@@ -217,7 +224,10 @@ def fuzz_run(ctx, address, more_addresses, corpus_target, map_to_original_source
         )
 
     faas_client = FaasClient(
-        faas_url=faas_url, campaign_name_prefix=campaign_name_prefix, project_type=ide, api_key=api_key
+        faas_url=faas_url,
+        campaign_name_prefix=campaign_name_prefix,
+        project_type=ide,
+        api_key=api_key,
     )
     try:
         campaign_id = faas_client.create_faas_campaign(
