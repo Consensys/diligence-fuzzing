@@ -9,22 +9,11 @@ from pythx import Client, MythXAPIError
 from pythx.middleware.toolname import ClientToolNameMiddleware
 
 from mythx_cli import __version__
-from mythx_cli.analysis.list import analysis_list
-from mythx_cli.analysis.report import analysis_report
-from mythx_cli.analysis.status import analysis_status
-from mythx_cli.analyze.command import analyze
 from mythx_cli.formatter import FORMAT_RESOLVER
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
-from mythx_cli.group.close import group_close
-from mythx_cli.group.list import group_list
-from mythx_cli.group.open import group_open
-from mythx_cli.group.status import group_status
-from mythx_cli.project import project_list
-from mythx_cli.render.command import render
 from mythx_cli.util import update_context
-from mythx_cli.version.command import version
 
 LOGGER = logging.getLogger("mythx-cli")
 logging.basicConfig(level=logging.WARNING)
@@ -61,66 +50,15 @@ class APIErrorCatcherGroup(click.Group):
     help="Provide additional debug output",
 )
 @click.option(
-    "--api-key", envvar="MYTHX_API_KEY", help="Your MythX API key from the dashboard"
-)
-@click.option(
-    "--username", envvar="MYTHX_USERNAME", help="Your MythX account's username"
-)
-@click.option(
-    "--password", envvar="MYTHX_PASSWORD", help="Your MythX account's password"
-)
-@click.option(
-    "--format",
-    "fmt",
-    default=None,
-    type=click.Choice(FORMAT_RESOLVER.keys()),
-    help="The format to display the results in",
-)
-@click.option(
-    "--ci",
-    is_flag=True,
-    default=None,
-    help="Return exit code 1 if high-severity issue is found",
-)
-@click.option(
-    "-y",
-    "--yes",
-    is_flag=True,
-    default=None,
-    help="Do not prompt for any confirmations",
-)
-@click.option(
-    "-o", "--output", default=None, help="Output file to write the results into"
-)
-@click.option(
     "-c",
     "--config",
     type=click.Path(exists=True),
     help="YAML config file for default parameters",
 )
 @click.option("--stdout", is_flag=True, default=False, help="Force printing to stdout")
-@click.option(
-    "--table-sort-key",
-    type=click.Choice(["line", "title", "severity", "description"]),
-    default="line",
-    help="The column to sort the default table output by",
-)
 @click.pass_context
-def cli(
-    ctx,
-    debug: bool,
-    api_key: str,
-    username: str,
-    password: str,
-    fmt: str,
-    ci: bool,
-    output: str,
-    yes: bool,
-    config: str,
-    stdout: bool,
-    table_sort_key: str,
-) -> None:
-    """Your CLI for interacting with https://mythx.io/
+def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
+    """Your CLI for interacting with https://fuzzing.diligence.tools
 
     \f
 
@@ -142,18 +80,7 @@ def cli(
         for name in logging.root.manager.loggerDict:
             logging.getLogger(name).setLevel(logging.DEBUG)
 
-    ctx.obj = {
-        "debug": debug,
-        "api_key": api_key,
-        "username": username,
-        "password": password,
-        "fmt": fmt,
-        "ci": ci,
-        "output": output,
-        "yes": yes,
-        "config": config,
-        "table_sort_key": table_sort_key,
-    }
+    ctx.obj = {"debug": debug, "config": config}
 
     LOGGER.debug("Initializing configuration context")
     config_file = config or ".mythx.yml"
@@ -170,121 +97,29 @@ def cli(
     ctx.obj["fuzz"] = parsed_config.get("fuzz", {})
 
     # overwrite context with top-level YAML config keys if necessary
-    update_context(ctx.obj, "ci", parsed_config, "ci", False)
-    if stdout:
-        # if forced stdout, don't set output file
-        ctx.obj["output"] = None
-    else:
-        update_context(ctx.obj, "output", parsed_config, "output", None)
-    update_context(ctx.obj, "fmt", parsed_config, "format", "table")
-    update_context(ctx.obj, "yes", parsed_config, "confirm", False)
-    update_context(ctx.obj, "table_sort_key", parsed_config, "table-sort-key", "line")
+    # update_context(ctx.obj, "ci", parsed_config, "ci", False)
+    # if stdout:
+    #     # if forced stdout, don't set output file
+    #     ctx.obj["output"] = None
+    # else:
+    #     update_context(ctx.obj, "output", parsed_config, "output", None)
+    # update_context(ctx.obj, "fmt", parsed_config, "format", "table")
+    # update_context(ctx.obj, "yes", parsed_config, "confirm", False)
+    # update_context(ctx.obj, "table_sort_key", parsed_config, "table-sort-key", "line")
 
     # set return value - used for CI failures
     ctx.obj["retval"] = 0
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
-    toolname_mw = ClientToolNameMiddleware(name="mythx-cli-{}".format(__version__))
-
-    if api_key is not None:
-        LOGGER.debug("Initializing client with API key")
-        ctx.obj["client"] = Client(api_key=api_key, middlewares=[toolname_mw])
-    elif username and password:
-        LOGGER.debug("Initializing client with username and password")
-        ctx.obj["client"] = Client(
-            username=username, password=password, middlewares=[toolname_mw]
-        )
-    elif "fuzz" not in sys.argv:
-        # fuzz subcommand is exempt from API auth
-        raise click.UsageError(
-            (
-                "The trial user has been deprecated. You can still use the MythX CLI for free "
-                "by signing up for a free account at https://mythx.io/ and entering your access "
-                "credentials."
-            )
-        )
 
 
 LOGGER.debug("Registering main commands")
-cli.add_command(analyze)
-cli.add_command(render)
-cli.add_command(version)
-
-
-@cli.group()
-def project() -> None:
-    """Create, modify, and view analysis projects.
-
-    \f
-
-    This subcommand holds all project-related actions, such as creating,
-    listing, and managing projects, as well as fetching the status of one
-    or more groups inside a project.
-    """
-    pass
-
-
-LOGGER.debug("Registering project commands")
-project.add_command(project_list)
-
-
-@cli.group()
-def group() -> None:
-    """Create, modify, and view analysis groups.
-
-    \f
-
-    This subcommand holds all group-related actions, such as creating,
-    listing, closing groups, as well as fetching the status of one
-    or more group IDs.
-    """
-    pass
-
-
-LOGGER.debug("Registering group commands")
-group.add_command(group_list)
-group.add_command(group_status)
-group.add_command(group_open)
-group.add_command(group_close)
-
-
-@cli.group()
-def analysis() -> None:
-    """Get information on running and finished analyses.
-
-    \f
-
-    This subcommand holds all analysis-related actions, such as submitting new
-    analyses, listing existing ones, fetching their status, as well as fetching
-    the reports of one or more finished analysis jobs.
-    """
-    pass
-
-
-LOGGER.debug("Registering analysis commands")
-analysis.add_command(analysis_status)
-analysis.add_command(analysis_list)
-analysis.add_command(analysis_report)
-
-
-@cli.group()
-def fuzz() -> None:
-    """Interact with the MythX FaaS solution.
-
-    \f
-
-    This subcommand holds all fuzz-related actions, such as initializing
-    new fuzzing campaigns, preparing projects for FaaS submission, and
-    launching new campaigns.
-    """
-    pass
 
 
 LOGGER.debug("Registering fuzz commands")
-fuzz.add_command(fuzz_run)
-fuzz.add_command(fuzz_arm)
-fuzz.add_command(fuzz_disarm)
-
+cli.add_command(fuzz_run)
+cli.add_command(fuzz_arm)
+cli.add_command(fuzz_disarm)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

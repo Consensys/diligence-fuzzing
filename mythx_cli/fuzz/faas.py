@@ -6,7 +6,7 @@ import string
 import requests
 from requests.structures import CaseInsensitiveDict
 
-from mythx_cli.analyze.scribble import ScribbleMixin
+from mythx_cli.fuzz.scribble import ScribbleMixin
 
 from .exceptions import (
     BadStatusCode,

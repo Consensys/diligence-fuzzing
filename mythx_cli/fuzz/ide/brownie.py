@@ -5,7 +5,7 @@ from typing import List
 from mythx_cli.fuzz.exceptions import BuildArtifactsError
 from mythx_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
 
-from ...util import sol_files_by_directory, get_content_from_file
+from ...util import get_content_from_file, sol_files_by_directory
 
 LOGGER = logging.getLogger("mythx-cli")
 
@@ -22,7 +22,9 @@ class BrownieArtifacts(IDEArtifacts):
         self._build_dir = build_dir or Path("./build/contracts")
         build_files_by_source_file = self._get_build_artifacts(self._build_dir)
 
-        self._contracts, self._sources = self.fetch_data(build_files_by_source_file, map_to_original_source)
+        self._contracts, self._sources = self.fetch_data(
+            build_files_by_source_file, map_to_original_source
+        )
 
     @property
     def contracts(self):
@@ -75,10 +77,15 @@ class BrownieArtifacts(IDEArtifacts):
                         "ast": target_file["ast"],
                     }
 
-                    if map_to_original_source and Path(source_file_dep+".original").is_file():
+                    if (
+                        map_to_original_source
+                        and Path(source_file_dep + ".original").is_file()
+                    ):
                         # we check if the current source file has a non instrumented version
                         # if it does, we include that one as the source code
-                        result_sources[source_file_dep]["source"] = get_content_from_file(source_file_dep+".original")
+                        result_sources[source_file_dep][
+                            "source"
+                        ] = get_content_from_file(source_file_dep + ".original")
         return result_contracts, result_sources
 
 

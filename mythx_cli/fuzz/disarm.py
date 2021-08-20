@@ -3,7 +3,7 @@ from typing import Tuple
 
 import click
 
-from mythx_cli.analyze.scribble import ScribbleMixin
+from mythx_cli.fuzz.scribble import ScribbleMixin
 
 LOGGER = logging.getLogger("mythx-cli")
 

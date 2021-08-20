@@ -115,7 +115,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
             if absolute_target
             else "contracts/MasterChefV2.sol"
         )
-        result = runner.invoke(cli, ["fuzz", "run", target])
+        result = runner.invoke(cli, ["run", target])
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"
@@ -178,7 +178,6 @@ def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
         result = runner.invoke(
             cli,
             [
-                "fuzz",
                 "run",
                 f"{tmp_path}/contracts/MasterChefV2.sol",
                 "-c",

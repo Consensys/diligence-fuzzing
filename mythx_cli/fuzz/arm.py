@@ -3,7 +3,7 @@ from typing import Tuple
 
 import click
 
-from mythx_cli.analyze.scribble import ScribbleMixin
+from mythx_cli.fuzz.scribble import ScribbleMixin
 
 LOGGER = logging.getLogger("mythx-cli")
 
@@ -33,7 +33,7 @@ LOGGER = logging.getLogger("mythx-cli")
 def fuzz_arm(
     ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str
 ) -> None:
-    """Prepare the target files for FaaS submission.
+    """Prepare the target files for Diligence Fuzzing API submission.
 
     \f
 
