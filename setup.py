@@ -23,7 +23,7 @@ setup(
     author_email="joao.santos@consensys.net",
     classifiers=[
         "Development Status :: 4 - Beta",
-        "License :: OSI Approved :: Apache-2.0",
+        "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
