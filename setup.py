@@ -19,11 +19,11 @@ setup_requirements = ["pytest-runner"]
 test_requirements = ["pytest"]
 
 setup(
-    author="Dominik Muhs",
-    author_email="dominik.muhs@consensys.net",
+    author="Dominik Muhs, João Santos",
+    author_email="joao.santos@consensys.net",
     classifiers=[
         "Development Status :: 4 - Beta",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache-2.0",
         "Natural Language :: English",
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
@@ -44,7 +44,7 @@ setup(
     description="A command line interface for the Diligence Fuzzing API",
     entry_points={"console_scripts": ["fuzz=mythx_cli.cli:cli"]},
     install_requires=requirements,
-    license="MIT license",
+    license="Apache-2.0 License",
     long_description=readme + "\n\n" + history,
     long_description_content_type="text/x-rst",
     include_package_data=True,
@@ -54,7 +54,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
-    url="https://github.com/dmuhs/mythx-cli",
+    url="https://github.com/ConsenSys/diligence-fuzzing",
     version="0.6.22",
     zip_safe=False,
 )
