@@ -1,13 +1,13 @@
-============================
+====================================
 A CLI for the Diligence Fuzzing API
-============================
+====================================
 
 This package aims to provide a simple to use command line interface for the `Diligence Fuzzing <https://consensys.net/diligence/fuzzing/>`_ smart contract
 security analysis API.
 
 
 What is Diligence Fuzzing?
---------------
+--------------------------
 
 Easy to use and powerful, Fuzzing as a Service enables users to find bugs immediately after writing their first specification!
 Smart contracts are increasingly complex programs that often hold and manage large amounts of assets. Developers should use tools to analyze their smart contracts before deploying them to find vulnerabilities open to exploitation.
