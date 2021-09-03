@@ -13,6 +13,10 @@ class FaaSError(Exception):
     pass
 
 
+class AuthorizationError(FaaSError):
+    pass
+
+
 # HTTP Requests
 
 

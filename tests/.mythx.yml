@@ -3,4 +3,4 @@ fuzz:
   number_of_cores: 1
   campaign_name_prefix: "brownie_test"
   rpc_url: "http://localhost:7545"
-  faas_url: "http://localhost:8080" 
+  faas_url: "http://localhost:8080"

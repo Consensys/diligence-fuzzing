@@ -13,7 +13,7 @@ from .exceptions import (
     CreateFaaSCampaignError,
     PayloadError,
     RequestError,
-    ScribbleMetaError,
+    ScribbleMetaError, AuthorizationError,
 )
 
 LOGGER = logging.getLogger("mythx-cli")
@@ -26,14 +26,36 @@ class FaasClient:
     API can consume and submits it, also triggering the start of a Campaign.
     """
 
-    def __init__(self, faas_url, campaign_name_prefix, project_type, api_key):
+    def __init__(
+        self,
+        faas_url,
+        campaign_name_prefix,
+        project_type,
+        api_key,
+        client_id,
+        refresh_token,
+        auth_endpoint,
+    ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
-        self.api_key = api_key
+        self.api_key = api_key or self.retrieve_api_key(client_id, refresh_token, auth_endpoint)
         self.headers = CaseInsensitiveDict()
         self.headers["Content-Type"] = "application/json"
         self.headers["Authorization"] = "Bearer " + str(self.api_key)
+
+    def retrieve_api_key(self, client_id, refresh_token, auth_endpoint):
+        response = requests.post(f"{auth_endpoint}/oauth/token", data={
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+            "refresh_token": refresh_token,
+        })
+        body = response.json()
+        if response.status_code != 200:
+            error = body.get("error", "")
+            description = body.get("error_description", "")
+            raise AuthorizationError(f"Authorization failed. Error: {error}", detail=description)
+        return body.get("access_token")
 
     def generate_campaign_name(self):
         """Return a random name with the provided prefix self.campaign_name_prefix."""
