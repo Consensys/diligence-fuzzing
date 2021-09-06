@@ -70,6 +70,8 @@ def generate_config_file(base_path="", not_include=[]):
         config_file += f"\n  build_directory: {base_path}/build"
     if "targets" not in not_include:
         config_file += f'\n  targets:\n    - "{base_path}/contracts"'
+    if "api_key" not in not_include:
+        config_file += f'\n  api_key:\n    - "test"'
     return config_file
 
 
@@ -79,7 +81,7 @@ def test_fuzz_no_build_dir(tmp_path):
         conf_f.write(generate_config_file(not_include=["build_directory"]))
 
     result = runner.invoke(cli, ["run", "contracts"])
-    assert "Error: build_directory not found on .mythx.yml config file" in result.output
+    assert "Build directory not provided. You need to set the `build_directory`" in result.output
     assert result.exit_code != 0
 
 
@@ -90,7 +92,7 @@ def test_fuzz_no_deployed_address(tmp_path):
 
     result = runner.invoke(cli, ["run", "contracts"])
     assert (
-        "Error: deployed_contract_address not found on .mythx.yml config file."
+        "Deployed contract address not provided. You need to provide an address"
         in result.output
     )
     assert result.exit_code != 0

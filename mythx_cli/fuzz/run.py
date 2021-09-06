@@ -43,15 +43,33 @@ def determine_ide() -> IDE:
     return IDE.SOLIDITY
 
 
+def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
+    try:
+        contract_code_response = rpc_client.contract_exists(deployed_contract_address)
+    except RPCCallError as e:
+        raise click.exceptions.UsageError(f"RPC endpoint." f"\n{e}")
+
+    if not contract_code_response:
+        LOGGER.warning(f"Contract code not found")
+        raise click.exceptions.ClickException(
+            f"Unable to find a contract deployed at {deployed_contract_address}."
+        )
+
+
 @click.command("run")
-@click.argument("target", default=None, nargs=-1, required=False)
+@click.argument("target", default=None, nargs=-1)
 @click.option(
-    "-a", "--address", type=click.STRING, help="Address of the main contract to analyze"
+    "-a",
+    "--address",
+    type=click.STRING,
+    default=None,
+    help="Address of the main contract to analyze",
 )
 @click.option(
     "-m",
     "--more-addresses",
     type=click.STRING,
+    default=None,
     help="Addresses of other contracts to analyze, separated by commas",
 )
 @click.option(
@@ -61,13 +79,13 @@ def determine_ide() -> IDE:
     help="Project UUID, Campaign UUID or Corpus UUID to reuse the corpus from. "
     "In case of a project, corpus from the project's latest submitted campaign will be used",
     default=None,
-    required=False,
 )
 @click.option(
     "-s",
     "--map-to-original-source",
     is_flag=True,
     default=False,
+    required=False,
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
 )
@@ -81,70 +99,53 @@ def determine_ide() -> IDE:
     "-k",
     "--api-key",
     type=click.STRING,
-    help="API key, can be created on the FaaS Dashboard. ",
     default=None,
-    required=False,
+    help="API key, can be created on the FaaS Dashboard. ",
 )
 @click.option(
     "-r",
     "--refresh-token",
     type=click.STRING,
-    help="Refresh Token, can be created on the FaaS Dashboard. ",
     default=None,
-    required=False,
-)
-@click.option(
-    "-e",
-    "--auth-endpoint",
-    type=click.STRING,
-    help="Authorization Endpoint",
-    default="https://diligence.us.auth0.com",
-    required=False,
+    help="Refresh Token, can be created on the FaaS Dashboard. ",
 )
 @click.pass_obj
 def fuzz_run(
     ctx,
+    target,
     address,
     more_addresses,
     corpus_target,
-    map_to_original_source,
     dry_run,
     api_key,
-    target,
+    refresh_token,
+    map_to_original_source,
 ):
     analyze_config = ctx.get("fuzz")
-    auth_endpoint, auth_client_id, refresh_token = analyze_config.get("refresh_token", "::::")
+    # format is "<auth_endpoint>::<client_id>::<refresh_token>"
+    _refresh_token: str = refresh_token or analyze_config.get("refresh_token", "::::")
+    auth_endpoint, auth_client_id, refresh_token = _refresh_token.split("::")
     options = FuzzingOptions(**{
-        "build_directory": analyze_config["build_directory"],
-        "deployed_contract_address": address or analyze_config["deployed_contract_address"],
-        "target": target or analyze_config["target"],
-        "targets": analyze_config["targets"],
-        "map_to_original_source": analyze_config["map_to_original_source"],
-        "rpc_url": analyze_config["rpc_url"],
-        "faas_url": analyze_config["faas_url"],
-        "number_of_cores": int(analyze_config["number_of_cores"]),
-        "campaign_name_prefix": analyze_config["campaign_name_prefix"],
-        "corpus_target": corpus_target or analyze_config["corpus_target"],
-        "additional_contracts_addresses": more_addresses or analyze_config["additional_contracts_addresses"],
-        "dry_run": dry_run or analyze_config["dry_run"],
+        "build_directory": analyze_config.get("build_directory"),
+        "deployed_contract_address": address or analyze_config.get("deployed_contract_address"),
+        "target": target or analyze_config.get("targets"),
+        "map_to_original_source":  map_to_original_source,
+        "rpc_url": analyze_config.get("rpc_url"),
+        "faas_url": analyze_config.get("faas_url"),
+        "number_of_cores": analyze_config.get("number_of_cores"),
+        "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
+        "corpus_target": corpus_target or analyze_config.get("corpus_target"),
+        "additional_contracts_addresses": more_addresses or analyze_config.get("additional_contracts_addresses"),
+        "dry_run": dry_run,
         "auth_endpoint": auth_endpoint,
         "refresh_token": refresh_token,
         "auth_client_id": auth_client_id,
-        "api_key": analyze_config["api_key"],
+        "api_key": api_key or analyze_config.get("api_key"),
     })
 
     rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
     if not options.corpus_target:
-        try:
-            contract_code_response = rpc_client.contract_exists(options.deployed_contract_address)
-        except RPCCallError as e:
-            raise click.exceptions.UsageError(f"RPC endpoint." f"\n{e}")
-
-        if not contract_code_response:
-            LOGGER.warning(f"Contract code not found")
-            raise click.exceptions.ClickException(
-                f"Unable to find a contract deployed at {options.deployed_contract_address}."
-            )
+        check_contract(rpc_client, options.deployed_contract_address)
 
     seed_state = rpc_client.get_seed_state(
         options.deployed_contract_address,
@@ -156,14 +157,14 @@ def fuzz_run(
 
     if ide == IDE.BROWNIE:
         artifacts = BrownieJob(
-            [options.target] if options.target else options.targets,
+            options.target,
             Path(options.build_directory),
             map_to_original_source=options.map_to_original_source,
         )
         artifacts.generate_payload()
     elif ide == IDE.HARDHAT:
         artifacts = HardhatJob(
-            [options.target] if options.target else options.targets,
+            options.target,
             Path(options.build_directory),
             map_to_original_source=options.map_to_original_source,
         )
@@ -171,7 +172,7 @@ def fuzz_run(
     elif ide == IDE.TRUFFLE:
         artifacts = TruffleJob(
             str(Path.cwd().absolute()),
-            [options.target] if options.target else options.targets,
+            options.target,
             Path(options.build_directory),
         )
         artifacts.generate_payload()

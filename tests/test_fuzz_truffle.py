@@ -61,6 +61,8 @@ def generate_config_file(base_path="", not_include=[]):
         config_file += f"\n  build_directory: {base_path}/build"
     if "targets" not in not_include:
         config_file += f'\n  targets:\n    - "{base_path}/contracts/MasterChefV2.sol"'
+    if "api_key" not in not_include:
+        config_file += f'\n  api_key:\n    - "test"'
     return config_file
 
 
@@ -73,7 +75,7 @@ def test_fuzz_run(tmp_path, truffle_project, absolute_target):
         )
 
     with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+        conf_f.write(generate_config_file(base_path=tmp_path, not_include=["api_key"]))
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -120,7 +122,7 @@ def test_fuzz_run(tmp_path, truffle_project, absolute_target):
             else "contracts/sample.sol"
         )
         cwd = os.getcwd()
-        result = runner.invoke(cli, ["run", target])
+        result = runner.invoke(cli, ["run", target, "--api-key", "test"])
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"

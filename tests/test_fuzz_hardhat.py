@@ -81,6 +81,8 @@ def generate_config_file(base_path="", not_include=[]):
         config_file += f"\n  build_directory: {base_path}/artifacts"
     if "targets" not in not_include:
         config_file += f'\n  targets:\n    - "{base_path}/contracts/MasterChefV2.sol"'
+    if "api_key" not in not_include:
+        config_file += f'\n  api_key:\n    - "test"'
     return config_file
 
 
