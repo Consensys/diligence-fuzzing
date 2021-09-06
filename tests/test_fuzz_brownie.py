@@ -81,7 +81,10 @@ def test_fuzz_no_build_dir(tmp_path):
         conf_f.write(generate_config_file(not_include=["build_directory"]))
 
     result = runner.invoke(cli, ["run", "contracts"])
-    assert "Build directory not provided. You need to set the `build_directory`" in result.output
+    assert (
+        "Build directory not provided. You need to set the `build_directory`"
+        in result.output
+    )
     assert result.exit_code != 0
 
 

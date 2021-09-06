@@ -9,11 +9,12 @@ from requests.structures import CaseInsensitiveDict
 from mythx_cli.fuzz.scribble import ScribbleMixin
 
 from .exceptions import (
+    AuthorizationError,
     BadStatusCode,
     CreateFaaSCampaignError,
     PayloadError,
     RequestError,
-    ScribbleMetaError, AuthorizationError,
+    ScribbleMetaError,
 )
 
 LOGGER = logging.getLogger("mythx-cli")
@@ -39,22 +40,29 @@ class FaasClient:
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
-        self.api_key = api_key or self.retrieve_api_key(client_id, refresh_token, auth_endpoint)
+        self.api_key = api_key or self.retrieve_api_key(
+            client_id, refresh_token, auth_endpoint
+        )
         self.headers = CaseInsensitiveDict()
         self.headers["Content-Type"] = "application/json"
         self.headers["Authorization"] = "Bearer " + str(self.api_key)
 
     def retrieve_api_key(self, client_id, refresh_token, auth_endpoint):
-        response = requests.post(f"{auth_endpoint}/oauth/token", data={
-            "grant_type": "refresh_token",
-            "client_id": client_id,
-            "refresh_token": refresh_token,
-        })
+        response = requests.post(
+            f"{auth_endpoint}/oauth/token",
+            data={
+                "grant_type": "refresh_token",
+                "client_id": client_id,
+                "refresh_token": refresh_token,
+            },
+        )
         body = response.json()
         if response.status_code != 200:
             error = body.get("error", "")
             description = body.get("error_description", "")
-            raise AuthorizationError(f"Authorization failed. Error: {error}", detail=description)
+            raise AuthorizationError(
+                f"Authorization failed. Error: {error}", detail=description
+            )
         return body.get("access_token")
 
     def generate_campaign_name(self):

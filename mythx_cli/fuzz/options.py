@@ -48,9 +48,7 @@ class FuzzingOptions:
                 "on the `fuzz` key of your .mythx.yml config file."
             )
         if not self.api_key and (
-            not self.refresh_token or
-            not self.auth_client_id or
-            not self.auth_endpoint
+            not self.refresh_token or not self.auth_client_id or not self.auth_endpoint
         ):
             raise click.exceptions.UsageError(
                 "API key or Refresh Token were not provided. You need to provide either an API key or a Refresh Token"

@@ -12,8 +12,8 @@ from mythx_cli.fuzz.ide.hardhat import HardhatJob
 from .exceptions import BadStatusCode, RPCCallError
 from .faas import FaasClient
 from .ide.truffle import TruffleJob
-from .rpc import RPCClient
 from .options import FuzzingOptions
+from .rpc import RPCClient
 
 LOGGER = logging.getLogger("mythx-cli")
 
@@ -125,23 +125,27 @@ def fuzz_run(
     # format is "<auth_endpoint>::<client_id>::<refresh_token>"
     _refresh_token: str = refresh_token or analyze_config.get("refresh_token", "::::")
     auth_endpoint, auth_client_id, refresh_token = _refresh_token.split("::")
-    options = FuzzingOptions(**{
-        "build_directory": analyze_config.get("build_directory"),
-        "deployed_contract_address": address or analyze_config.get("deployed_contract_address"),
-        "target": target or analyze_config.get("targets"),
-        "map_to_original_source":  map_to_original_source,
-        "rpc_url": analyze_config.get("rpc_url"),
-        "faas_url": analyze_config.get("faas_url"),
-        "number_of_cores": analyze_config.get("number_of_cores"),
-        "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
-        "corpus_target": corpus_target or analyze_config.get("corpus_target"),
-        "additional_contracts_addresses": more_addresses or analyze_config.get("additional_contracts_addresses"),
-        "dry_run": dry_run,
-        "auth_endpoint": auth_endpoint,
-        "refresh_token": refresh_token,
-        "auth_client_id": auth_client_id,
-        "api_key": api_key or analyze_config.get("api_key"),
-    })
+    options = FuzzingOptions(
+        **{
+            "build_directory": analyze_config.get("build_directory"),
+            "deployed_contract_address": address
+            or analyze_config.get("deployed_contract_address"),
+            "target": target or analyze_config.get("targets"),
+            "map_to_original_source": map_to_original_source,
+            "rpc_url": analyze_config.get("rpc_url"),
+            "faas_url": analyze_config.get("faas_url"),
+            "number_of_cores": analyze_config.get("number_of_cores"),
+            "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
+            "corpus_target": corpus_target or analyze_config.get("corpus_target"),
+            "additional_contracts_addresses": more_addresses
+            or analyze_config.get("additional_contracts_addresses"),
+            "dry_run": dry_run,
+            "auth_endpoint": auth_endpoint,
+            "refresh_token": refresh_token,
+            "auth_client_id": auth_client_id,
+            "api_key": api_key or analyze_config.get("api_key"),
+        }
+    )
 
     rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
     if not options.corpus_target:
@@ -171,9 +175,7 @@ def fuzz_run(
         artifacts.generate_payload()
     elif ide == IDE.TRUFFLE:
         artifacts = TruffleJob(
-            str(Path.cwd().absolute()),
-            options.target,
-            Path(options.build_directory),
+            str(Path.cwd().absolute()), options.target, Path(options.build_directory)
         )
         artifacts.generate_payload()
     else:
@@ -196,7 +198,10 @@ def fuzz_run(
             campaign_data=artifacts, seed_state=seed_state, dry_run=options.dry_run
         )
         click.echo(
-            "You can view campaign here: " + options.faas_url + "/campaigns/" + str(campaign_id)
+            "You can view campaign here: "
+            + options.faas_url
+            + "/campaigns/"
+            + str(campaign_id)
         )
     except BadStatusCode as e:
         raise click.exceptions.UsageError(
