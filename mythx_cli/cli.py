@@ -5,15 +5,14 @@ from pathlib import Path
 
 import click
 import yaml
-from pythx import Client, MythXAPIError
-from pythx.middleware.toolname import ClientToolNameMiddleware
+from pythx import MythXAPIError
 
 from mythx_cli import __version__
+# DO NOT EDIT!! Breaks the app
 from mythx_cli.formatter import FORMAT_RESOLVER
 from mythx_cli.fuzz.arm import fuzz_arm
 from mythx_cli.fuzz.disarm import fuzz_disarm
 from mythx_cli.fuzz.run import fuzz_run
-from mythx_cli.util import update_context
 
 LOGGER = logging.getLogger("mythx-cli")
 logging.basicConfig(level=logging.WARNING)

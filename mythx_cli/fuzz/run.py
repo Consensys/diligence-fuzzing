@@ -122,28 +122,31 @@ def fuzz_run(
     map_to_original_source,
 ):
     analyze_config = ctx.get("fuzz")
-    # format is "<auth_endpoint>::<client_id>::<refresh_token>"
-    _refresh_token: str = refresh_token or analyze_config.get("refresh_token", "::::")
-    auth_endpoint, auth_client_id, refresh_token = _refresh_token.split("::")
     options = FuzzingOptions(
         **{
-            "build_directory": analyze_config.get("build_directory"),
-            "deployed_contract_address": address
-            or analyze_config.get("deployed_contract_address"),
-            "target": target or analyze_config.get("targets"),
-            "map_to_original_source": map_to_original_source,
-            "rpc_url": analyze_config.get("rpc_url"),
-            "faas_url": analyze_config.get("faas_url"),
-            "number_of_cores": analyze_config.get("number_of_cores"),
-            "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
-            "corpus_target": corpus_target or analyze_config.get("corpus_target"),
-            "additional_contracts_addresses": more_addresses
-            or analyze_config.get("additional_contracts_addresses"),
-            "dry_run": dry_run,
-            "auth_endpoint": auth_endpoint,
-            "refresh_token": refresh_token,
-            "auth_client_id": auth_client_id,
-            "api_key": api_key or analyze_config.get("api_key"),
+            k: v
+            for k, v in (
+                {
+                    "build_directory": analyze_config.get("build_directory"),
+                    "deployed_contract_address": address
+                    or analyze_config.get("deployed_contract_address"),
+                    "target": target or analyze_config.get("targets"),
+                    "map_to_original_source": map_to_original_source,
+                    "rpc_url": analyze_config.get("rpc_url"),
+                    "faas_url": analyze_config.get("faas_url"),
+                    "number_of_cores": analyze_config.get("number_of_cores"),
+                    "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
+                    "corpus_target": corpus_target
+                    or analyze_config.get("corpus_target"),
+                    "additional_contracts_addresses": more_addresses
+                    or analyze_config.get("additional_contracts_addresses"),
+                    "dry_run": dry_run,
+                    "refresh_token": refresh_token
+                    or analyze_config.get("refresh_token"),
+                    "api_key": api_key or analyze_config.get("api_key"),
+                }
+            ).items()
+            if v is not None
         }
     )
 

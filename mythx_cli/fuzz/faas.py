@@ -49,7 +49,7 @@ class FaasClient:
 
     def retrieve_api_key(self, client_id, refresh_token, auth_endpoint):
         response = requests.post(
-            f"{auth_endpoint}/oauth/token",
+            f"https://{auth_endpoint}/oauth/token",
             data={
                 "grant_type": "refresh_token",
                 "client_id": client_id,

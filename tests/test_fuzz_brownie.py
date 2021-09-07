@@ -1,6 +1,4 @@
 import json
-import os
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -13,72 +11,15 @@ from mythx_cli.fuzz.exceptions import RequestError
 from mythx_cli.fuzz.faas import FaasClient
 from mythx_cli.fuzz.rpc import RPCClient
 
-from .common import get_test_case
+from .common import get_test_case, write_config
 
-BROWNIE_ARTIFACT = get_test_case("testdata/brownie-artifact.json")
-GANACHE_URL = "http://localhost:9898"
 FAAS_URL = "http://localhost:9899"
-
-INSTRUMENTED_SOL_CODE = "sol code here"
 ORIGINAL_SOL_CODE = "original sol code here"
-
-
-@pytest.fixture()
-def brownie_project(tmp_path, switch_dir=False):
-    # switch to temp dir if requested
-    if switch_dir:
-        os.chdir(str(tmp_path))
-
-    # add brownie project structure
-    os.makedirs(str(tmp_path / "build/contracts/"))
-    os.makedirs(str(tmp_path / "contracts/"))
-
-    with open("./brownie-config.yaml", "w+") as config_f:
-        json.dump("sample", config_f)
-
-    # patch brownie artifact with temp path
-    BROWNIE_ARTIFACT["allSourcePaths"][0] = f"{tmp_path}/contracts/sample.sol"
-    BROWNIE_ARTIFACT["sourcePath"] = f"{tmp_path}/contracts/sample.sol"
-
-    # add sample brownie artifact
-    with open(tmp_path / "build/contracts/Foo.json", "w+") as artifact_f:
-        json.dump(BROWNIE_ARTIFACT, artifact_f)
-    with open(tmp_path / "contracts/sample.sol", "w+") as sol_f:
-        sol_f.write(INSTRUMENTED_SOL_CODE)
-    with open(tmp_path / "contracts/sample.sol.original", "w+") as sol_f:
-        sol_f.write(ORIGINAL_SOL_CODE)
-
-    yield None
-    # cleaning up test files
-    os.remove(str(Path("./brownie-config.yaml").absolute()))
-
-
-def generate_config_file(base_path="", not_include=[]):
-    config_file = "fuzz:"
-
-    if "deployed_contract_address" not in not_include:
-        config_file += '\n  deployed_contract_address: "0x7277646075fa72737e1F6114654C5d9949a67dF2"'
-    if "number_of_cores" not in not_include:
-        config_file += "\n  number_of_cores: 1"
-    if "campaign_name_prefix" not in not_include:
-        config_file += '\n  campaign_name_prefix: "brownie_test"'
-    if "rpc_url" not in not_include:
-        config_file += f'\n  rpc_url: "{GANACHE_URL}"'
-    if "faas_url" not in not_include:
-        config_file += f'\n  faas_url: "{FAAS_URL}"'
-    if "build_directory" not in not_include:
-        config_file += f"\n  build_directory: {base_path}/build"
-    if "targets" not in not_include:
-        config_file += f'\n  targets:\n    - "{base_path}/contracts"'
-    if "api_key" not in not_include:
-        config_file += f'\n  api_key:\n    - "test"'
-    return config_file
 
 
 def test_fuzz_no_build_dir(tmp_path):
     runner = CliRunner()
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(not_include=["build_directory"]))
+    write_config(not_include=["build_directory"])
 
     result = runner.invoke(cli, ["run", "contracts"])
     assert (
@@ -90,8 +31,7 @@ def test_fuzz_no_build_dir(tmp_path):
 
 def test_fuzz_no_deployed_address(tmp_path):
     runner = CliRunner()
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(not_include=["deployed_contract_address"]))
+    write_config(not_include=["deployed_contract_address"])
 
     result = runner.invoke(cli, ["run", "contracts"])
     assert (
@@ -103,8 +43,7 @@ def test_fuzz_no_deployed_address(tmp_path):
 
 def test_fuzz_no_target(tmp_path):
     runner = CliRunner()
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(not_include=["targets"]))
+    write_config(not_include=["targets"])
 
     result = runner.invoke(cli, ["run"])
     assert "Error: Target not provided." in result.output
@@ -112,8 +51,7 @@ def test_fuzz_no_target(tmp_path):
 
 
 def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -133,9 +71,7 @@ def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
 
 
 def test_faas_not_running(tmp_path, brownie_project):
-
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -167,8 +103,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
     from the config file. This is possible because the faas not running error is triggered
     after the Target check. If the target was not available, a different error would be thrown
     and the test would fail"""
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -197,8 +132,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
 
 
 def test_rpc_not_running(tmp_path):
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(requests, "request") as requests_mock:
         requests_mock.side_effect = RequestException()
@@ -211,8 +145,7 @@ def test_rpc_not_running(tmp_path):
 
 
 def test_fuzz_run(tmp_path, brownie_project):
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -271,8 +204,7 @@ def test_fuzz_run(tmp_path, brownie_project):
 
 
 def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(base_path=str(tmp_path))
 
     with patch.object(
         RPCClient, "contract_exists"

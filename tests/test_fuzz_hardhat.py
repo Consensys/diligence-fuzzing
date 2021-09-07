@@ -1,6 +1,4 @@
 import json
-import os
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -10,80 +8,9 @@ from mythx_cli.cli import cli
 from mythx_cli.fuzz.faas import FaasClient
 from mythx_cli.fuzz.rpc import RPCClient
 
-from .common import get_test_case
+from .common import get_test_case, write_config
 
-HARDHAT_ARTIFACT = get_test_case("testdata/hardhat-artifact.json")
-HARDHAT_BUILD_INFO_ARTIFACT = get_test_case("testdata/hardhat-build-info-artifact.json")
-GANACHE_URL = "http://localhost:9898"
 FAAS_URL = "http://localhost:9899"
-
-INSTRUMENTED_SOL_CODE = "sol code here"
-ORIGINAL_SOL_CODE = "original sol code here"
-
-
-@pytest.fixture()
-def hardhat_project(tmp_path, request):
-    # switch to temp dir if requested
-    if hasattr(request, "param") and request.param:
-        os.chdir(str(tmp_path))
-
-    # add hardhat project structure
-    os.makedirs(str(tmp_path / "artifacts/contracts/MasterChefV2.sol/"))
-    os.makedirs(str(tmp_path / "artifacts/build-info/"))
-    os.makedirs(str(tmp_path / "contracts"))
-
-    # add sample brownie artifact
-    with open(
-        tmp_path / "artifacts/build-info/b78e6e91d6666dbbf407d4a383cd8177.json", "w+"
-    ) as artifact_f:
-        json.dump(HARDHAT_BUILD_INFO_ARTIFACT, artifact_f)
-
-    with open("./hardhat.config.ts", "w+") as config_f:
-        json.dump("sample", config_f)
-
-    for filename, content in HARDHAT_ARTIFACT.items():
-        with open(
-            tmp_path / f"artifacts/contracts/MasterChefV2.sol/{filename}.json", "w+"
-        ) as sol_f:
-            json.dump(content, sol_f)
-
-    with open(tmp_path / "contracts/MasterChefV2.sol", "w+") as sol_f:
-        sol_f.write(INSTRUMENTED_SOL_CODE)
-
-    with open(tmp_path / "contracts/sample.sol", "w+") as sol_f:
-        sol_f.write(INSTRUMENTED_SOL_CODE)
-
-    with open(tmp_path / "contracts/MasterChefV2.sol.original", "w+") as sol_f:
-        sol_f.write(ORIGINAL_SOL_CODE)
-
-    with open(tmp_path / "contracts/sample.sol.original", "w+") as sol_f:
-        sol_f.write(ORIGINAL_SOL_CODE)
-
-    yield {"switch_dir": hasattr(request, "param") and request.param}
-
-    os.remove(Path("./hardhat.config.ts").absolute())
-
-
-def generate_config_file(base_path="", not_include=[]):
-    config_file = "fuzz:"
-
-    if "deployed_contract_address" not in not_include:
-        config_file += '\n  deployed_contract_address: "0x7277646075fa72737e1F6114654C5d9949a67dF2"'
-    if "number_of_cores" not in not_include:
-        config_file += "\n  number_of_cores: 1"
-    if "campaign_name_prefix" not in not_include:
-        config_file += '\n  campaign_name_prefix: "hardhat_test"'
-    if "rpc_url" not in not_include:
-        config_file += f'\n  rpc_url: "{GANACHE_URL}"'
-    if "faas_url" not in not_include:
-        config_file += f'\n  faas_url: "{FAAS_URL}"'
-    if "build_directory" not in not_include:
-        config_file += f"\n  build_directory: {base_path}/artifacts"
-    if "targets" not in not_include:
-        config_file += f'\n  targets:\n    - "{base_path}/contracts/MasterChefV2.sol"'
-    if "api_key" not in not_include:
-        config_file += f'\n  api_key:\n    - "test"'
-    return config_file
 
 
 @pytest.mark.parametrize("absolute_target", [True, False])
@@ -94,8 +21,11 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
             "absolute_target=False, hardhat_project=False through parametrization"
         )
 
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(
+        base_path=str(tmp_path),
+        build_directory="artifacts",
+        targets="contracts/MasterChefV2.sol",
+    )
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -159,8 +89,11 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
 
 
 def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
-    with open(".mythx.yml", "w+") as conf_f:
-        conf_f.write(generate_config_file(base_path=tmp_path))
+    write_config(
+        base_path=str(tmp_path),
+        build_directory="artifacts",
+        targets="contracts/MasterChefV2.sol",
+    )
 
     with patch.object(
         RPCClient, "contract_exists"
