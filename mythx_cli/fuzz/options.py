@@ -1,4 +1,5 @@
-from typing import List, Optional
+import base64
+from typing import List, Optional, Tuple
 
 import click
 
@@ -40,9 +41,31 @@ class FuzzingOptions:
         self.validate(refresh_token)
 
         if not api_key:
-            self.auth_endpoint, self.auth_client_id, self.refresh_token = refresh_token.split(
-                "::"
+            self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
+                refresh_token
             )
+
+    @staticmethod
+    def _decode_refresh_token(refresh_token: str) -> Tuple[str, str, str]:
+        error_message = (
+            "Refresh Token is malformed. The format is `<auth_data>::<refresh_token>`"
+        )
+        # format is "<auth_data>::<refresh_token>"
+        if refresh_token.count("::") != 1:
+            raise click.exceptions.UsageError(error_message)
+        data, rt = refresh_token.split("::")
+        if not data or not rt:
+            raise click.exceptions.UsageError(error_message)
+        try:
+            decoded_data = base64.b64decode(data).decode()
+        except:
+            raise click.exceptions.UsageError(error_message)
+        if decoded_data.count("::") != 1:
+            raise click.exceptions.UsageError(error_message)
+        client_id, endpoint = decoded_data.split("::")
+        if not client_id or not endpoint:
+            raise click.exceptions.UsageError(error_message)
+        return endpoint, client_id, rt
 
     def validate(self, refresh_token: str):
         if not self.build_directory:
@@ -56,15 +79,6 @@ class FuzzingOptions:
                 "as the `--api-key` or `--refresh-token` parameters respectively of the fuzz run command"
                 "or set `api_key` or `refresh_token` on the `fuzz` key of your .mythx.yml config file."
             )
-        if not self.api_key and refresh_token:
-            error_message = "Refresh Token is malformed. The format is `<auth_endpoint>::<client_id>::<refresh_token>`"
-            # format is "<auth_endpoint>::<client_id>::<refresh_token>"
-            delimiters_count = refresh_token.count("::")
-            if delimiters_count < 2:
-                raise click.exceptions.UsageError(error_message)
-            a, b, c = refresh_token.split("::")
-            if not a or not b or not c:
-                raise click.exceptions.UsageError(error_message)
         if not self.deployed_contract_address:
             raise click.exceptions.UsageError(
                 "Deployed contract address not provided. You need to provide an address as the `--address` "

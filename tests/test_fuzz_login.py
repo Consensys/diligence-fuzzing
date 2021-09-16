@@ -10,7 +10,9 @@ from mythx_cli.fuzz.rpc import RPCClient
 from mythx_cli.fuzz.run import IDE
 from tests.common import write_config
 
-REFRESH_TOKEN_MALFORMED_ERROR = "Refresh Token is malformed. The format is `<auth_endpoint>::<client_id>::<refresh_token>`"
+REFRESH_TOKEN_MALFORMED_ERROR = (
+    "Refresh Token is malformed. The format is `<auth_data>::<refresh_token>`"
+)
 
 
 def test_no_keys(tmp_path, truffle_project):
@@ -39,7 +41,7 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
                 "run",
                 f"{tmp_path}/contracts",
                 f"--{key_type.replace('_', '-')}",
-                "test::1::2",
+                "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
             ],
         )
     else:
@@ -58,7 +60,17 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
 @patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
 @patch(target="mythx_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
-    "refresh_token", ["test::1", "test", "test::::2", "::1::2", "::::2", "1::::"]
+    "refresh_token",
+    [
+        "test",
+        "Y2xpZW50X2lkOjphdXRoX2VuZHBvaW50",  # |client_id::auth_endpoint|
+        "Y2xpZW50X2lkOjphdXRoX2VuZHBvaW50::",  # |client_id::auth_endpoint|
+        "::refresh_token",
+        "bHd3dWhzNG81N1ZXN3JZeU5uOUpKWXRXenZJaTJMTEI6Og==::refresh_token",  # |client_id::|::refresh_token
+        "bHd3dWhzNG81N1ZXN3JZeU5uOUpKWXRXenZJaTJMTEI=::refresh_token",  # |client_id|::refresh_token
+        "Ojpsd3d1aHM0bzU3Vlc3cll5Tm45SkpZdFd6dklpMkxMQg==::refresh_token",  # |::auth_endpoint|::refresh_token
+        "Ojpsd3d1aHM0bzU3Vlc3cll5Tm45SkpZdFd6dklpMkxMQg::refresh_token",  # wrongly padded base64 string
+    ],
 )
 def test_wrong_refresh_token(refresh_token: str, tmp_path):
     runner = CliRunner()
@@ -98,7 +110,7 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
             "run",
             f"{tmp_path}/contracts",
             "--refresh-token",
-            "example-us.com::test-ci::test-rt",
+            "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::test-rt",
         ],
     )
 
@@ -108,3 +120,11 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
     else:
         assert result.exit_code == 0
         assert "You can view campaign here:" in result.output
+
+    req = requests_mock.last_request
+    assert req.method == "POST"
+    assert req.url == "https://example-us.com/oauth/token"
+    assert (
+        req.text
+        == "grant_type=refresh_token&client_id=test-client-123&refresh_token=test-rt"
+    )

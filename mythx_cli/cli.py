@@ -8,6 +8,7 @@ import yaml
 from pythx import MythXAPIError
 
 from mythx_cli import __version__
+
 # DO NOT EDIT!! Breaks the app
 from mythx_cli.formatter import FORMAT_RESOLVER
 from mythx_cli.fuzz.arm import fuzz_arm

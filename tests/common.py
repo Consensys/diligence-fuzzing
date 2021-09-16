@@ -156,7 +156,9 @@ def generate_mythx_config(
         config_file += f'\n  targets:\n    - "{base_path}/{targets}"'
 
     if add_refresh_token:
-        config_file += f'\n  refresh_token: "test::1::2"'
+        config_file += (
+            f'\n  refresh_token: "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
+        )
 
     return config_file
 
