@@ -104,3 +104,4 @@ ENV/
 .vscode/
 
 .mythx.yml
+.DS_Store

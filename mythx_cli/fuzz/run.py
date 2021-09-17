@@ -12,6 +12,7 @@ from mythx_cli.fuzz.ide.hardhat import HardhatJob
 from .exceptions import BadStatusCode, RPCCallError
 from .faas import FaasClient
 from .ide.truffle import TruffleJob
+from .options import FuzzingOptions
 from .rpc import RPCClient
 
 LOGGER = logging.getLogger("mythx-cli")
@@ -42,15 +43,33 @@ def determine_ide() -> IDE:
     return IDE.SOLIDITY
 
 
+def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
+    try:
+        contract_code_response = rpc_client.contract_exists(deployed_contract_address)
+    except RPCCallError as e:
+        raise click.exceptions.UsageError(f"RPC endpoint." f"\n{e}")
+
+    if not contract_code_response:
+        LOGGER.warning(f"Contract code not found")
+        raise click.exceptions.ClickException(
+            f"Unable to find a contract deployed at {deployed_contract_address}."
+        )
+
+
 @click.command("run")
-@click.argument("target", default=None, nargs=-1, required=False)
+@click.argument("target", default=None, nargs=-1)
 @click.option(
-    "-a", "--address", type=click.STRING, help="Address of the main contract to analyze"
+    "-a",
+    "--address",
+    type=click.STRING,
+    default=None,
+    help="Address of the main contract to analyze",
 )
 @click.option(
     "-m",
     "--more-addresses",
     type=click.STRING,
+    default=None,
     help="Addresses of other contracts to analyze, separated by commas",
 )
 @click.option(
@@ -60,13 +79,13 @@ def determine_ide() -> IDE:
     help="Project UUID, Campaign UUID or Corpus UUID to reuse the corpus from. "
     "In case of a project, corpus from the project's latest submitted campaign will be used",
     default=None,
-    required=False,
 )
 @click.option(
     "-s",
     "--map-to-original-source",
     is_flag=True,
     default=False,
+    required=False,
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
 )
@@ -80,142 +99,97 @@ def determine_ide() -> IDE:
     "-k",
     "--api-key",
     type=click.STRING,
-    help="API key, can be created on the FaaS Dashboard. ",
     default=None,
-    required=False,
+    help="API key, can be created on the FaaS Dashboard. ",
+)
+@click.option(
+    "-r",
+    "--refresh-token",
+    type=click.STRING,
+    default=None,
+    help="Refresh Token, can be created on the FaaS Dashboard. ",
+)
+@click.option(
+    "-p",
+    "--project",
+    type=click.STRING,
+    default=None,
+    help="The project name this campaign will be attached to. You can use the project name or the project id."
+    "Alternatively, you may also configure the 'project' field in the .mythx.yml configuration file."
+    "If no project is configured the scan will be attached to the 'Default Project'.",
 )
 @click.pass_obj
 def fuzz_run(
     ctx,
+    target,
     address,
     more_addresses,
     corpus_target,
-    map_to_original_source,
     dry_run,
     api_key,
-    target,
+    refresh_token,
+    map_to_original_source,
+    project
 ):
-    # read YAML config params from ctx dict, e.g. ganache rpc url
-    #   Introduce a separate `fuzz` section in the YAML file
-
-    # construct seed state from ganache
-
-    # construct the FaaS campaign object
-    #   helpful method: mythx_cli/analyze/solidity.py:SolidityJob.generate_payloads
-    #   NOTE: This currently patches link placeholders in the creation
-    #         bytecode with the zero address. If we need to submit bytecode from
-    #         solc compilation, we need to find a way to replace these with the Ganache
-    #         instance's addresses. Preferably we pull all of this data from Ganache
-    #         itself and just enrich the payload with source and AST data from the
-    #         SolidityJob payload list
-
-    # submit the FaaS payload, do error handling
-
-    # print FaaS dashboard url pointing to campaign
     analyze_config = ctx.get("fuzz")
-
-    default_config = {
-        "rpc_url": "http://localhost:7545",
-        "faas_url": "https://fuzzing-staging.diligence.tools",
-        "harvey_num_cores": 2,
-        "campaign_name_prefix": "untitled",
-        "map_to_original_source": False,
-    }
-    config_options = analyze_config.keys()
-    # Mandatory config parameters verification
-    if "build_directory" not in config_options:
-        raise click.exceptions.UsageError(
-            "build_directory not found on .mythx.yml config file"
-            "\nYou need to provide your project's build directory in the .mythx.yml config file"
-        )
-    if "deployed_contract_address" not in config_options:
-        raise click.exceptions.UsageError(
-            "deployed_contract_address not found on .mythx.yml config file."
-            "\nYou need to provide the address where your main contract is deployed on the .mythx.yml"
-        )
-    if not target and "targets" not in config_options:
-        raise click.exceptions.UsageError(
-            "Target not provided. You need to provide a target as the last parameter of the fuzz run command."
-            "\nYou can also set the target on the `fuzz` key of your .mythx.yml config file."
-            "\nSee https://mythx-cli.readthedocs.io/en/latest/advanced-usage.html#configuration-using-mythx-yml"
-            " for more information."
-        )
-    if not target:
-        target = analyze_config["targets"]
-    if not map_to_original_source:
-        map_to_original_source = (
-            analyze_config["map_to_original_source"]
-            if "map_to_original_source" in config_options
-            else default_config["map_to_original_source"]
-        )
-    if not api_key:
-        api_key = analyze_config["api_key"] if "api_key" in config_options else None
-    # Optional config parameters
-    # Here we parse the config parameters from the config file and use defaults for non available values
-    contract_address = analyze_config["deployed_contract_address"]
-    rpc_url = (
-        analyze_config["rpc_url"]
-        if "rpc_url" in config_options
-        else default_config["rpc_url"]
-    )
-    faas_url = (
-        analyze_config["faas_url"]
-        if "faas_url" in config_options
-        else default_config["faas_url"]
-    )
-    number_of_cores = (
-        analyze_config["number_of_cores"]
-        if "number_of_cores" in config_options
-        else default_config["harvey_num_cores"]
-    )
-    campaign_name_prefix = (
-        analyze_config["campaign_name_prefix"]
-        if "campaign_name_prefix" in config_options
-        else default_config["campaign_name_prefix"]
+    options = FuzzingOptions(
+        **{
+            k: v
+            for k, v in (
+                {
+                    "build_directory": analyze_config.get("build_directory"),
+                    "deployed_contract_address": address
+                    or analyze_config.get("deployed_contract_address"),
+                    "target": target or analyze_config.get("targets"),
+                    "map_to_original_source": map_to_original_source,
+                    "rpc_url": analyze_config.get("rpc_url"),
+                    "faas_url": analyze_config.get("faas_url"),
+                    "number_of_cores": analyze_config.get("number_of_cores"),
+                    "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
+                    "corpus_target": corpus_target
+                    or analyze_config.get("corpus_target"),
+                    "additional_contracts_addresses": more_addresses
+                    or analyze_config.get("additional_contracts_addresses"),
+                    "dry_run": dry_run,
+                    "refresh_token": refresh_token
+                    or analyze_config.get("refresh_token"),
+                    "api_key": api_key or analyze_config.get("api_key"),
+                    "project": project or analyze_config.get("project"),
+                }
+            ).items()
+            if v is not None
+        }
     )
 
-    if more_addresses is None:
-        other_addresses = []
-    else:
-        other_addresses = more_addresses.split(",")
+    rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
+    if not options.corpus_target:
+        check_contract(rpc_client, options.deployed_contract_address)
 
-    _corpus_target = corpus_target or analyze_config.get("corpus_target", None)
-
-    rpc_client = RPCClient(rpc_url, number_of_cores)
-    if not _corpus_target:
-        try:
-            contract_code_response = rpc_client.contract_exists(contract_address)
-        except RPCCallError as e:
-            raise click.exceptions.UsageError(f"RPC endpoint." f"\n{e}")
-
-        if not contract_code_response:
-            LOGGER.warning(f"Contract code not found")
-            raise click.exceptions.ClickException(
-                f"Unable to find a contract deployed at {contract_address}."
-            )
     seed_state = rpc_client.get_seed_state(
-        contract_address, other_addresses, _corpus_target
+        options.deployed_contract_address,
+        options.additional_contracts_addresses,
+        options.corpus_target,
     )
 
     ide = determine_ide()
 
     if ide == IDE.BROWNIE:
         artifacts = BrownieJob(
-            target,
-            analyze_config["build_directory"],
-            map_to_original_source=map_to_original_source,
+            options.target,
+            Path(options.build_directory),
+            map_to_original_source=options.map_to_original_source,
         )
         artifacts.generate_payload()
     elif ide == IDE.HARDHAT:
         artifacts = HardhatJob(
-            target,
-            analyze_config["build_directory"],
-            map_to_original_source=map_to_original_source,
+            options.target,
+            Path(options.build_directory),
+            map_to_original_source=options.map_to_original_source,
         )
         artifacts.generate_payload()
     elif ide == IDE.TRUFFLE:
         artifacts = TruffleJob(
-            str(Path.cwd().absolute()), target, analyze_config["build_directory"]
+            str(Path.cwd().absolute()), options.target, Path(options.build_directory)
         )
         artifacts.generate_payload()
     else:
@@ -224,17 +198,25 @@ def fuzz_run(
         )
 
     faas_client = FaasClient(
-        faas_url=faas_url,
-        campaign_name_prefix=campaign_name_prefix,
+        faas_url=options.faas_url,
+        campaign_name_prefix=options.campaign_name_prefix,
         project_type=ide,
-        api_key=api_key,
+        api_key=options.api_key,
+        client_id=options.auth_client_id,
+        refresh_token=options.refresh_token,
+        auth_endpoint=options.auth_endpoint,
+        project=options.project
     )
+
     try:
         campaign_id = faas_client.create_faas_campaign(
-            campaign_data=artifacts, seed_state=seed_state, dry_run=dry_run
+            campaign_data=artifacts, seed_state=seed_state, dry_run=options.dry_run
         )
         click.echo(
-            "You can view campaign here: " + faas_url + "/campaigns/" + str(campaign_id)
+            "You can view campaign here: "
+            + options.faas_url
+            + "/campaigns/"
+            + str(campaign_id)
         )
     except BadStatusCode as e:
         raise click.exceptions.UsageError(
@@ -245,5 +227,5 @@ def fuzz_run(
             f"Could not submit campaign to the FaaS\n{traceback.format_exc()}"
         )
         raise click.exceptions.UsageError(
-            f"Unable to submit the campaign to the faas. Are you sure the service is running on {faas_url} ?"
+            f"Unable to submit the campaign to the faas. Are you sure the service is running on {options.faas_url} ?"
         )

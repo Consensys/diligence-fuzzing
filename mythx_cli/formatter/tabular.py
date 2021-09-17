@@ -19,7 +19,7 @@ from tabulate import tabulate
 
 from mythx_cli.formatter.base import BaseFormatter
 from mythx_cli.formatter.util import generate_dashboard_link
-from mythx_cli.util import SourceMap, index_by_filename
+from mythx_cli.util import index_by_filename
 
 
 class TabularFormatter(BaseFormatter):
