@@ -109,6 +109,15 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     default=None,
     help="Refresh Token, can be created on the FaaS Dashboard. ",
 )
+@click.option(
+    "-p",
+    "--project",
+    type=click.STRING,
+    default=None,
+    help="The project name this campaign will be attached to. You can use the project name or the project id."
+    "Alternatively, you may also configure the 'project' field in the .mythx.yml configuration file."
+    "If no project is configured the scan will be attached to the 'Default Project'.",
+)
 @click.pass_obj
 def fuzz_run(
     ctx,
@@ -120,6 +129,7 @@ def fuzz_run(
     api_key,
     refresh_token,
     map_to_original_source,
+    project
 ):
     analyze_config = ctx.get("fuzz")
     options = FuzzingOptions(
@@ -144,6 +154,7 @@ def fuzz_run(
                     "refresh_token": refresh_token
                     or analyze_config.get("refresh_token"),
                     "api_key": api_key or analyze_config.get("api_key"),
+                    "project": project or analyze_config.get("project"),
                 }
             ).items()
             if v is not None
@@ -194,6 +205,7 @@ def fuzz_run(
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
         auth_endpoint=options.auth_endpoint,
+        project=options.project
     )
 
     try:

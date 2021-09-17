@@ -36,10 +36,12 @@ class FaasClient:
         client_id,
         refresh_token,
         auth_endpoint,
+        project
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
+        self.project = project
         self.api_key = api_key or self.retrieve_api_key(
             client_id, refresh_token, auth_endpoint
         )
@@ -123,6 +125,7 @@ class FaasClient:
                     "corpus": seed_state["analysis-setup"],
                     "sources": campaign_data.payload["sources"],
                     "contracts": campaign_data.payload["contracts"],
+                    "project": self.project,
                 }
             except Exception:
                 raise PayloadError(f"Error extracting data from payload")

@@ -20,6 +20,7 @@ class FuzzingOptions:
         dry_run: bool = False,
         refresh_token: Optional[str] = None,
         api_key: Optional[str] = None,
+        project: Optional[str] = None,
     ):
         self.additional_contracts_addresses = additional_contracts_addresses
         self.corpus_target = corpus_target
@@ -39,6 +40,8 @@ class FuzzingOptions:
         self.auth_client_id = None
 
         self.validate(refresh_token)
+
+        self.project = project
 
         if not api_key:
             self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
