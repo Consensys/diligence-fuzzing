@@ -96,18 +96,26 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     help="Outputs the data to be sent to the FaaS API without making the request.",
 )
 @click.option(
-    "-k",
     "--api-key",
     type=click.STRING,
     default=None,
     help="API key, can be created on the FaaS Dashboard. ",
+    hidden=True,
 )
 @click.option(
-    "-r",
+    "-k",
+    "--key",
+    type=click.STRING,
+    default=None,
+    help="API key, can be created on the FaaS Dashboard. ",
+    hidden=True,
+)
+@click.option(
     "--refresh-token",
     type=click.STRING,
     default=None,
     help="Refresh Token, can be created on the FaaS Dashboard. ",
+    hidden=True,
 )
 @click.option(
     "-p",
@@ -127,11 +135,23 @@ def fuzz_run(
     corpus_target,
     dry_run,
     api_key,
+    key,
     refresh_token,
     map_to_original_source,
     project
 ):
+    if not key and refresh_token:
+        key = refresh_token
     analyze_config = ctx.get("fuzz")
+
+    if analyze_config.get("api_key") or api_key:
+        LOGGER.warning("The --api-key parameter and 'api_key' configuration file option value have been"
+                       " deprecated. You should use the --key and 'key' options instead.")
+
+    if analyze_config.get("refresh_token") or refresh_token:
+        LOGGER.warning("The --refresh-token parameter and 'refresh_token' configuration file option have been"
+                       " deprecated. You should use the --key and 'key' options instead.")
+
     options = FuzzingOptions(
         **{
             k: v
@@ -151,7 +171,8 @@ def fuzz_run(
                     "additional_contracts_addresses": more_addresses
                     or analyze_config.get("additional_contracts_addresses"),
                     "dry_run": dry_run,
-                    "refresh_token": refresh_token
+                    "refresh_token": key
+                    or analyze_config.get("key")
                     or analyze_config.get("refresh_token"),
                     "api_key": api_key or analyze_config.get("api_key"),
                     "project": project or analyze_config.get("project"),
