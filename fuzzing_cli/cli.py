@@ -83,7 +83,7 @@ def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
     ctx.obj = {"debug": debug, "config": config}
 
     LOGGER.debug("Initializing configuration context")
-    config_file = config or ".mythx.yml"
+    config_file = config or ".fuzz.yml"
     if Path(config_file).is_file():
         LOGGER.debug(f"Parsing config at {config_file}")
         with open(config_file) as config_f:

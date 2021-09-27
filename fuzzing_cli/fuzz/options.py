@@ -74,22 +74,22 @@ class FuzzingOptions:
         if not self.build_directory:
             raise click.exceptions.UsageError(
                 "Build directory not provided. You need to set the `build_directory` "
-                "on the `fuzz` key of your .mythx.yml config file."
+                "on the `fuzz` key of your .fuzz.yml config file."
             )
         if not self.api_key and not refresh_token:
             raise click.exceptions.UsageError(
                 "API key or Refresh Token were not provided. You need to provide either an API key or a Refresh Token"
                 "as the `--api-key` or `--refresh-token` parameters respectively of the fuzz run command"
-                "or set `api_key` or `refresh_token` on the `fuzz` key of your .mythx.yml config file."
+                "or set `api_key` or `refresh_token` on the `fuzz` key of your .fuzz.yml config file."
             )
         if not self.deployed_contract_address:
             raise click.exceptions.UsageError(
                 "Deployed contract address not provided. You need to provide an address as the `--address` "
                 "parameter of the fuzz run command.\nYou can also set the `deployed_contract_address`"
-                "on the `fuzz` key of your .mythx.yml config file."
+                "on the `fuzz` key of your .fuzz.yml config file."
             )
         if not self.target:
             raise click.exceptions.UsageError(
                 "Target not provided. You need to provide a target as the last parameter of the fuzz run command."
-                "\nYou can also set the `targets` on the `fuzz` key of your .mythx.yml config file."
+                "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
             )

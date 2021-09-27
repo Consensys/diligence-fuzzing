@@ -1,8 +1,0 @@
-Report for /home/spoons/diligence/mythx-qa/land/contracts/estate/EstateStorage.sol
-https://dashboard.mythx.io/#/console/analyses/ab9092f7-54d0-480f-9b63-1bb1508280e2
-╒════════╤════════════════════════════╤════════════╤══════════════════════════════════════════╕
-│   Line │ SWC Title                  │ Severity   │ Short Description                        │
-╞════════╪════════════════════════════╪════════════╪══════════════════════════════════════════╡
-│     24 │ (SWC-110) Assert Violation │ Low        │ A reachable exception has been detected. │
-╘════════╧════════════════════════════╧════════════╧══════════════════════════════════════════╛
-

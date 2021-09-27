@@ -120,7 +120,7 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     type=click.STRING,
     default=None,
     help="The project name this campaign will be attached to. You can use the project name or the project id."
-    "Alternatively, you may also configure the 'project' field in the .mythx.yml configuration file."
+    "Alternatively, you may also configure the 'project' field in the .fuzz.yml configuration file."
     "If no project is configured the scan will be attached to the 'Default Project'.",
 )
 @click.pass_obj
