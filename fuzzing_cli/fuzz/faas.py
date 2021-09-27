@@ -6,7 +6,7 @@ import string
 import requests
 from requests.structures import CaseInsensitiveDict
 
-from mythx_cli.fuzz.scribble import ScribbleMixin
+from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
 from .exceptions import (
     AuthorizationError,
@@ -36,7 +36,7 @@ class FaasClient:
         client_id,
         refresh_token,
         auth_endpoint,
-        project
+        project,
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix

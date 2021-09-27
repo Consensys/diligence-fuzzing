@@ -4,10 +4,10 @@ from click.testing import CliRunner
 from pytest import mark
 from requests_mock import Mocker
 
-from mythx_cli.cli import cli
-from mythx_cli.fuzz.faas import FaasClient
-from mythx_cli.fuzz.rpc import RPCClient
-from mythx_cli.fuzz.run import IDE
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.run import IDE
 from tests.common import write_config
 
 REFRESH_TOKEN_MALFORMED_ERROR = (
@@ -26,9 +26,9 @@ def test_no_keys(tmp_path, truffle_project):
 
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
-@patch(target="mythx_cli.fuzz.run.FaasClient", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize("in_config,", [False, True])
 @mark.parametrize("key_type,", ["api_key", "refresh_token"])
 def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_project):
@@ -56,9 +56,9 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
 
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
-@patch(target="mythx_cli.fuzz.run.FaasClient", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
     "refresh_token",
     [
@@ -85,8 +85,8 @@ def test_wrong_refresh_token(refresh_token: str, tmp_path):
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
 @patch.object(FaasClient, attribute="create_faas_campaign", new=Mock())
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=MagicMock())
 @mark.parametrize("return_error,", [True, False])
 def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
     requests_mock.real_http = True

@@ -6,7 +6,7 @@ from typing import Any, AnyStr, List, Optional, Tuple
 import click
 from mythx_models.response import AnalysisInputResponse, DetectedIssuesResponse
 
-from mythx_cli.formatter.util import get_source_location_by_offset
+from fuzzing_cli.formatter.util import get_source_location_by_offset
 
 LOGGER = logging.getLogger("mythx-cli")
 

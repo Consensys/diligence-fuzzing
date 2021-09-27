@@ -14,7 +14,7 @@ from mythx_models.response import (
     VersionResponse,
 )
 
-from mythx_cli.formatter.base import BaseFormatter
+from fuzzing_cli.formatter.base import BaseFormatter
 
 
 class JSONFormatter(BaseFormatter):

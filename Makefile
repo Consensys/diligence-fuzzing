@@ -51,20 +51,20 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 format:
-	isort mythx_cli tests
-	black -t py38 mythx_cli tests
+	isort fuzzing_cli tests
+	black -t py38 fuzzing_cli tests
 
 lint: ## check style with flake8
-	flake8 mythx_cli tests
+	flake8 fuzzing_cli tests
 
 test: ## run tests quickly with the default Python
-	pytest --cov-report html --cov-report term --cov mythx_cli tests/
+	pytest --cov-report html --cov-report term --cov fuzzing_cli tests/
 
 test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source mythx_cli -m pytest
+	coverage run --source fuzzing_cli -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html

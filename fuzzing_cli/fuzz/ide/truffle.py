@@ -5,9 +5,9 @@ from subprocess import Popen, TimeoutExpired
 from tempfile import TemporaryFile
 from typing import Any, Dict, List
 
-from mythx_cli.fuzz.exceptions import BuildArtifactsError
-from mythx_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
-from mythx_cli.util import LOGGER, sol_files_by_directory
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
 
 class TruffleArtifacts(IDEArtifacts):

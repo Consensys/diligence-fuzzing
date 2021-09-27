@@ -7,7 +7,7 @@ from typing import List
 
 import click
 
-from mythx_cli.util import sol_files_by_directory
+from fuzzing_cli.util import sol_files_by_directory
 
 SCRIBBLE_ARMING_META_FILE = ".scribble-arming.meta.json"
 

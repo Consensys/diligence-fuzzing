@@ -6,10 +6,10 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from mythx_cli.cli import cli
-from mythx_cli.fuzz.faas import FaasClient
-from mythx_cli.fuzz.ide.truffle import TruffleArtifacts
-from mythx_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.ide.truffle import TruffleArtifacts
+from fuzzing_cli.fuzz.rpc import RPCClient
 
 from .common import get_test_case, write_config
 

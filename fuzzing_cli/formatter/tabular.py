@@ -17,9 +17,9 @@ from mythx_models.response import (
 )
 from tabulate import tabulate
 
-from mythx_cli.formatter.base import BaseFormatter
-from mythx_cli.formatter.util import generate_dashboard_link
-from mythx_cli.util import index_by_filename
+from fuzzing_cli.formatter.base import BaseFormatter
+from fuzzing_cli.formatter.util import generate_dashboard_link
+from fuzzing_cli.util import index_by_filename
 
 
 class TabularFormatter(BaseFormatter):

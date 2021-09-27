@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
 
-from mythx_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 
 
 class IDEArtifacts(ABC):

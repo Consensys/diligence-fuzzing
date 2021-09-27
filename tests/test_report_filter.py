@@ -3,7 +3,7 @@ from copy import deepcopy
 import pytest
 from mythx_models.response import DetectedIssuesResponse
 
-from mythx_cli.formatter.util import filter_report
+from fuzzing_cli.formatter.util import filter_report
 
 from .common import get_test_case
 

@@ -6,10 +6,10 @@ import requests
 from click.testing import CliRunner
 from requests import RequestException
 
-from mythx_cli.cli import cli
-from mythx_cli.fuzz.exceptions import RequestError
-from mythx_cli.fuzz.faas import FaasClient
-from mythx_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.exceptions import RequestError
+from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.rpc import RPCClient
 
 from .common import get_test_case, write_config
 
@@ -275,7 +275,7 @@ def test_fuzz_subcommands_present(keyword):
     assert keyword in result.output
 
 
-@patch("mythx_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
 def test_fuzz_arm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["arm", f"{tmp_path}/contracts/sample.sol"])
@@ -290,7 +290,7 @@ def test_fuzz_arm(mock, tmp_path, brownie_project):
     assert result.exit_code == 0
 
 
-@patch("mythx_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["disarm", f"{tmp_path}/contracts/sample.sol"])

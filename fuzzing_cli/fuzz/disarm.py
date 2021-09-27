@@ -3,12 +3,12 @@ from typing import Tuple
 
 import click
 
-from mythx_cli.fuzz.scribble import ScribbleMixin
+from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
 LOGGER = logging.getLogger("mythx-cli")
 
 
-@click.command("arm")
+@click.command("disarm")
 @click.argument("targets", default=None, nargs=-1, required=False)
 @click.option(
     "--scribble-path",
@@ -30,23 +30,23 @@ LOGGER = logging.getLogger("mythx-cli")
     default=None,
 )
 @click.pass_obj
-def fuzz_arm(
+def fuzz_disarm(
     ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str
 ) -> None:
-    """Prepare the target files for Diligence Fuzzing API submission.
+    """Revert the target files to their original, un-instrumented state.
 
     \f
 
-    This will run :code:`scribble --arm ...` on the given target files,
-    instrumenting their code in-place with scribble. Additionally,
-    solc parameters can be passed to get compilation to work.
+    This will run :code:`scribble --disarm ...` on the given target files,
+    reverting their code in-place to their original state using scribble.
+    Additionally, solc parameters can be passed to get compilation to work.
 
     The following YAML context options are supported:
     - analyze
-    - targets
-    - scribble-path
-    - remappings
-    - solc
+        - targets
+        - scribble-path
+        - remappings
+        - solc
 
     :param ctx: The context, mainly used to get YAML params
     :param targets: Arguments passed to the `analyze` subcommand
@@ -62,7 +62,7 @@ def fuzz_arm(
     fuzz_config = ctx.get("fuzz")
     targets = targets or fuzz_config.get("targets") or None
 
-    ScribbleMixin.instrument_solc_in_place(
+    ScribbleMixin.disarm_solc_in_place(
         file_list=targets,
         scribble_path=scribble_path,
         remappings=remap_import,

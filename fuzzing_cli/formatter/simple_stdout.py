@@ -14,8 +14,8 @@ from mythx_models.response import (
     VersionResponse,
 )
 
-from mythx_cli.formatter.base import BaseFormatter
-from mythx_cli.util import index_by_filename
+from fuzzing_cli.formatter.base import BaseFormatter
+from fuzzing_cli.util import index_by_filename
 
 
 class SimpleFormatter(BaseFormatter):

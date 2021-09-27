@@ -6,12 +6,9 @@ from pathlib import Path
 
 import click
 
-from mythx_cli.fuzz.ide.brownie import BrownieJob
-from mythx_cli.fuzz.ide.hardhat import HardhatJob
-
 from .exceptions import BadStatusCode, RPCCallError
 from .faas import FaasClient
-from .ide.truffle import TruffleJob
+from .ide import BrownieJob, HardhatJob, TruffleJob
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
@@ -138,19 +135,23 @@ def fuzz_run(
     key,
     refresh_token,
     map_to_original_source,
-    project
+    project,
 ):
     if not key and refresh_token:
         key = refresh_token
     analyze_config = ctx.get("fuzz")
 
     if analyze_config.get("api_key") or api_key:
-        LOGGER.warning("The --api-key parameter and 'api_key' configuration file option value have been"
-                       " deprecated. You should use the --key and 'key' options instead.")
+        LOGGER.warning(
+            "The --api-key parameter and 'api_key' configuration file option value have been"
+            " deprecated. You should use the --key and 'key' options instead."
+        )
 
     if analyze_config.get("refresh_token") or refresh_token:
-        LOGGER.warning("The --refresh-token parameter and 'refresh_token' configuration file option have been"
-                       " deprecated. You should use the --key and 'key' options instead.")
+        LOGGER.warning(
+            "The --refresh-token parameter and 'refresh_token' configuration file option have been"
+            " deprecated. You should use the --key and 'key' options instead."
+        )
 
     options = FuzzingOptions(
         **{
@@ -226,7 +227,7 @@ def fuzz_run(
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
         auth_endpoint=options.auth_endpoint,
-        project=options.project
+        project=options.project,
     )
 
     try:

@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 from typing import List
 
-from mythx_cli.fuzz.exceptions import BuildArtifactsError
-from mythx_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
 
 from ...util import get_content_from_file, sol_files_by_directory
 
