@@ -17,7 +17,7 @@ from .exceptions import (
     ScribbleMetaError,
 )
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FaasClient:

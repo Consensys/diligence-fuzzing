@@ -7,7 +7,7 @@ from requests import RequestException
 
 from .exceptions import RPCCallError
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
 time_limit_seconds = 3000

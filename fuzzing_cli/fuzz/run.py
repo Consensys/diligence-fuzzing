@@ -12,7 +12,7 @@ from .ide import BrownieJob, HardhatJob, TruffleJob
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
 

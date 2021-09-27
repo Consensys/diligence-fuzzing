@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Union
 
 import click
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class ScenarioMode(Enum):

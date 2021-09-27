@@ -5,7 +5,7 @@ import click
 
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 @click.command("disarm")

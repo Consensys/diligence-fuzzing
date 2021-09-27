@@ -7,7 +7,7 @@ from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
 
 from ...util import get_content_from_file, sol_files_by_directory
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class BrownieArtifacts(IDEArtifacts):
