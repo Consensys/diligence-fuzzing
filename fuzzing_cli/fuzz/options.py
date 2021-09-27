@@ -12,7 +12,7 @@ class FuzzingOptions:
         target: Optional[List[str]] = None,
         map_to_original_source: bool = False,
         rpc_url: str = "http://localhost:7545",
-        faas_url: str = "https://fuzzing-staging.diligence.tools",
+        faas_url: str = "https://fuzzing.diligence.tools",
         number_of_cores: int = 2,
         campaign_name_prefix: str = "untitled",
         corpus_target: Optional[str] = None,
