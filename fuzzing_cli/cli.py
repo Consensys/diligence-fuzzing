@@ -8,8 +8,6 @@ import yaml
 
 from fuzzing_cli import __version__
 
-# DO NOT EDIT!! Breaks the app
-from fuzzing_cli.formatter import FORMAT_RESOLVER
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.run import fuzz_run
@@ -42,15 +40,8 @@ def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
 
     :param ctx: Click context holding group-level parameters
     :param debug: Boolean to enable the `logging` debug mode
-    :param api_key: User JWT api token from the MythX dashboard
-    :param username: The MythX account ETH address/username
-    :param password: The account password from the MythX dashboard
-    :param fmt: The formatter to use for the subcommand output
-    :param ci: Boolean to return exit code 1 on medium/high-sev issues
-    :param output: Output file to write the results into
     :param config: YAML config file to read default parameters from
     :param stdout: Force printing to stdout and ignore output files
-    :param table_sort_key: The column to sort the default table output by
     """
 
     # set loggers to debug mode

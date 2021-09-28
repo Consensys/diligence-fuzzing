@@ -6,9 +6,19 @@ from typing import Any, AnyStr, List, Optional, Tuple
 import click
 from mythx_models.response import AnalysisInputResponse, DetectedIssuesResponse
 
-from fuzzing_cli.formatter.util import get_source_location_by_offset
-
 LOGGER = logging.getLogger("fuzzing-cli")
+
+
+def get_source_location_by_offset(source: str, offset: int) -> int:
+    """Retrieve the Solidity source code location based on the source map
+    offset.
+
+    :param source: The Solidity source to analyze
+    :param offset: The source map's offset
+    :return: The offset's source line number equivalent
+    """
+
+    return source.encode("utf-8")[0:offset].count("\n".encode("utf-8")) + 1
 
 
 class SourceMapLocation:
@@ -143,7 +153,7 @@ def index_by_filename(
     """Index the given report/input responses by filename.
 
     This will return a simplified, unified representation of the report/input payloads
-    returned by the MythX API. It is a mapping from filename to an iterable of issue
+    returned by the Fuzzing API. It is a mapping from filename to an iterable of issue
     objects, which contain the report UUID, SWC ID, SWC title, short and long
     description, severity, as well as the issue's line location in the source code.
 

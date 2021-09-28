@@ -1,4 +1,4 @@
-"""This module contains helpers for generating MythX analysis payloads."""
+"""This module contains helpers for generating Fuzzing analysis payloads."""
 
 import logging
 from enum import Enum
@@ -112,7 +112,7 @@ def sanitize_paths(job: Dict) -> Dict:
 
     This method takes a job payload, iterates through all paths, and
     removes all their common prefixes. This is an effort to only submit
-    information on a need-to-know basis to MythX. Unless it's to distinguish
+    information on a need-to-know basis to Fuzzing. Unless it's to distinguish
     between files, the API does not need to know the absolute path of a file.
     This may even leak user information and should be removed.
 
