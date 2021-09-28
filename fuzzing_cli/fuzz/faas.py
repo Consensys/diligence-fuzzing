@@ -11,7 +11,6 @@ from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from .exceptions import (
     AuthorizationError,
     BadStatusCode,
-    CreateFaaSCampaignError,
     PayloadError,
     RequestError,
     ScribbleMetaError,
@@ -42,20 +41,30 @@ class FaasClient:
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
         self.project = project
-        self.api_key = api_key or self.retrieve_api_key(
-            client_id, refresh_token, auth_endpoint
-        )
-        self.headers = CaseInsensitiveDict()
-        self.headers["Content-Type"] = "application/json"
-        self.headers["Authorization"] = "Bearer " + str(self.api_key)
 
-    def retrieve_api_key(self, client_id, refresh_token, auth_endpoint):
+        self._api_key = api_key
+        self._client_id = client_id
+        self._refresh_token = refresh_token
+        self._auth_endpoint = auth_endpoint
+
+    @property
+    def headers(self):
+        headers = CaseInsensitiveDict()
+        headers["Content-Type"] = "application/json"
+        headers["Authorization"] = "Bearer " + str(self.api_key)
+        return headers
+
+    @property
+    def api_key(self):
+        if self._api_key:
+            return self._api_key
+
         response = requests.post(
-            f"https://{auth_endpoint}/oauth/token",
+            f"https://{self._auth_endpoint}/oauth/token",
             data={
                 "grant_type": "refresh_token",
-                "client_id": client_id,
-                "refresh_token": refresh_token,
+                "client_id": self._client_id,
+                "refresh_token": self._refresh_token,
             },
         )
         body = response.json()
@@ -77,10 +86,10 @@ class FaasClient:
         """Make HTTP request to the faas"""
         try:
             req_url = f"{self.faas_url}/api/campaigns/?start_immediately=true"
-            response = requests.post(req_url, json=payload, headers=self.headers)
+            h = self.headers
+            response = requests.post(req_url, json=payload, headers=h)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
-                print(response.text)
                 raise BadStatusCode(
                     f"Got http status code {response.status_code} for request {req_url}",
                     detail=response_data["detail"],
@@ -89,7 +98,7 @@ class FaasClient:
         except Exception as e:
             if isinstance(e, BadStatusCode):
                 raise e
-            raise RequestError(f"Error starting FaaS campaign.")
+            raise RequestError("Error starting FaaS campaign", detail=str(e))
 
     def create_faas_campaign(self, campaign_data, seed_state, dry_run=False):
         """Submit a campaign to the FaaS and start that campaign.
@@ -110,43 +119,42 @@ class FaasClient:
         :return: Campaign ID
         """
         try:
-            try:
-                api_payload_params = {
-                    "discovery-probability-threshold": seed_state[
-                        "discovery-probability-threshold"
-                    ],
-                    "num-cores": seed_state["num-cores"],
-                    "assertion-checking-mode": seed_state["assertion-checking-mode"],
-                }
+            api_payload_params = {
+                "discovery-probability-threshold": seed_state[
+                    "discovery-probability-threshold"
+                ],
+                "num-cores": seed_state["num-cores"],
+                "assertion-checking-mode": seed_state["assertion-checking-mode"],
+            }
 
-                api_payload = {
-                    "parameters": api_payload_params,
-                    "name": self.generate_campaign_name(),
-                    "corpus": seed_state["analysis-setup"],
-                    "sources": campaign_data.payload["sources"],
-                    "contracts": campaign_data.payload["contracts"],
-                    "project": self.project,
-                }
-            except Exception:
-                raise PayloadError(f"Error extracting data from payload")
+            api_payload = {
+                "parameters": api_payload_params,
+                "name": self.generate_campaign_name(),
+                "corpus": seed_state["analysis-setup"],
+                "sources": campaign_data.payload["sources"],
+                "contracts": campaign_data.payload["contracts"],
+                "project": self.project,
+            }
+        except KeyError as e:
+            raise PayloadError(
+                "Error extracting data from payload", detail=f"Key {str(e)} not found"
+            )
 
-            try:
-                instr_meta = ScribbleMixin.get_arming_instr_meta()
+        try:
+            instr_meta = ScribbleMixin.get_arming_instr_meta()
+            if instr_meta is not None:
+                api_payload["instrumentationMetadata"] = instr_meta
+        except Exception as e:
+            raise ScribbleMetaError(
+                "Error getting Scribble arming metadata.", detail=str(e)
+            )
 
-                if instr_meta is not None:
-                    api_payload["instrumentationMetadata"] = instr_meta
-            except Exception as e:
-                raise ScribbleMetaError(
-                    f"Error getting Scribble arming metadata."
-                ) from e
+        if dry_run:
+            print("Printing output \n --------")
+            print(f"{json.dumps(api_payload)}")
+            print("End of output \n --------")
+            return "campaign not started due to --dry-run option"
 
-            if dry_run:
-                print("Printing output \n --------")
-                print(f"{json.dumps(api_payload)}")
-                print("End of output \n --------")
-                return "campaign not started due to --dry-run option"
-            campaign_id = self.start_faas_campaign(api_payload)
+        campaign_id = self.start_faas_campaign(api_payload)
 
-            return campaign_id
-        except (PayloadError, ScribbleMetaError) as e:
-            raise CreateFaaSCampaignError(f"Error creating the FaaS campaign:")
+        return campaign_id

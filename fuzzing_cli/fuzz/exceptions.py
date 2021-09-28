@@ -54,38 +54,6 @@ class CreateFaaSCampaignError(FaaSError):
 
 
 #
-# Brownie Job Errors
-#
-
-
-class BrownieError(Exception):
-    """Base class for Brownie Job exceptions"""
-
-    def __init__(self, message):
-        self.message = message
-
-    pass
-
-
-class BuildArtifactsError(BrownieError):
-    """Exception raised for errors fetching the build artifacts"""
-
-    pass
-
-
-class SourceError(BrownieError):
-    """Exception raised for errors the source and AST of a source file"""
-
-    pass
-
-
-class PayloadError(BrownieError):
-    """Exception raised for errors assembling the FaaS payload"""
-
-    pass
-
-
-#
 # RPC client
 #
 
@@ -98,5 +66,23 @@ class RPCCallError(FaaSError):
 
 class SeedStateError(FaaSError):
     """Exception raised when there is an error generating the seed state"""
+
+    pass
+
+
+class BrownieError(FaaSError):
+    """Base class for Brownie Job exceptions"""
+
+    pass
+
+
+class BuildArtifactsError(BrownieError):
+    """Exception raised for errors fetching the build artifacts"""
+
+    pass
+
+
+class SourceError(BrownieError):
+    """Exception raised for errors the source and AST of a source file"""
 
     pass

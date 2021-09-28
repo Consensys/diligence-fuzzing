@@ -91,10 +91,7 @@ def test_faas_not_running(tmp_path, brownie_project):
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert (
-        "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
-        in result.output
-    )
+    assert "RequestError: Error starting FaaS campaign" in result.output
     assert result.exit_code != 0
 
 
@@ -124,10 +121,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
         # we call the run command without the target parameter.
         result = runner.invoke(cli, ["run"])
 
-    assert (
-        "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
-        in result.output
-    )
+    assert "RequestError: Error starting FaaS campaign." in result.output
     assert result.exit_code != 0
 
 

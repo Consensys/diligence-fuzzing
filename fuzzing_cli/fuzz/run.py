@@ -5,8 +5,9 @@ from enum import Enum
 from pathlib import Path
 
 import click
+from click import ClickException, UsageError
 
-from .exceptions import BadStatusCode, RPCCallError
+from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
 from .ide import BrownieJob, HardhatJob, TruffleJob
 from .options import FuzzingOptions
@@ -44,12 +45,11 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     try:
         contract_code_response = rpc_client.contract_exists(deployed_contract_address)
     except RPCCallError as e:
-        raise click.exceptions.UsageError(f"RPC endpoint." f"\n{e}")
+        raise UsageError(f"{e}")
 
     if not contract_code_response:
-        LOGGER.warning(f"Contract code not found")
-        raise click.exceptions.ClickException(
-            f"Unable to find a contract deployed at {deployed_contract_address}."
+        raise ClickException(
+            f"Unable to find a contract deployed at {deployed_contract_address}"
         )
 
 
@@ -105,7 +105,6 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     type=click.STRING,
     default=None,
     help="API key, can be created on the FaaS Dashboard. ",
-    hidden=True,
 )
 @click.option(
     "--refresh-token",
@@ -215,7 +214,7 @@ def fuzz_run(
         )
         artifacts.generate_payload()
     else:
-        raise click.exceptions.UsageError(
+        raise UsageError(
             f"Projects using plain solidity files is not supported right now"
         )
 
@@ -240,14 +239,13 @@ def fuzz_run(
             + "/campaigns/"
             + str(campaign_id)
         )
-    except BadStatusCode as e:
-        raise click.exceptions.UsageError(
-            f"Campaign submission error. Detail - {e.detail}"
-        )
     except Exception as e:
+        if isinstance(e, FaaSError):
+            raise ClickException(
+                message=f"{type(e).__name__}: {e.message}\nDetail: {e.detail}"
+            )
+
         LOGGER.warning(
             f"Could not submit campaign to the FaaS\n{traceback.format_exc()}"
         )
-        raise click.exceptions.UsageError(
-            f"Unable to submit the campaign to the faas. Are you sure the service is running on {options.faas_url} ?"
-        )
+        raise ClickException(message=f"Unhandled exception - {str(e)}")
