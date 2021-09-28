@@ -8,7 +8,7 @@ from mythx_models.response import AnalysisInputResponse, DetectedIssuesResponse
 
 from fuzzing_cli.formatter.util import get_source_location_by_offset
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class SourceMapLocation:

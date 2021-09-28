@@ -1,11 +1,10 @@
-"""The main runtime of the MythX CLI."""
+"""The main runtime of the Fuzzing CLI."""
 import logging
 import sys
 from pathlib import Path
 
 import click
 import yaml
-from pythx import MythXAPIError
 
 from fuzzing_cli import __version__
 
@@ -15,38 +14,17 @@ from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.run import fuzz_run
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 logging.basicConfig(level=logging.WARNING)
 
 
-class APIErrorCatcherGroup(click.Group):
-    """A custom click group to catch API-related errors.
-
-    This custom Group implementation catches :code:`MythXAPIError`
-    exceptions, which get raised when the API returns a non-200
-    status code. It is used to notify the user about the error that
-    happened instead of triggering an uncaught exception traceback.
-
-    It is given to the main CLI entrypoint and propagated to all
-    subcommands.
-    """
-
-    def __call__(self, *args, **kwargs):
-        try:
-            return self.main(*args, **kwargs)
-        except MythXAPIError as exc:
-            LOGGER.debug("Caught API error")
-            click.echo("The API returned an error:\n{}".format(exc))
-            sys.exit(1)
-
-
 # noinspection PyIncorrectDocstring
-@click.group(cls=APIErrorCatcherGroup)
+@click.group()
 @click.option(
     "--debug",
     is_flag=True,
     default=False,
-    envvar="MYTHX_DEBUG",
+    envvar="FUZZING_DEBUG",
     help="Provide additional debug output",
 )
 @click.option(
@@ -89,7 +67,7 @@ def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
         with open(config_file) as config_f:
             parsed_config = yaml.safe_load(config_f.read())
     else:
-        parsed_config = {"analyze": {}}
+        parsed_config = {"fuzz": {}, "analyze": {}}
 
     # The analyze/fuzz context is updated separately in the command
     # implementation

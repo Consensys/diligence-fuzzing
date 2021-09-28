@@ -11,4 +11,4 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Nuradil Alymkulov <nurchik17@gmail.com>
