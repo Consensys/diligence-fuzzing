@@ -103,5 +103,5 @@ ENV/
 .idea/
 .vscode/
 
-.mythx.yml
+.fuzz.yml
 .DS_Store

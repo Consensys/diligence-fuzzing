@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from os import remove
 from pathlib import Path
@@ -7,12 +6,6 @@ from pathlib import Path
 import pytest
 
 from tests.common import get_test_case
-
-
-def pytest_generate_tests(metafunc):
-    os.environ["MYTHX_API_KEY"] = "test"
-    for name in logging.root.manager.loggerDict:
-        logging.getLogger(name).setLevel(logging.DEBUG)
 
 
 @pytest.fixture()
@@ -120,6 +113,6 @@ def hardhat_project(tmp_path, request):
 def teardown():
     yield
     try:
-        remove(".mythx.yml")
+        remove(".fuzz.yml")
     except:
         pass

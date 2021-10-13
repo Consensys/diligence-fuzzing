@@ -4,15 +4,27 @@ from click.testing import CliRunner
 from pytest import mark
 from requests_mock import Mocker
 
-from mythx_cli.cli import cli
-from mythx_cli.fuzz.faas import FaasClient
-from mythx_cli.fuzz.rpc import RPCClient
-from mythx_cli.fuzz.run import IDE
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.run import IDE
 from tests.common import write_config
 
 REFRESH_TOKEN_MALFORMED_ERROR = (
     "Refresh Token is malformed. The format is `<auth_data>::<refresh_token>`"
 )
+
+
+class TestArtifacts:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @property
+    def payload(self):
+        return {"sources": {}, "contracts": {}}
+
+    def generate_payload(self):
+        pass
 
 
 def test_no_keys(tmp_path, truffle_project):
@@ -26,9 +38,9 @@ def test_no_keys(tmp_path, truffle_project):
 
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
-@patch(target="mythx_cli.fuzz.run.FaasClient", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize("in_config,", [False, True])
 @mark.parametrize("key_type,", ["api_key", "refresh_token"])
 def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_project):
@@ -56,9 +68,9 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
 
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
-@patch(target="mythx_cli.fuzz.run.FaasClient", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
     "refresh_token",
     [
@@ -83,10 +95,20 @@ def test_wrong_refresh_token(refresh_token: str, tmp_path):
 
 
 @patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
-@patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch.object(FaasClient, attribute="create_faas_campaign", new=Mock())
-@patch(target="mythx_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
-@patch(target="mythx_cli.fuzz.run.HardhatJob", new=MagicMock())
+@patch.object(
+    RPCClient,
+    attribute="get_seed_state",
+    new=Mock(
+        return_value={
+            "discovery-probability-threshold": 0.0,
+            "num-cores": 1,
+            "assertion-checking-mode": 1,
+            "analysis-setup": {},
+        }
+    ),
+)
+@patch(target="fuzzing_cli.fuzz.run.determine_ide", new=Mock(return_value=IDE.HARDHAT))
+@patch(target="fuzzing_cli.fuzz.run.HardhatJob", new=Mock(wraps=TestArtifacts))
 @mark.parametrize("return_error,", [True, False])
 def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
     requests_mock.real_http = True
@@ -102,6 +124,11 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
             status_code=200,
             json={"access_token": "test_access_token"},
         )
+        requests_mock.post(
+            "http://localhost:9899/api/campaigns/?start_immediately=true",
+            status_code=200,
+            json={"id": "test-campaign-id"},
+        )
     runner = CliRunner()
     write_config(not_include=["api_key"])
     result = runner.invoke(
@@ -116,12 +143,13 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
 
     if return_error:
         assert result.exit_code == 1
-        assert "Authorization failed. Error: some_error" in result.exception.message
+        assert "Authorization failed. Error: some_error" in result.output
+        req = requests_mock.last_request
     else:
         assert result.exit_code == 0
         assert "You can view campaign here:" in result.output
+        req = requests_mock.request_history[0]
 
-    req = requests_mock.last_request
     assert req.method == "POST"
     assert req.url == "https://example-us.com/oauth/token"
     assert (

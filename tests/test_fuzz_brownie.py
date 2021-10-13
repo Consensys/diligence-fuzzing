@@ -6,10 +6,10 @@ import requests
 from click.testing import CliRunner
 from requests import RequestException
 
-from mythx_cli.cli import cli
-from mythx_cli.fuzz.exceptions import RequestError
-from mythx_cli.fuzz.faas import FaasClient
-from mythx_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.exceptions import RequestError
+from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.rpc import RPCClient
 
 from .common import get_test_case, write_config
 
@@ -91,10 +91,7 @@ def test_faas_not_running(tmp_path, brownie_project):
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert (
-        "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
-        in result.output
-    )
+    assert "RequestError: Error starting FaaS campaign" in result.output
     assert result.exit_code != 0
 
 
@@ -124,10 +121,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
         # we call the run command without the target parameter.
         result = runner.invoke(cli, ["run"])
 
-    assert (
-        "Error: Unable to submit the campaign to the faas. Are you sure the service is running on"
-        in result.output
-    )
+    assert "RequestError: Error starting FaaS campaign." in result.output
     assert result.exit_code != 0
 
 
@@ -275,7 +269,7 @@ def test_fuzz_subcommands_present(keyword):
     assert keyword in result.output
 
 
-@patch("mythx_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
 def test_fuzz_arm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["arm", f"{tmp_path}/contracts/sample.sol"])
@@ -290,7 +284,7 @@ def test_fuzz_arm(mock, tmp_path, brownie_project):
     assert result.exit_code == 0
 
 
-@patch("mythx_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, brownie_project):
     runner = CliRunner()
     result = runner.invoke(cli, ["disarm", f"{tmp_path}/contracts/sample.sol"])

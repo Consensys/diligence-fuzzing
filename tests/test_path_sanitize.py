@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mythx_cli.fuzz.util import sanitize_paths
+from fuzzing_cli.fuzz.util import sanitize_paths
 
 CWD = "/home/user/work/project"
 FILE_1 = "test-1.sol"

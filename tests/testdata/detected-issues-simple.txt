@@ -1,6 +1,0 @@
-Report for /home/spoons/diligence/mythx-qa/land/contracts/estate/EstateStorage.sol
-Title: Assert Violation (Low)
-Description: A reachable exception has been detected.
-Line: 24
-	mapping(uint256 => uint256[]) public estateLandIds;
-
