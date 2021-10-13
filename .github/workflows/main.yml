@@ -1,4 +1,4 @@
-name: MythX CLI
+name: Fuzzing CLI
 
 on: [push, pull_request]
 
