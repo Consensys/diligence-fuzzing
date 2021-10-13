@@ -15,7 +15,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/dmuhs/mythx-cli/issues.
+Report bugs at https://github.com/ConsenSys/diligence-fuzzing/issues.
 
 If you are reporting a bug, please include:
 
@@ -38,14 +38,14 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-MythX CLI could always use more documentation, whether as part of the
-official MythX CLI docs, in docstrings, or even on the web in blog posts,
+Fuzzing CLI could always use more documentation, whether as part of the
+official Fuzzing CLI docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/dmuhs/mythx-cli/issues.
+The best way to send feedback is to file an issue at https://github.com/ConsenSys/diligence-fuzzing/issues.
 
 If you are proposing a feature:
 
@@ -57,17 +57,17 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `mythx-cli` for local development.
+Ready to contribute? Here's how to set up `diligence-fuzzing` for local development.
 
-1. Fork the `mythx-cli` repo on GitHub.
+1. Fork the `diligence-fuzzing` repo on GitHub.
 2. Clone your fork locally::
 
-    $ git clone git@github.com:your_name_here/mythx-cli.git
+    $ git clone git@github.com:your_name_here/diligence-fuzzing.git
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
 
-    $ mkvirtualenv mythx-cli
-    $ cd mythx-cli/
+    $ mkvirtualenv fuzzing-cli
+    $ cd fuzzing-cli/
     $ python setup.py develop
 
 4. Create a branch for local development::
@@ -79,7 +79,7 @@ Ready to contribute? Here's how to set up `mythx-cli` for local development.
 5. When you're done making changes, check that your changes pass flake8 and the
    tests, including testing other Python versions with tox::
 
-    $ flake8 mythx_cli tests
+    $ flake8 fuzzing_cli tests
     $ python setup.py test or py.test
     $ tox
 
@@ -103,7 +103,7 @@ Before you submit a pull request, check that it meets these guidelines:
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
 3. The pull request should work for Python 3.6, 3.7, the 3.8-dev branch, and for PyPy.
-   Check https://travis-ci.org/dmuhs/mythx-cli/pull_requests and make sure that the
+   Check https://github.com/ConsenSys/diligence-fuzzing/actions and make sure that the
    tests pass for all supported Python versions.
 
 Tips

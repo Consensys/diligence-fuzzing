@@ -1,4 +1,4 @@
-* MythX CLI version:
+* Fuzzing CLI version:
 * Python version:
 * Operating System:
 
