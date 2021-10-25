@@ -1,3 +1,5 @@
+from copy import deepcopy
+from operator import itemgetter
 from unittest.mock import patch
 
 import pytest
@@ -54,13 +56,16 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
     contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
-    called_with = start_faas_campaign_mock.call_args
     assert (
         f"You can view campaign here: {FAAS_URL}/campaigns/{campaign_id}"
         in result.output
     )
 
-    assert called_with[0][0] == {
+    called_with = deepcopy(start_faas_campaign_mock.call_args[0][0])
+    sorted_contracts = sorted(called_with["contracts"], key=itemgetter("contractName"))
+    called_with["contracts"] = sorted_contracts
+
+    assert called_with == {
         "parameters": {
             "discovery-probability-threshold": 0.0,
             "num-cores": 1,
@@ -119,20 +124,20 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         "contracts": [
             {
                 "sourcePaths": {0: "contracts/sample.sol"},
-                "deployedSourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;:::o",
-                "deployedBytecode": "6080604052348015600f57600080f",
-                "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;",
-                "bytecode": "6080604052348015600f57600080",
-                "contractName": "Foo",
-                "mainSourceFile": "contracts/sample.sol",
-            },
-            {
-                "sourcePaths": {0: "contracts/sample.sol"},
                 "deployedSourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;;;;;;:::o",
                 "deployedBytecode": "6080604052348015600f576000",
                 "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;",
                 "bytecode": "6080604052348015600f57",
                 "contractName": "Bar",
+                "mainSourceFile": "contracts/sample.sol",
+            },
+            {
+                "sourcePaths": {0: "contracts/sample.sol"},
+                "deployedSourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;:::o",
+                "deployedBytecode": "6080604052348015600f57600080f",
+                "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;",
+                "bytecode": "6080604052348015600f57600080",
+                "contractName": "Foo",
                 "mainSourceFile": "contracts/sample.sol",
             },
             {
