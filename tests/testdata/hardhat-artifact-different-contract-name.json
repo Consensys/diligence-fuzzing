@@ -1,0 +1,30 @@
+{
+    "Foo": {
+        "_format": "hh-sol-artifact-1",
+        "contractName": "Foo",
+        "sourceName": "contracts/sample.sol",
+        "abi": [],
+        "bytecode": "0x0",
+        "deployedBytecode": "0x0",
+        "linkReferences": {},
+        "deployedLinkReferences": {}
+    },
+    "Foo.dbg": {
+        "_format": "hh-sol-dbg-1",
+        "buildInfo": "../../build-info/1971e920b375c86605b83cbedee1f092.json"
+    },
+    "Bar": {
+        "_format": "hh-sol-artifact-1",
+        "contractName": "Bar",
+        "sourceName": "contracts/sample.sol",
+        "abi": [],
+        "bytecode": "0x0",
+        "deployedBytecode": "0x0",
+        "linkReferences": {},
+        "deployedLinkReferences": {}
+    },
+    "Bar.dbg": {
+        "_format": "hh-sol-dbg-1",
+        "buildInfo": "../../build-info/1971e920b375c86605b83cbedee1f092.json"
+    }
+}

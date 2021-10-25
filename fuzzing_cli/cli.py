@@ -7,7 +7,6 @@ import click
 import yaml
 
 from fuzzing_cli import __version__
-
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.run import fuzz_run
