@@ -1,0 +1,158 @@
+{
+    "id": "1971e920b375c86605b83cbedee1f092",
+    "_format": "hh-sol-build-info-1",
+    "solcVersion": "0.7.3",
+    "solcLongVersion": "0.7.3+commit.9bfce1f6",
+    "input": {
+        "language": "Solidity",
+        "sources": {
+            "contracts/sample.sol": {
+                "content": "sample source"
+            }
+        },
+        "settings": {
+            "optimizer": {
+                "enabled": false,
+                "runs": 200
+            },
+            "outputSelection": {
+                "*": {
+                    "*": [
+                        "abi",
+                        "evm.bytecode",
+                        "evm.deployedBytecode",
+                        "evm.methodIdentifiers"
+                    ],
+                    "": [
+                        "ast"
+                    ]
+                }
+            }
+        }
+    },
+    "output": {
+        "contracts": {
+            "contracts/sample.sol": {
+                "Foo": {
+                    "abi": [
+                        {
+                            "inputs": [
+                                {
+                                    "internalType": "uint256",
+                                    "name": "x",
+                                    "type": "uint256"
+                                }
+                            ],
+                            "name": "main",
+                            "outputs": [],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ],
+                    "evm": {
+                        "bytecode": {
+                            "generatedSources": [],
+                            "linkReferences": {},
+                            "object": "6080604052348015600f57600080",
+                            "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x91 DUP1 PUSH2 0x1E PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH1 0x28 JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0xAB3AE255 EQ PUSH1 0x2D JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x56 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH1 0x41 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP1 SWAP3 SWAP2 SWAP1 POP POP POP PUSH1 0x58 JUMP JUMPDEST STOP JUMPDEST POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xDD 0xDB 0xA9 PUSH23 0x1D6112ECD6045B4C6199EF1F807DA802ACE0B5704175BC 0xF6 SLT PUSH24 0xC54E64736F6C634300070300330000000000000000000000 ",
+                            "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;"
+                        },
+                        "deployedBytecode": {
+                            "generatedSources": [],
+                            "immutableReferences": {},
+                            "linkReferences": {},
+                            "object": "6080604052348015600f57600080f",
+                            "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH1 0x28 JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0xAB3AE255 EQ PUSH1 0x2D JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x56 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH1 0x41 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP1 SWAP3 SWAP2 SWAP1 POP POP POP PUSH1 0x58 JUMP JUMPDEST STOP JUMPDEST POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xDD 0xDB 0xA9 PUSH23 0x1D6112ECD6045B4C6199EF1F807DA802ACE0B5704175BC 0xF6 SLT PUSH24 0xC54E64736F6C634300070300330000000000000000000000 ",
+                            "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;:::o"
+                        },
+                        "methodIdentifiers": {
+                            "main(uint256)": "ab3ae255"
+                        }
+                    }
+                },
+                "Bar": {
+                    "abi": [
+                        {
+                            "inputs": [
+                                {
+                                    "internalType": "uint256",
+                                    "name": "x",
+                                    "type": "uint256"
+                                }
+                            ],
+                            "name": "main",
+                            "outputs": [],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ],
+                    "evm": {
+                        "bytecode": {
+                            "generatedSources": [],
+                            "linkReferences": {},
+                            "object": "6080604052348015600f57",
+                            "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x91 DUP1 PUSH2 0x1E PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH1 0x28 JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0xAB3AE255 EQ PUSH1 0x2D JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x56 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH1 0x41 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP1 SWAP3 SWAP2 SWAP1 POP POP POP PUSH1 0x58 JUMP JUMPDEST STOP JUMPDEST POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xDD 0xDB 0xA9 PUSH23 0x1D6112ECD6045B4C6199EF1F807DA802ACE0B5704175BC 0xF6 SLT PUSH24 0xC54E64736F6C634300070300330000000000000000000000 ",
+                            "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;"
+                        },
+                        "deployedBytecode": {
+                            "generatedSources": [],
+                            "immutableReferences": {},
+                            "linkReferences": {},
+                            "object": "6080604052348015600f576000",
+                            "opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x4 CALLDATASIZE LT PUSH1 0x28 JUMPI PUSH1 0x0 CALLDATALOAD PUSH1 0xE0 SHR DUP1 PUSH4 0xAB3AE255 EQ PUSH1 0x2D JUMPI JUMPDEST PUSH1 0x0 DUP1 REVERT JUMPDEST PUSH1 0x56 PUSH1 0x4 DUP1 CALLDATASIZE SUB PUSH1 0x20 DUP2 LT ISZERO PUSH1 0x41 JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST DUP2 ADD SWAP1 DUP1 DUP1 CALLDATALOAD SWAP1 PUSH1 0x20 ADD SWAP1 SWAP3 SWAP2 SWAP1 POP POP POP PUSH1 0x58 JUMP JUMPDEST STOP JUMPDEST POP JUMP INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xDD 0xDB 0xA9 PUSH23 0x1D6112ECD6045B4C6199EF1F807DA802ACE0B5704175BC 0xF6 SLT PUSH24 0xC54E64736F6C634300070300330000000000000000000000 ",
+                            "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;;;;;;:::o"
+                        },
+                        "methodIdentifiers": {
+                            "main(uint256)": "ab3ae255"
+                        }
+                    }
+                }
+            }
+        },
+        "errors": [
+            {
+                "component": "general",
+                "errorCode": "1878",
+                "formattedMessage": "contracts/Foo.sol: Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n",
+                "message": "SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.",
+                "severity": "warning",
+                "sourceLocation": {
+                    "end": -1,
+                    "file": "contracts/Foo.sol",
+                    "start": -1
+                },
+                "type": "Warning"
+            },
+            {
+                "component": "general",
+                "errorCode": "3420",
+                "formattedMessage": "contracts/Foo.sol: Warning: Source file does not specify required compiler version! Consider adding \"pragma solidity ^0.7.3;\"\n",
+                "message": "Source file does not specify required compiler version! Consider adding \"pragma solidity ^0.7.3;\"",
+                "severity": "warning",
+                "sourceLocation": {
+                    "end": -1,
+                    "file": "contracts/Foo.sol",
+                    "start": -1
+                },
+                "type": "Warning"
+            }
+        ],
+        "sources": {
+            "contracts/sample.sol": {
+                "ast": {
+                    "absolutePath": "contracts/sample.sol",
+                    "exportedSymbols": {
+                        "Bar": [
+                            8
+                        ]
+                    },
+                    "id": 9,
+                    "nodeType": "SourceUnit",
+                    "nodes": [],
+                    "src": "0:75:0"
+                },
+                "id": 0
+            }
+        }
+    }
+}
