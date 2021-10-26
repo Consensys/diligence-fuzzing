@@ -66,7 +66,11 @@ def brownie_project(tmp_path):
 @pytest.fixture()
 def hardhat_project(tmp_path, request):
     artifact = get_test_case("testdata/hardhat-artifact.json")
+    different_contracts_artifact = get_test_case(
+        "testdata/hardhat-artifact-different-contract-name.json"
+    )
     build_artifact = get_test_case("testdata/hardhat-build-info-artifact.json")
+    build_artifact_1 = get_test_case("testdata/hardhat-build-info-artifact-1.json")
 
     # switch to temp dir if requested
     if hasattr(request, "param") and request.param:
@@ -74,6 +78,7 @@ def hardhat_project(tmp_path, request):
 
     # add hardhat project structure
     os.makedirs(str(tmp_path / "artifacts/contracts/MasterChefV2.sol/"))
+    os.makedirs(str(tmp_path / "artifacts/contracts/sample.sol/"))
     os.makedirs(str(tmp_path / "artifacts/build-info/"))
     os.makedirs(str(tmp_path / "contracts"))
 
@@ -83,12 +88,23 @@ def hardhat_project(tmp_path, request):
     ) as artifact_f:
         json.dump(build_artifact, artifact_f)
 
+    with open(
+        tmp_path / "artifacts/build-info/1971e920b375c86605b83cbedee1f092.json", "w+"
+    ) as artifact_f:
+        json.dump(build_artifact_1, artifact_f)
+
     with open("./hardhat.config.ts", "w+") as config_f:
         json.dump("sample", config_f)
 
     for filename, content in artifact.items():
         with open(
             tmp_path / f"artifacts/contracts/MasterChefV2.sol/{filename}.json", "w+"
+        ) as sol_f:
+            json.dump(content, sol_f)
+
+    for filename, content in different_contracts_artifact.items():
+        with open(
+            tmp_path / f"artifacts/contracts/sample.sol/{filename}.json", "w+"
         ) as sol_f:
             json.dump(content, sol_f)
 
