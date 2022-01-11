@@ -4,7 +4,7 @@ from typing import List, Optional, Type
 import click
 import inquirer
 import yaml
-from click import BadParameter, UsageError
+from click import BadParameter, UsageError, style
 
 from .ide.brownie import BrownieArtifacts
 from .ide.generic import IDEArtifacts
@@ -42,22 +42,27 @@ def determine_ide() -> IDE:
 
 
 def determine_targets() -> List[str]:
+    message = "Specify folder(s) or smart contract(s) (comma-separated) to fuzz"
     _target_ = Path.cwd().absolute().joinpath("contracts")
-    disagreed = False
-    if (
-        _target_.exists()
-        and _target_.is_dir()
-        and click.confirm(f"Do you want to fuzz all smart contracts under {click.style(_target_, fg='yellow')}?")
-    ):
-        target = str(_target_)
-        disagreed = True
+
+    if _target_.exists() and _target_.is_dir():
+        if click.confirm(
+            f"Do you want to fuzz all smart contracts under {style(_target_, fg='yellow')}?"
+        ):
+            target = str(_target_)
+        else:
+            target = click.prompt(message)
     else:
-        message = "Specify folder(s) or smart contract(s) (comma-separated) to fuzz"
-        if not disagreed:
-            message = f"We couldn't find any contracts at {click.style(_target_, fg='yellow')}. " + message
+        message = (
+            f"We couldn't find any contracts at {style(_target_, fg='yellow')}. "
+            + message
+        )
         target = click.prompt(message)
+
     target = [
-        t.strip() if Path(t.strip()).is_absolute() else str(Path.cwd().absolute().joinpath(t.strip()))
+        t.strip()
+        if Path(t.strip()).is_absolute()
+        else str(Path.cwd().absolute().joinpath(t.strip()))
         for t in target.split(",")
     ]
     return target
@@ -74,16 +79,22 @@ def determine_build_dir(ide: IDE) -> str:
     if not _build_dir_.is_absolute():
         _build_dir_ = Path.cwd().absolute().joinpath(_build_dir_)
 
-    if (
-        _build_dir_.exists()
-        and _build_dir_.is_dir()
-        and click.confirm(f"Is {_build_dir_} a correct build directory for the project?")
-    ):
-        build_dir = str(_build_dir_)
+    message = "Specify build directory path"
+
+    if _build_dir_.exists() and _build_dir_.is_dir():
+        if click.confirm(
+            f"Is {style(_build_dir_, fg='yellow')} a correct build directory for the project?"
+        ):
+            build_dir = str(_build_dir_)
+        else:
+            build_dir = str(click.prompt(message)).strip()
     else:
-        build_dir = str(click.prompt(
-            f"We couldn't find build directory at {_build_dir_}. Specify build directory path",
-        )).strip()
+        message = (
+            f"We couldn't find build directory at {style(_build_dir_, fg='yellow')}. "
+            + message
+        )
+        build_dir = str(click.prompt(message)).strip()
+
     if not Path(build_dir).is_absolute():
         build_dir = str(Path.cwd().absolute().joinpath(build_dir))
 
@@ -134,9 +145,7 @@ def determine_api_key() -> Optional[str]:
     return api_key
 
 
-@click.command("generate-config")
-@click.pass_obj
-def fuzz_generate_config(ctx):
+def recreate_config():
     ide = determine_ide()
     targets = determine_targets()
     build_dir = determine_build_dir(ide)
@@ -147,7 +156,9 @@ def fuzz_generate_config(ctx):
 
     config_path = Path().cwd().joinpath(".fuzz.yml")
 
-    click.echo(f"Alright! Generating config at {config_path}")
+    click.echo(
+        f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
+    )
 
     with config_path.open("w") as f:
         yaml.dump(
@@ -168,4 +179,36 @@ def fuzz_generate_config(ctx):
             default_flow_style=False,
         )
 
-    click.echo("Done")
+    click.echo("Done 🎉")
+
+
+def sync_config():
+    config_path = Path().cwd().joinpath(".fuzz.yml")
+    if not config_path.exists() or not config_path.is_file():
+        raise UsageError(f"Could not find config file to re-sync. Create one first.")
+
+    targets = determine_targets()
+
+    click.echo(
+        f"⚡️ Alright! Syncing config at {style(config_path, fg='yellow', italic=True)}"
+    )
+    with config_path.open("rw") as f:
+        config = yaml.load(f)
+        config["fuzz"]["targets"] = targets
+        yaml.dump(config, f, default_flow_style=False)
+
+    click.echo("Done 🎉")
+
+
+@click.command("generate-config")
+@click.option(
+    "--sync",
+    help="Option to update only remappings and targets",
+    is_flag=True,
+    default=False,
+)
+@click.pass_obj
+def fuzz_generate_config(ctx, sync: bool) -> None:
+    if sync:
+        return sync_config()
+    recreate_config()
