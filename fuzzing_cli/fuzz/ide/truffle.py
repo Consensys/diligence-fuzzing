@@ -170,6 +170,10 @@ class TruffleArtifacts(IDEArtifacts):
             )
         return contracts
 
+    @staticmethod
+    def get_default_build_dir():
+        return "build/contracts"
+
     @property
     def contracts(self):
         return self._contracts

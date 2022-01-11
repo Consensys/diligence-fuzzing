@@ -37,6 +37,11 @@ class IDEArtifacts(ABC):
         pass
 
     @staticmethod
+    @abstractmethod
+    def get_default_build_dir() -> str:
+        pass
+
+    @staticmethod
     def _get_build_artifacts(build_dir) -> Dict:
         build_files_by_source_file = {}
 

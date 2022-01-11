@@ -21,6 +21,10 @@ class HardhatArtifacts(IDEArtifacts):
         self._build_dir = Path(build_dir).absolute() or Path("./artifacts").absolute()
         self._contracts, self._sources = self.fetch_data(map_to_original_source)
 
+    @staticmethod
+    def get_default_build_dir():
+        return "artifacts"
+
     @property
     def contracts(self):
         return self._contracts

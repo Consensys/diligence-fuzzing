@@ -26,6 +26,10 @@ class BrownieArtifacts(IDEArtifacts):
             build_files_by_source_file, map_to_original_source
         )
 
+    @staticmethod
+    def get_default_build_dir():
+        return "build/contracts"
+
     @property
     def contracts(self):
         return self._contracts
