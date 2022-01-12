@@ -10,7 +10,8 @@ from .ide.brownie import BrownieArtifacts
 from .ide.generic import IDEArtifacts
 from .ide.hardhat import HardhatArtifacts
 from .ide.truffle import TruffleArtifacts
-from .run import IDE, determine_ide as __determine_ide
+from .run import IDE
+from .run import determine_ide as __determine_ide
 
 CPU_MIN = 1
 CPU_MAX = 4
@@ -202,12 +203,7 @@ def sync_config():
 
 
 @click.command("generate-config")
-@click.option(
-    "--sync",
-    help="Option to update targets",
-    is_flag=True,
-    default=False,
-)
+@click.option("--sync", help="Option to update targets", is_flag=True, default=False)
 @click.pass_obj
 def fuzz_generate_config(ctx, sync: bool) -> None:
     if sync:
