@@ -10,8 +10,7 @@ from .ide.brownie import BrownieArtifacts
 from .ide.generic import IDEArtifacts
 from .ide.hardhat import HardhatArtifacts
 from .ide.truffle import TruffleArtifacts
-from .run import IDE
-from .run import determine_ide as __determine_ide
+from .run import IDE, determine_ide as __determine_ide
 
 CPU_MIN = 1
 CPU_MAX = 4
@@ -83,7 +82,7 @@ def determine_build_dir(ide: IDE) -> str:
 
     if _build_dir_.exists() and _build_dir_.is_dir():
         if click.confirm(
-            f"Is {style(_build_dir_, fg='yellow')} a correct build directory for the project?"
+            f"Is {style(_build_dir_, fg='yellow')} correct build directory for the project?"
         ):
             build_dir = str(_build_dir_)
         else:
@@ -103,7 +102,7 @@ def determine_build_dir(ide: IDE) -> str:
 
 def determine_rpc_url() -> str:
     rpc_url = click.prompt(
-        "Specify RPC URL to get seed state from (i.e. local Ganache instance)",
+        "Specify RPC URL to get seed state from (e.g. local Ganache instance)",
         default="http://localhost:7545",
     )
     return rpc_url
@@ -192,9 +191,11 @@ def sync_config():
     click.echo(
         f"⚡️ Alright! Syncing config at {style(config_path, fg='yellow', italic=True)}"
     )
-    with config_path.open("rw") as f:
+    with config_path.open("r") as f:
         config = yaml.load(f)
         config["fuzz"]["targets"] = targets
+
+    with config_path.open("w") as f:
         yaml.dump(config, f, default_flow_style=False)
 
     click.echo("Done 🎉")
@@ -203,7 +204,7 @@ def sync_config():
 @click.command("generate-config")
 @click.option(
     "--sync",
-    help="Option to update only remappings and targets",
+    help="Option to update targets",
     is_flag=True,
     default=False,
 )
