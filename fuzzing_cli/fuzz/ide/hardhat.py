@@ -1,15 +1,20 @@
 import json
 from os.path import abspath, commonpath, relpath
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
 
 from ...util import files_by_directory, get_content_from_file, sol_files_by_directory
 
 
 class HardhatArtifacts(IDEArtifacts):
-    def __init__(self, build_dir=None, targets=None, map_to_original_source=False):
+    def __init__(
+        self,
+        build_dir: Optional[Path] = None,
+        targets: Optional[List[str]] = None,
+        map_to_original_source: bool = False,
+    ):
         self._include = []
         if targets:
             include = []
@@ -121,15 +126,10 @@ class HardhatArtifacts(IDEArtifacts):
         return result_contracts, result_sources
 
 
-class HardhatJob:
-    def __init__(
-        self, target: List[str], build_dir: Path, map_to_original_source: bool
-    ):
-        artifacts = HardhatArtifacts(
-            build_dir, targets=target, map_to_original_source=map_to_original_source
+class HardhatJob(IDEJob):
+    def process_artifacts(self) -> IDEArtifacts:
+        return HardhatArtifacts(
+            build_dir=self.build_dir,
+            targets=self.target,
+            map_to_original_source=self.map_to_original_source,
         )
-        self._jb = JobBuilder(artifacts)
-        self.payload = None
-
-    def generate_payload(self):
-        self.payload = self._jb.payload()

@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
 
 from ...util import get_content_from_file, sol_files_by_directory
 
@@ -11,7 +11,12 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class BrownieArtifacts(IDEArtifacts):
-    def __init__(self, build_dir=None, targets=None, map_to_original_source=False):
+    def __init__(
+        self,
+        build_dir: Optional[Path] = None,
+        targets: Optional[List[str]] = None,
+        map_to_original_source: bool = False,
+    ):
         self._include = []
         if targets:
             include = []
@@ -93,15 +98,10 @@ class BrownieArtifacts(IDEArtifacts):
         return result_contracts, result_sources
 
 
-class BrownieJob:
-    def __init__(
-        self, target: List[str], build_dir: Path, map_to_original_source: bool
-    ):
-        artifacts = BrownieArtifacts(
-            build_dir, targets=target, map_to_original_source=map_to_original_source
+class BrownieJob(IDEJob):
+    def process_artifacts(self) -> IDEArtifacts:
+        return BrownieArtifacts(
+            build_dir=self.build_dir,
+            targets=self.target,
+            map_to_original_source=self.map_to_original_source,
         )
-        self._jb = JobBuilder(artifacts)
-        self.payload = None
-
-    def generate_payload(self):
-        self.payload = self._jb.payload()

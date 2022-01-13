@@ -3,15 +3,18 @@ from os.path import abspath
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired
 from tempfile import TemporaryFile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
 from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
 
 class TruffleArtifacts(IDEArtifacts):
-    def __init__(self, project_dir: str, build_dir=None, targets=None):
+    def __init__(
+        self, build_dir: Optional[Path] = None, targets: Optional[List[str]] = None
+    ):
+        project_dir = str(Path.cwd().absolute())
         self._include: List[str] = []
         if targets:
             include = []
@@ -183,11 +186,6 @@ class TruffleArtifacts(IDEArtifacts):
         return self._sources
 
 
-class TruffleJob:
-    def __init__(self, project_dir: str, target: List[str], build_dir: Path):
-        artifacts = TruffleArtifacts(project_dir, build_dir, targets=target)
-        self._jb = JobBuilder(artifacts)
-        self.payload = None
-
-    def generate_payload(self):
-        self.payload = self._jb.payload()
+class TruffleJob(IDEJob):
+    def process_artifacts(self) -> IDEArtifacts:
+        return TruffleArtifacts(build_dir=self.build_dir, targets=self.target)
