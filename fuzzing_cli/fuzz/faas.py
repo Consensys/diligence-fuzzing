@@ -2,6 +2,7 @@ import json
 import logging
 import random
 import string
+from typing import Dict
 
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -15,6 +16,7 @@ from .exceptions import (
     RequestError,
     ScribbleMetaError,
 )
+from .ide.generic import IDEJob
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -100,7 +102,9 @@ class FaasClient:
                 raise e
             raise RequestError("Error starting FaaS campaign", detail=str(e))
 
-    def create_faas_campaign(self, campaign_data, seed_state, dry_run=False):
+    def create_faas_campaign(
+        self, campaign_data: IDEJob, seed_state: Dict[str, any], dry_run: bool = False
+    ):
         """Submit a campaign to the FaaS and start that campaign.
 
         This function takes a FaaS payload and makes an HTTP request to the Faas backend, which
@@ -126,7 +130,6 @@ class FaasClient:
                 "num-cores": seed_state["num-cores"],
                 "assertion-checking-mode": seed_state["assertion-checking-mode"],
             }
-
             api_payload = {
                 "parameters": api_payload_params,
                 "name": self.generate_campaign_name(),
