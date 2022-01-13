@@ -1,17 +1,13 @@
 from pathlib import Path
-from typing import List, Optional, Type
+from typing import List, Optional
 
 import click
 import inquirer
 import yaml
 from click import BadParameter, UsageError, style
 
-from .ide.brownie import BrownieArtifacts
-from .ide.generic import IDEArtifacts
-from .ide.hardhat import HardhatArtifacts
-from .ide.truffle import TruffleArtifacts
-from .run import IDE
-from .run import determine_ide as __determine_ide
+from .ide import IDE, IDERepository
+from .ide import determine_ide as __determine_ide
 
 CPU_MIN = 1
 CPU_MAX = 4
@@ -69,12 +65,9 @@ def determine_targets() -> List[str]:
 
 
 def determine_build_dir(ide: IDE) -> str:
-    if ide == IDE.BROWNIE:
-        artifacts_factory: Type[IDEArtifacts] = BrownieArtifacts
-    elif ide == IDE.HARDHAT:
-        artifacts_factory: Type[IDEArtifacts] = HardhatArtifacts
-    elif ide == IDE.TRUFFLE:
-        artifacts_factory: Type[IDEArtifacts] = TruffleArtifacts
+    repo = IDERepository.get_instance()
+    artifacts_factory = repo.get_artifacts(ide)
+
     _build_dir_ = Path(artifacts_factory.get_default_build_dir())
     if not _build_dir_.is_absolute():
         _build_dir_ = Path.cwd().absolute().joinpath(_build_dir_)
