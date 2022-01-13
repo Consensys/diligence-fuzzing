@@ -3,7 +3,8 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, TypedDict
+from typing import Dict, List, Optional
+from typing_extensions import TypedDict
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 
