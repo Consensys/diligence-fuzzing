@@ -12,6 +12,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 class BrownieArtifacts(IDEArtifacts):
     def __init__(self, build_dir=None, targets=None, map_to_original_source=False):
+        # self._include is an array with all the solidity file paths under the targets
         self._include = []
         if targets:
             include = []
@@ -20,8 +21,15 @@ class BrownieArtifacts(IDEArtifacts):
             self._include = include
 
         self._build_dir = build_dir or Path("./build/contracts")
+
+        # self._get_build_artifacts goes through each .json build file and extracts the Source file it references
+        # A source file may contain several contracts, so it is possible that a given source file
+        # will be pointed to by multiple build artifacts
+        # build_files_by_source_file is a dictionary where the key is a source file name
+        # and the value is an array of build artifacts (contracts)
         build_files_by_source_file = self._get_build_artifacts(self._build_dir)
 
+        # we then extract the contracts and sources from the build artifacts
         self._contracts, self._sources = self.fetch_data(
             build_files_by_source_file, map_to_original_source
         )
@@ -35,8 +43,22 @@ class BrownieArtifacts(IDEArtifacts):
         return self._sources
 
     def fetch_data(self, build_files_by_source_file, map_to_original_source=False):
+        ''' example build_files_by_source_file
+            {
+                'contracts/Token.sol':
+                    {
+                        'abi':... ,
+                        'ast':... ,
+                        'source':...,
+                        ''
+                    }
+            }
+        '''
+
         result_contracts = {}
         result_sources = {}
+
+        # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
             if source_file not in self._include:
                 continue

@@ -9,7 +9,7 @@ from click import ClickException, UsageError
 
 from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
-from .ide import BrownieJob, HardhatJob, TruffleJob
+from .ide import BrownieJob, DapptoolsJob, HardhatJob, TruffleJob
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
@@ -22,6 +22,7 @@ time_limit_seconds = 3000
 
 class IDE(Enum):
     BROWNIE = "brownie"
+    DAPPTOOLS = "dapptools"
     HARDHAT = "hardhat"
     TRUFFLE = "truffle"
     SOLIDITY = "solidity"
@@ -193,9 +194,17 @@ def fuzz_run(
     )
 
     ide = determine_ide()
+    ide=IDE.DAPPTOOLS
 
     if ide == IDE.BROWNIE:
         artifacts = BrownieJob(
+            options.target,
+            Path(options.build_directory),
+            map_to_original_source=options.map_to_original_source,
+        )
+        artifacts.generate_payload()
+    elif ide == IDE.DAPPTOOLS:
+        artifacts = DapptoolsJob(
             options.target,
             Path(options.build_directory),
             map_to_original_source=options.map_to_original_source,
