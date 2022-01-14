@@ -3,6 +3,18 @@ from typing import Dict, Type
 from .generic import IDE, IDEArtifacts, IDEJob
 
 
+class ArtifactsNotRegistered(Exception):
+    def __init__(self, ide):
+        super(ArtifactsNotRegistered, self).__init__(
+            f"Artifacts for {ide.name} not registered"
+        )
+
+
+class JobNotRegistered(Exception):
+    def __init__(self, ide):
+        super(JobNotRegistered, self).__init__(f"Job for {ide.name} not registered")
+
+
 class IDERepository:
     instance: "IDERepository"
 
@@ -22,10 +34,16 @@ class IDERepository:
         self.artifacts_classes[ide] = _class
 
     def get_artifacts(self, ide: IDE) -> Type[IDEArtifacts]:
-        return self.artifacts_classes[ide]
+        artifact_class = self.artifacts_classes[ide]
+        if not artifact_class:
+            raise ArtifactsNotRegistered(ide)
+        return artifact_class
 
     def register_job(self, ide: IDE, _class: Type[IDEJob]):
         self.ide_jobs[ide] = _class
 
     def get_job(self, ide: IDE) -> Type[IDEJob]:
-        return self.ide_jobs[ide]
+        job = self.ide_jobs[ide]
+        if not job:
+            raise JobNotRegistered(ide)
+        return job
