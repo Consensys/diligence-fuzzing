@@ -109,7 +109,10 @@ class DapptoolsArtifacts(IDEArtifacts):
                 try:
                     result_contracts[source_file] += [
                         {
-                           # "sourcePaths": contract["allSourcePaths"],
+                            "sourcePaths": {
+                                source_file['id']: file_path
+                                for file_path, source_file in source_files.items()
+                            },
                             "deployedSourceMap": contract["evm"]["deployedBytecode"]["sourceMap"],
                             "deployedBytecode": contract["evm"]["deployedBytecode"]["object"],
                             "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
@@ -124,7 +127,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                     )
 
         for source_file_path, source_file in source_files.items():
-            file_index = source_file["id"]
+            file_index = str(source_file["id"])
 
 
             # We can select any dict on the build_files_by_source_file[source_file] array
@@ -146,7 +149,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                     "source"
                 ] = get_content_from_file(source_file_path + ".original")
         print(json.dumps(result_sources))
-        exit(-1)
+        # exit(-1)
         return result_contracts, result_sources
 
 
