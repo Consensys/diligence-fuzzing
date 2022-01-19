@@ -162,7 +162,12 @@ class ScribbleMixin:
         :param remappings: List of import remappings to pass to solc
         :param solc_version: The solc compiler version to use
         """
-        command = [scribble_path, "--disarm", "--instrumentation-metadata-file", SCRIBBLE_ARMING_META_FILE];
+        command = [
+            scribble_path,
+            "--disarm",
+            "--instrumentation-metadata-file",
+            SCRIBBLE_ARMING_META_FILE,
+        ]
 
         if remappings:
             command.append(f"--path-remapping={';'.join(remappings)}")
