@@ -86,9 +86,6 @@ class RPCClient:
             "emit-mythx-report": True,
             "num-cores": self.number_of_cores,
         }
-        """Get a seed state for the target contract to be used by Harvey"""
-        if corpus_target:
-            return dict({**seed_state, "analysis-setup": {"target": corpus_target}})
 
         try:
             blocks = self.get_all_blocks()
@@ -106,6 +103,9 @@ class RPCClient:
                     "other-addresses-under-test": other_addresses,
                 }
             )
+            """Get a seed state for the target contract to be used by Harvey"""
+            if corpus_target:
+                setup["target"] = corpus_target
             return dict({**seed_state, "analysis-setup": setup})
         except Exception as e:
             LOGGER.warning(f"Could not generate seed state for address: {address}")
