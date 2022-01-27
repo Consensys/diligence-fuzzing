@@ -194,7 +194,7 @@ def fuzz_run(
     )
 
     ide = determine_ide()
-    ide=IDE.DAPPTOOLS
+    # ide=IDE.DAPPTOOLS
 
     if ide == IDE.BROWNIE:
         artifacts = BrownieJob(

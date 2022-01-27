@@ -58,6 +58,37 @@ def brownie_project(tmp_path):
     with open(tmp_path / "contracts/sample.sol.original", "w+") as sol_f:
         sol_f.write("original sol code here")
 
+
+@pytest.fixture()
+def dapptools_project(tmp_path):
+    original_artifact = get_test_case("testdata/dapptools_artifact.json")
+
+    # add dapptools project structure
+    os.makedirs(str(tmp_path / "out/"))
+    os.makedirs(str(tmp_path / "src/test/utils/"))
+    os.makedirs(str(tmp_path / "lib/openzeppelin-contracts/contracts/utils/"))
+    os.makedirs(str(tmp_path / "lib/openzeppelin-contracts/contracts/access/"))
+    os.makedirs(str(tmp_path / "lib/ds-test/src/"))
+
+    # create dapptools config file
+    with open("./.dapprc", "w+") as config_f:
+        json.dump("sample", config_f)
+
+    # patch dapptools artifact with temp path
+    artifact = {"sources": {}, "contracts": {}}
+    for k, v in original_artifact["sources"].items():
+        artifact["sources"][f"{tmp_path}/{k}"] = v
+    for k, v in original_artifact["contracts"].items():
+        artifact["contracts"][f"{tmp_path}/{k}"] = v
+
+    # Create a temp dapptools artifacts file with the patched locations
+    with open(tmp_path / "out/dapp.sol.json", "w+") as artifact_f:
+        json.dump(artifact, artifact_f)
+    # Create the temp solidity files
+    for k, v in artifact["contracts"].items():
+        with open(k, "w+") as sol_f:
+            sol_f.write("sol code here")
+
     yield None
     # cleaning up test files
     os.remove(str(Path("./brownie-config.yaml").absolute()))
