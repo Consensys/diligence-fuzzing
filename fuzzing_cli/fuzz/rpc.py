@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import click
 import requests
@@ -78,7 +78,7 @@ class RPCClient:
 
     def get_seed_state(
         self, address: str, other_addresses: [str], corpus_target: Optional[str] = None
-    ):
+    ) -> Dict[str, any]:
         seed_state = {
             "time-limit-secs": time_limit_seconds,
             "discovery-probability-threshold": 0.0,
