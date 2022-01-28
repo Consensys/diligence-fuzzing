@@ -8,7 +8,7 @@ from tempfile import TemporaryFile
 from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide import Contract, IDEArtifacts, Source
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.util import LOGGER
 
 
