@@ -16,7 +16,7 @@ from .exceptions import (
     RequestError,
     ScribbleMetaError,
 )
-from .ide.generic import IDEJob
+from .ide.generic import IDEArtifacts
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -103,7 +103,10 @@ class FaasClient:
             raise RequestError("Error starting FaaS campaign", detail=str(e))
 
     def create_faas_campaign(
-        self, campaign_data: IDEJob, seed_state: Dict[str, any], dry_run: bool = False
+        self,
+        campaign_data: IDEArtifacts,
+        seed_state: Dict[str, any],
+        dry_run: bool = False,
     ):
         """Submit a campaign to the FaaS and start that campaign.
 
@@ -134,8 +137,8 @@ class FaasClient:
                 "parameters": api_payload_params,
                 "name": self.generate_campaign_name(),
                 "corpus": seed_state["analysis-setup"],
-                "sources": campaign_data.payload["sources"],
-                "contracts": campaign_data.payload["contracts"],
+                "sources": campaign_data.sources,
+                "contracts": campaign_data.contracts,
                 "project": self.project,
             }
         except KeyError as e:
