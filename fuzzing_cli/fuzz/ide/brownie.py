@@ -1,11 +1,13 @@
 import logging
+import os
+from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 
-from ...util import get_content_from_file, sol_files_by_directory
+from ...util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -13,39 +15,54 @@ LOGGER = logging.getLogger("fuzzing-cli")
 class BrownieArtifacts(IDEArtifacts):
     def __init__(
         self,
-        build_dir: Optional[Path] = None,
         targets: Optional[List[str]] = None,
+        build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
-        self._include = []
-        if targets:
-            include = []
-            for target in targets:
-                include.extend(sol_files_by_directory(target))
-            self._include = include
-
-        self._build_dir = build_dir or Path("./build/contracts")
-        build_files_by_source_file = self._get_build_artifacts(self._build_dir)
-
-        self._contracts, self._sources = self.fetch_data(
-            build_files_by_source_file, map_to_original_source
+        super(BrownieArtifacts, self).__init__(
+            targets, build_dir or Path("./build/contracts"), map_to_original_source
         )
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "brownie"
+
+    @classmethod
+    def validate_project(cls) -> bool:
+        root_dir = Path.cwd().absolute()
+        files = list(os.walk(root_dir))[0][2]
+        return "brownie-config.yaml" in files
 
     @staticmethod
     def get_default_build_dir():
         return "build/contracts"
 
     @property
-    def contracts(self):
-        return self._contracts
+    def contracts(self) -> List[Contract]:
+        return self.fetch_data()[0]
 
     @property
-    def sources(self):
-        return self._sources
+    def sources(self) -> Dict[str, Source]:
+        return self.fetch_data()[1]
 
-    def fetch_data(self, build_files_by_source_file, map_to_original_source=False):
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        """ example build_files_by_source_file
+            {
+                'contracts/Token.sol':
+                    {
+                        'abi':... ,
+                        'ast':... ,
+                        'source':...,
+                        ''
+                    }
+            }
+        """
+        build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         result_contracts = {}
         result_sources = {}
+
+        # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
             if source_file not in self._include:
                 continue
@@ -87,7 +104,7 @@ class BrownieArtifacts(IDEArtifacts):
                     }
 
                     if (
-                        map_to_original_source
+                        self.map_to_original_source
                         and Path(source_file_dep + ".original").is_file()
                     ):
                         # we check if the current source file has a non instrumented version
@@ -95,13 +112,4 @@ class BrownieArtifacts(IDEArtifacts):
                         result_sources[source_file_dep][
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
-        return result_contracts, result_sources
-
-
-class BrownieJob(IDEJob):
-    def process_artifacts(self) -> IDEArtifacts:
-        return BrownieArtifacts(
-            build_dir=self.build_dir,
-            targets=self.target,
-            map_to_original_source=self.map_to_original_source,
-        )
+        return self.flatten_contracts(result_contracts), result_sources
