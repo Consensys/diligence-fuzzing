@@ -1,7 +1,5 @@
 import logging
-import os
 import traceback
-from enum import Enum
 from pathlib import Path
 
 import click
@@ -9,7 +7,7 @@ from click import ClickException, UsageError
 
 from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
-from .ide import BrownieJob, HardhatJob, TruffleJob
+from .ide import IDEArtifacts, IDERepository
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
@@ -18,27 +16,6 @@ LOGGER = logging.getLogger("fuzzing-cli")
 headers = {"Content-Type": "application/json"}
 
 time_limit_seconds = 3000
-
-
-class IDE(Enum):
-    BROWNIE = "brownie"
-    HARDHAT = "hardhat"
-    TRUFFLE = "truffle"
-    SOLIDITY = "solidity"
-
-
-def determine_ide() -> IDE:
-    root_dir = Path.cwd().absolute()
-    files = list(os.walk(root_dir))[0][2]
-    if "brownie-config.yaml" in files:
-        return IDE.BROWNIE
-    if "hardhat.config.ts" in files:
-        return IDE.HARDHAT
-    if "hardhat.config.js" in files:
-        return IDE.HARDHAT
-    if "truffle-config.js" in files:
-        return IDE.TRUFFLE
-    return IDE.SOLIDITY
 
 
 def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
@@ -192,36 +169,22 @@ def fuzz_run(
         options.corpus_target,
     )
 
-    ide = determine_ide()
+    repo = IDERepository.get_instance()
 
-    if ide == IDE.BROWNIE:
-        artifacts = BrownieJob(
-            options.target,
-            Path(options.build_directory),
-            map_to_original_source=options.map_to_original_source,
-        )
-        artifacts.generate_payload()
-    elif ide == IDE.HARDHAT:
-        artifacts = HardhatJob(
-            options.target,
-            Path(options.build_directory),
-            map_to_original_source=options.map_to_original_source,
-        )
-        artifacts.generate_payload()
-    elif ide == IDE.TRUFFLE:
-        artifacts = TruffleJob(
-            str(Path.cwd().absolute()), options.target, Path(options.build_directory)
-        )
-        artifacts.generate_payload()
-    else:
-        raise UsageError(
-            f"Projects using plain solidity files is not supported right now"
-        )
+    _IDEClass = repo.detect_ide()
+    if not _IDEClass:
+        raise UsageError(f"No supported IDE was detected")
+
+    artifacts: IDEArtifacts = _IDEClass(
+        targets=options.target,
+        build_dir=Path(options.build_directory),
+        map_to_original_source=options.map_to_original_source,
+    )
 
     faas_client = FaasClient(
         faas_url=options.faas_url,
         campaign_name_prefix=options.campaign_name_prefix,
-        project_type=ide,
+        project_type=_IDEClass.get_name(),
         api_key=options.api_key,
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
