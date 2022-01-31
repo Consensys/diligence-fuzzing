@@ -1,45 +1,54 @@
 import json
+import os
+from functools import lru_cache
 from os.path import abspath, commonpath, relpath
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 
-from ...util import files_by_directory, get_content_from_file, sol_files_by_directory
+from ...util import files_by_directory, get_content_from_file
 
 
 class HardhatArtifacts(IDEArtifacts):
     def __init__(
         self,
-        build_dir: Optional[Path] = None,
         targets: Optional[List[str]] = None,
+        build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
-        self._include = []
-        if targets:
-            include = []
-            for target in targets:
-                include.extend(
-                    [abspath(file_path) for file_path in sol_files_by_directory(target)]
-                )
-            self._include = include
-        self._build_dir = Path(build_dir).absolute() or Path("./artifacts").absolute()
-        self._contracts, self._sources = self.fetch_data(map_to_original_source)
+        super(HardhatArtifacts, self).__init__(
+            targets,
+            Path(build_dir).absolute() or Path("./artifacts").absolute(),
+            map_to_original_source,
+        )
+        self._include = [abspath(fp) for fp in self._include]
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "hardhat"
+
+    @classmethod
+    def validate_project(cls) -> bool:
+        root_dir = Path.cwd().absolute()
+        files = list(os.walk(root_dir))[0][2]
+        return "hardhat.config.ts" in files or "hardhat.config.js" in files
 
     @property
-    def contracts(self):
-        return self._contracts
+    def contracts(self) -> List[Contract]:
+        return self.fetch_data()[0]
 
     @property
-    def sources(self):
-        return self._sources
+    def sources(self) -> Dict[str, Source]:
+        return self.fetch_data()[1]
 
-    def fetch_data(self, map_to_original_source=False):
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
         result_contracts = {}
         result_sources = {}
 
         for file_path in self._include:
-            cp = commonpath([self._build_dir, file_path])
+            cp = commonpath([self.build_dir, file_path])
             relative_file_path = relpath(file_path, cp)
 
             if relative_file_path in result_contracts:
@@ -50,14 +59,14 @@ class HardhatArtifacts(IDEArtifacts):
             contract_build_info = {}
 
             for fp in files_by_directory(
-                str(self._build_dir.joinpath(relative_file_path)), "json"
+                str(self.build_dir.joinpath(relative_file_path)), "json"
             ):
                 path = Path(fp)
                 with path.open("r") as file:
                     file_artifact = json.load(file)
                     if path.name.endswith("dbg.json"):
                         build_info_name = Path(file_artifact["buildInfo"]).name
-                        with self._build_dir.joinpath(
+                        with self.build_dir.joinpath(
                             f"build-info/{build_info_name}"
                         ).open("r") as bfile:
                             build_infos[build_info_name] = json.load(bfile)
@@ -110,7 +119,7 @@ class HardhatArtifacts(IDEArtifacts):
                     }
 
                     if (
-                        map_to_original_source
+                        self.map_to_original_source
                         and Path(source_file_dep + ".original").is_file()
                     ):
                         # we check if the current source file has a non instrumented version
@@ -119,13 +128,4 @@ class HardhatArtifacts(IDEArtifacts):
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
 
-        return result_contracts, result_sources
-
-
-class HardhatJob(IDEJob):
-    def process_artifacts(self) -> IDEArtifacts:
-        return HardhatArtifacts(
-            build_dir=self.build_dir,
-            targets=self.target,
-            map_to_original_source=self.map_to_original_source,
-        )
+        return self.flatten_contracts(result_contracts), result_sources

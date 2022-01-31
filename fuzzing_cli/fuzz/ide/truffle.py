@@ -1,45 +1,54 @@
 import json
+import os
+from functools import lru_cache
 from os.path import abspath
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired
 from tempfile import TemporaryFile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, IDEJob
-from fuzzing_cli.util import LOGGER, sol_files_by_directory
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
+from fuzzing_cli.util import LOGGER
 
 
 class TruffleArtifacts(IDEArtifacts):
     def __init__(
-        self, build_dir: Optional[Path] = None, targets: Optional[List[str]] = None
+        self, targets: List[str], build_dir: Path, map_to_original_source: bool = False
     ):
-        project_dir = str(Path.cwd().absolute())
-        self._include: List[str] = []
-        if targets:
-            include = []
-            for target in targets:
-                # targets could be specified using relative path. But sourcePath in truffle artifacts
-                # will use absolute paths, so we need to use absolute paths in targets as well
-                include.extend(
-                    [abspath(file_path) for file_path in sol_files_by_directory(target)]
-                )
-            self._include = include
-
-        self._build_dir = build_dir or Path("./build/contracts")
-        build_files_by_source_file = self._get_build_artifacts(self._build_dir)
-        project_sources = self._get_project_sources(project_dir)
-
-        self._contracts, self._sources = self.fetch_data(
-            build_files_by_source_file, project_sources
+        super(TruffleArtifacts, self).__init__(
+            targets, build_dir or Path("./build/contracts"), map_to_original_source
         )
+        project_dir = str(Path.cwd().absolute())
+        self.build_files_by_source_file = self._get_build_artifacts(self.build_dir)
+        self.project_sources = self._get_project_sources(project_dir)
+        # targets could be specified using relative path. But sourcePath in truffle artifacts
+        # will use absolute paths, so we need to use absolute paths in targets as well
+        self._include = [abspath(fp) for fp in self._include]
 
-    def fetch_data(
-        self, build_files_by_source_file, project_sources: Dict[str, List[str]]
-    ):
+    @classmethod
+    def get_name(cls) -> str:
+        return "truffle"
+
+    @classmethod
+    def validate_project(cls) -> bool:
+        root_dir = Path.cwd().absolute()
+        files = list(os.walk(root_dir))[0][2]
+        return "truffle-config.js" in files
+
+    @property
+    def contracts(self) -> List[Contract]:
+        return self.fetch_data()[0]
+
+    @property
+    def sources(self) -> Dict[str, Source]:
+        return self.fetch_data()[1]
+
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
         result_contracts = {}
         result_sources = {}
-        for source_file, contracts in build_files_by_source_file.items():
+        for source_file, contracts in self.build_files_by_source_file.items():
             if source_file not in self._include:
                 continue
             result_contracts[source_file] = []
@@ -51,7 +60,7 @@ class TruffleArtifacts(IDEArtifacts):
                             "sourcePaths": {
                                 i: k
                                 for i, k in enumerate(
-                                    project_sources[contract["contractName"]]
+                                    self.project_sources[contract["contractName"]]
                                 )
                             },
                             "deployedSourceMap": contract["deployedSourceMap"],
@@ -68,24 +77,24 @@ class TruffleArtifacts(IDEArtifacts):
                     )
 
                 for file_index, source_file_dep in enumerate(
-                    project_sources[contract["contractName"]]
+                    self.project_sources[contract["contractName"]]
                 ):
                     if source_file_dep in result_sources.keys():
                         continue
 
-                    if source_file_dep not in build_files_by_source_file:
+                    if source_file_dep not in self.build_files_by_source_file:
                         LOGGER.debug(f"{source_file} not found.")
                         continue
 
                     # We can select any dict on the build_files_by_source_file[source_file] array
                     # because the .source and .ast values will be the same in all.
-                    target_file = build_files_by_source_file[source_file_dep][0]
+                    target_file = self.build_files_by_source_file[source_file_dep][0]
                     result_sources[source_file_dep] = {
                         "fileIndex": file_index,
                         "source": target_file["source"],
                         "ast": target_file["ast"],
                     }
-        return result_contracts, result_sources
+        return self.flatten_contracts(result_contracts), result_sources
 
     @staticmethod
     def query_truffle_db(query: str, project_dir: str) -> Dict[str, Any]:
@@ -172,16 +181,3 @@ class TruffleArtifacts(IDEArtifacts):
                 )
             )
         return contracts
-
-    @property
-    def contracts(self):
-        return self._contracts
-
-    @property
-    def sources(self):
-        return self._sources
-
-
-class TruffleJob(IDEJob):
-    def process_artifacts(self) -> IDEArtifacts:
-        return TruffleArtifacts(build_dir=self.build_dir, targets=self.target)

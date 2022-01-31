@@ -1,19 +1,15 @@
-from .brownie import BrownieArtifacts, BrownieJob
-from .generic import IDE, IDEArtifacts, IDEJob, IDEPayload, determine_ide
-from .hardhat import HardhatArtifacts, HardhatJob
+from .brownie import BrownieArtifacts
+from .generic import Contract, IDEArtifacts, IDEPayload, Source
+from .hardhat import HardhatArtifacts
 from .repository import IDERepository
-from .truffle import TruffleArtifacts, TruffleJob
+from .truffle import TruffleArtifacts
 
 # Initializing of IDERepository singleton
-# NOTE: Each new IDE should register *_Artifacts and *_Job classes here
+# NOTE: Each new IDE should register respective class here
 repo = IDERepository()
 
-repo.register_artifacts(IDE.TRUFFLE, TruffleArtifacts)
-repo.register_artifacts(IDE.HARDHAT, HardhatArtifacts)
-repo.register_artifacts(IDE.BROWNIE, BrownieArtifacts)
-
-repo.register_job(IDE.TRUFFLE, TruffleJob)
-repo.register_job(IDE.HARDHAT, HardhatJob)
-repo.register_job(IDE.BROWNIE, BrownieJob)
+repo.register_ide(TruffleArtifacts)
+repo.register_ide(HardhatArtifacts)
+repo.register_ide(BrownieArtifacts)
 
 IDERepository.set_instance(repo)

@@ -7,7 +7,7 @@ from click import ClickException, UsageError
 
 from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
-from .ide import IDE, IDEJob, IDERepository, determine_ide
+from .ide import IDEArtifacts, IDERepository
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
@@ -169,18 +169,14 @@ def fuzz_run(
         options.corpus_target,
     )
 
-    ide = determine_ide()
-
-    if ide == IDE.SOLIDITY:
-        raise UsageError(
-            f"Projects using plain solidity files is not supported right now"
-        )
-
     repo = IDERepository.get_instance()
 
-    _JOBClass = repo.get_job(ide)
-    artifacts: IDEJob = _JOBClass(
-        target=options.target,
+    _IDEClass = repo.detect_ide()
+    if not _IDEClass:
+        raise UsageError(f"No supported IDE was detected")
+
+    artifacts: IDEArtifacts = _IDEClass(
+        targets=options.target,
         build_dir=Path(options.build_directory),
         map_to_original_source=options.map_to_original_source,
     )
@@ -188,7 +184,7 @@ def fuzz_run(
     faas_client = FaasClient(
         faas_url=options.faas_url,
         campaign_name_prefix=options.campaign_name_prefix,
-        project_type=ide,
+        project_type=_IDEClass.get_name(),
         api_key=options.api_key,
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
