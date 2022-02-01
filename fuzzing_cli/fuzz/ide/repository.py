@@ -43,3 +43,6 @@ class IDERepository:
             if ide.validate_project():
                 return ide
         return None
+
+    def list_ide(self) -> Dict[str, Type[IDEArtifacts]]:
+        return self.ides

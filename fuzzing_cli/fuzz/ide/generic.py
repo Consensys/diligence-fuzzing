@@ -92,6 +92,11 @@ class IDEArtifacts(ABC):
         pass
 
     @staticmethod
+    @abstractmethod
+    def get_default_sources_dir() -> str:
+        pass
+
+    @staticmethod
     def _get_build_artifacts(build_dir) -> Dict:
         # _get_build_artifacts goes through each .json build file and extracts the Source file it references
         # A source file may contain several contracts, so it is possible that a given source file

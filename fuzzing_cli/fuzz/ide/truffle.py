@@ -183,18 +183,9 @@ class TruffleArtifacts(IDEArtifacts):
         return contracts
 
     @staticmethod
-    def get_default_build_dir():
+    def get_default_build_dir() -> str:
         return "build/contracts"
 
-    @property
-    def contracts(self):
-        return self._contracts
-
-    @property
-    def sources(self):
-        return self._sources
-
-
-class TruffleJob(IDEJob):
-    def process_artifacts(self) -> IDEArtifacts:
-        return TruffleArtifacts(build_dir=self.build_dir, targets=self.target)
+    @staticmethod
+    def get_default_sources_dir() -> str:
+        return "contracts"

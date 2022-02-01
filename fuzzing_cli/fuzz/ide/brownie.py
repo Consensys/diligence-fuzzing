@@ -34,8 +34,12 @@ class BrownieArtifacts(IDEArtifacts):
         return "brownie-config.yaml" in files
 
     @staticmethod
-    def get_default_build_dir():
+    def get_default_build_dir() -> str:
         return "build/contracts"
+
+    @staticmethod
+    def get_default_sources_dir() -> str:
+        return "contracts"
 
     @property
     def contracts(self) -> List[Contract]:
