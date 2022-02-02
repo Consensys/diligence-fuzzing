@@ -88,7 +88,7 @@ class DapptoolsArtifacts(IDEArtifacts):
         build_files_by_source_file, source_files = self._get_build_artifacts(
             self.build_dir
         )
-        result_contracts = {}
+        result_contracts: Dict[str, List[Contract]] = {}
         result_sources = {}
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
@@ -101,6 +101,11 @@ class DapptoolsArtifacts(IDEArtifacts):
             for (contract_name, contract) in contracts.items():
                 # We get the build items from dapptools and rename them into the properties used by the FaaS
                 try:
+                    ignored_sources = set()
+                    for generatedSource in contract["evm"]["deployedBytecode"].get("generatedSources", []):
+                        if generatedSource["language"].lower() == "yul" and type(generatedSource["id"] is int):
+                            ignored_sources.add(generatedSource["id"])
+
                     result_contracts[source_file] += [
                         {
                             "sourcePaths": {
@@ -117,6 +122,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
                             "mainSourceFile": source_file,
+                            "ignoredSources": list(ignored_sources),
                         }
                     ]
                 except KeyError as e:
