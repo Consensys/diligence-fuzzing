@@ -78,7 +78,7 @@ def __select_targets(targets: List[str]) -> List[str]:
 
 def __prompt_targets() -> List[str]:
     target = click.prompt(
-        f"{QM} Specify folder(s) (comma-separated) to fuzz contracts from"
+        f"{QM} Specify folder(s) or smart-contract(s) (comma-separated) to fuzz"
     )
     targets = [
         t.strip()
@@ -104,7 +104,8 @@ def determine_targets(ide: str) -> List[str]:
             targets = __prompt_targets()
 
     elif click.confirm(
-        f"{QM} We couldn't find any contracts at {ts}. Have you configured a custom contracts sources directory?"
+        f"{QM} We couldn't find any contracts at {ts}. Have you configured a custom contracts sources directory?",
+        default=True,
     ):
         targets = __prompt_targets()
 
