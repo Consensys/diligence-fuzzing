@@ -7,9 +7,9 @@ import inquirer
 from click import BadParameter, UsageError, style
 from ruamel.yaml import YAML
 
-from ..util import sol_files_by_directory
-from .config.template import generate_yaml
-from .ide import IDERepository
+from fuzzing_cli.fuzz.config.template import generate_yaml
+from fuzzing_cli.fuzz.ide import IDERepository
+from fuzzing_cli.util import sol_files_by_directory
 
 yaml = YAML()
 yaml.indent(offset=2)
