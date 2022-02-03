@@ -41,6 +41,21 @@ class BrownieArtifacts(IDEArtifacts):
     def sources(self) -> Dict[str, Source]:
         return self.fetch_data()[1]
 
+    @staticmethod
+    def get_compiler_generated_source_ids(
+        source_map: str, sources: Dict[str, str]
+    ) -> List[int]:
+        # this method is necessary because brownie does not preserve `generatedSources` for deployedBytecode
+        # from solidity compiler's output (i.e. `deployedGeneratedSources`)
+        sm = source_map.split(";")
+        allFileIds = set()
+        for c in sm:
+            component = c.split(":")
+            if len(component) < 3 or component[2] == "":
+                continue
+            allFileIds.add(component[2])
+        return [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
+
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
         """ example build_files_by_source_file
@@ -75,6 +90,10 @@ class BrownieArtifacts(IDEArtifacts):
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
                             "mainSourceFile": contract["sourcePath"],
+                            "ignoredSources": self.get_compiler_generated_source_ids(
+                                source_map=contract["deployedSourceMap"],
+                                sources=contract["allSourcePaths"],
+                            ),
                         }
                     ]
                 except KeyError as e:

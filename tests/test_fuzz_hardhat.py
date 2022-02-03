@@ -130,6 +130,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
                 "bytecode": "6080604052348015600f57",
                 "contractName": "Bar",
                 "mainSourceFile": "contracts/sample.sol",
+                "ignoredSources": [],
             },
             {
                 "sourcePaths": {0: "contracts/sample.sol"},
@@ -139,6 +140,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
                 "bytecode": "6080604052348015600f57600080",
                 "contractName": "Foo",
                 "mainSourceFile": "contracts/sample.sol",
+                "ignoredSources": [],
             },
             {
                 "sourcePaths": {
@@ -155,6 +157,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
                 "bytecode": "60e06040523480156200001157600080fd5b5060405162",
                 "contractName": "MasterChefV2",
                 "mainSourceFile": "contracts/MasterChefV2.sol",
+                "ignoredSources": [],
             },
         ],
         "project": None,
