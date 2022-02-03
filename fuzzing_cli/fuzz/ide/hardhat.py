@@ -85,6 +85,16 @@ class HardhatArtifacts(IDEArtifacts):
                 ]
                 if contract["evm"]["bytecode"]["object"] == "":
                     continue
+
+                ignored_sources = set()
+                for generatedSource in contract["evm"]["deployedBytecode"].get(
+                    "generatedSources", []
+                ):
+                    if generatedSource["language"].lower() == "yul" and type(
+                        generatedSource["id"] is int
+                    ):
+                        ignored_sources.add(generatedSource["id"])
+
                 result_contracts[relative_file_path] += [
                     {
                         "sourcePaths": {
@@ -103,6 +113,7 @@ class HardhatArtifacts(IDEArtifacts):
                         "bytecode": contract["evm"]["bytecode"]["object"],
                         "contractName": contract_artifact["contractName"],
                         "mainSourceFile": contract_artifact["sourceName"],
+                        "ignoredSources": list(ignored_sources),
                     }
                 ]
 

@@ -102,8 +102,12 @@ class DapptoolsArtifacts(IDEArtifacts):
                 # We get the build items from dapptools and rename them into the properties used by the FaaS
                 try:
                     ignored_sources = set()
-                    for generatedSource in contract["evm"]["deployedBytecode"].get("generatedSources", []):
-                        if generatedSource["language"].lower() == "yul" and type(generatedSource["id"] is int):
+                    for generatedSource in contract["evm"]["deployedBytecode"].get(
+                        "generatedSources", []
+                    ):
+                        if generatedSource["language"].lower() == "yul" and type(
+                            generatedSource["id"] is int
+                        ):
                             ignored_sources.add(generatedSource["id"])
 
                     result_contracts[source_file] += [

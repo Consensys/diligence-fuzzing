@@ -53,6 +53,12 @@ class TruffleArtifacts(IDEArtifacts):
                 continue
             result_contracts[source_file] = []
             for contract in contracts:
+                ignored_sources = set()
+                for generatedSource in contract.get("deployedGeneratedSources", []):
+                    if generatedSource["language"].lower() == "yul" and type(
+                        generatedSource["id"] is int
+                    ):
+                        ignored_sources.add(generatedSource["id"])
                 # We get the build items from truffle and rename them into the properties used by the FaaS
                 try:
                     result_contracts[source_file] += [
@@ -69,6 +75,7 @@ class TruffleArtifacts(IDEArtifacts):
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
                             "mainSourceFile": contract["sourcePath"],
+                            "ignoredSources": list(ignored_sources),
                         }
                     ]
                 except KeyError as e:
