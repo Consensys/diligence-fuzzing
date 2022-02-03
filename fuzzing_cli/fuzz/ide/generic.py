@@ -22,6 +22,7 @@ class Contract(TypedDict):
     bytecode: str
     contractName: str
     mainSourceFile: str
+    ignoredSources: Optional[List[int]]
 
 
 class Source(TypedDict):
