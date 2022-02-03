@@ -71,7 +71,7 @@ def dapptools_project(tmp_path):
     os.makedirs(str(tmp_path / "lib/ds-test/src/"))
 
     # create dapptools config file
-    with open("./.dapprc", "w+") as config_f:
+    with open(tmp_path / ".dapprc", "w+") as config_f:
         json.dump("sample", config_f)
 
     # patch dapptools artifact with temp path
@@ -91,7 +91,7 @@ def dapptools_project(tmp_path):
 
     yield None
     # cleaning up test files
-    os.remove(str(Path("./brownie-config.yaml").absolute()))
+    os.remove(str(Path(tmp_path / ".dapprc").absolute()))
 
 
 @pytest.fixture()
