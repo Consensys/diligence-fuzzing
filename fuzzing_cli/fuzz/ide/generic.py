@@ -1,15 +1,66 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional
+
+from typing_extensions import TypedDict
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.util import sol_files_by_directory
+
+
+class IDEPayload(TypedDict):
+    contracts: List[any]
+    sources: Dict[str, any]
+
+
+class Contract(TypedDict):
+    sourcePaths: Dict[int, str]
+    deployedSourceMap: str
+    deployedBytecode: str
+    sourceMap: str
+    bytecode: str
+    contractName: str
+    mainSourceFile: str
+    ignoredSources: Optional[List[int]]
+
+
+class Source(TypedDict):
+    fileIndex: int
+    source: str
+    ast: Dict[str, any]
 
 
 class IDEArtifacts(ABC):
+    def __init__(
+        self, targets: List[str], build_dir: Path, map_to_original_source: bool = False
+    ):
+        self._payload: Optional[IDEPayload] = None
+        self.targets = targets
+        self.build_dir = build_dir
+        self.map_to_original_source = map_to_original_source
+
+        # self._include is an array with all the solidity file paths under the targets
+        self._include: List[str] = []
+        if targets:
+            include = []
+            for target in targets:
+                include.extend(sol_files_by_directory(target))
+            self._include = include
+
+    @classmethod
+    @abstractmethod
+    def get_name(cls) -> str:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def validate_project(cls) -> bool:
+        pass
+
     @property
     @abstractmethod
-    def contracts(self) -> Dict:
+    def contracts(self) -> List[Contract]:
         """ Returns sources
         sources = {
             "filename": [
@@ -25,7 +76,7 @@ class IDEArtifacts(ABC):
 
     @property
     @abstractmethod
-    def sources(self) -> Dict:
+    def sources(self) -> Dict[str, Source]:
         """ Returns sources
         sources = {
             "filename": {
@@ -38,6 +89,11 @@ class IDEArtifacts(ABC):
 
     @staticmethod
     def _get_build_artifacts(build_dir) -> Dict:
+        # _get_build_artifacts goes through each .json build file and extracts the Source file it references
+        # A source file may contain several contracts, so it is possible that a given source file
+        # will be pointed to by multiple build artifacts
+        # build_files_by_source_file is a dictionary where the key is a source file name
+        # and the value is an array of build artifacts (contracts)
         build_files_by_source_file = {}
 
         build_dir = Path(build_dir)
@@ -63,16 +119,8 @@ class IDEArtifacts(ABC):
 
         return build_files_by_source_file
 
-
-class JobBuilder:
-    def __init__(self, artifacts: IDEArtifacts):
-        self._artifacts = artifacts
-
-    def payload(self):
-        sources = self._artifacts.sources
-        contracts = [
-            c
-            for contracts_for_file in self._artifacts.contracts.values()
-            for c in contracts_for_file
+    @staticmethod
+    def flatten_contracts(contracts: Dict[str, List[Contract]]) -> List[Contract]:
+        return [
+            c for contracts_for_file in contracts.values() for c in contracts_for_file
         ]
-        return {"contracts": contracts, "sources": sources}

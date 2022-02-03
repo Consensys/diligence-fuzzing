@@ -1,50 +1,38 @@
 import json
 import logging
+from functools import lru_cache
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 
-from ...util import get_content_from_file, sol_files_by_directory
+from ...util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class DapptoolsArtifacts(IDEArtifacts):
-    def __init__(self, build_dir=None, targets=None, map_to_original_source=False):
-        # self._include is an array with all the solidity file paths under the targets
-        self._include = []
-        if targets:
-            include = []
-            for target in targets:
-                include.extend(sol_files_by_directory(target))
-            self._include = include
-
-        self._build_dir = build_dir or Path("./out")
-
-        # self._get_build_artifacts goes through each .json build file and extracts the Source file it references
-        # A source file may contain several contracts, so it is possible that a given source file
-        # will be pointed to by multiple build artifacts
-        # build_files_by_source_file is a dictionary where the key is a source file name
-        # and the value is an array of build artifacts (contracts)
-        build_files_by_source_file, source_files = self._get_build_artifacts(self._build_dir)
-        # print(build_files_by_source_file)
-
-
-
-        # we then extract the contracts and sources from the build artifacts
-        self._contracts, self._sources = self.fetch_data(
-            build_files_by_source_file, source_files, map_to_original_source
+    def __init__(self, targets=None, build_dir=None, map_to_original_source=False):
+        super(DapptoolsArtifacts, self).__init__(
+            targets, build_dir or Path("./out"), map_to_original_source
         )
 
-    @property
-    def contracts(self):
-        return self._contracts
+    @classmethod
+    def get_name(cls) -> str:
+        return "dapptools"
+
+    @classmethod
+    def validate_project(cls) -> bool:
+        pass
 
     @property
-    def sources(self):
-        return self._sources
+    def contracts(self) -> List[Contract]:
+        return self.fetch_data()[0]
+
+    @property
+    def sources(self) -> Dict[str, Source]:
+        return self.fetch_data()[1]
 
     @staticmethod
     def _get_build_artifacts(build_dir) -> tuple:
@@ -68,8 +56,9 @@ class DapptoolsArtifacts(IDEArtifacts):
 
         return build_files_by_source_file, source_files
 
-    def fetch_data(self, build_files_by_source_file, source_files, map_to_original_source=False):
-        ''' example build_files_by_source_file
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        """ example build_files_by_source_file
             {
                 'contracts': {
                     'src/Token.sol':{
@@ -90,11 +79,16 @@ class DapptoolsArtifacts(IDEArtifacts):
                     }
                 }
             }
-        '''
-
-
-
-        result_contracts = {}
+        """
+        # self._get_build_artifacts goes through each .json build file and extracts the Source file it references
+        # A source file may contain several contracts, so it is possible that a given source file
+        # will be pointed to by multiple build artifacts
+        # build_files_by_source_file is a dictionary where the key is a source file name
+        # and the value is an array of build artifacts (contracts)
+        build_files_by_source_file, source_files = self._get_build_artifacts(
+            self.build_dir
+        )
+        result_contracts: Dict[str, List[Contract]] = {}
         result_sources = {}
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
@@ -107,18 +101,32 @@ class DapptoolsArtifacts(IDEArtifacts):
             for (contract_name, contract) in contracts.items():
                 # We get the build items from dapptools and rename them into the properties used by the FaaS
                 try:
+                    ignored_sources = set()
+                    for generatedSource in contract["evm"]["deployedBytecode"].get(
+                        "generatedSources", []
+                    ):
+                        if generatedSource["language"].lower() == "yul" and type(
+                            generatedSource["id"] is int
+                        ):
+                            ignored_sources.add(generatedSource["id"])
+
                     result_contracts[source_file] += [
                         {
                             "sourcePaths": {
-                                source_file['id']: file_path
+                                source_file["id"]: file_path
                                 for file_path, source_file in source_files.items()
                             },
-                            "deployedSourceMap": contract["evm"]["deployedBytecode"]["sourceMap"],
-                            "deployedBytecode": contract["evm"]["deployedBytecode"]["object"],
+                            "deployedSourceMap": contract["evm"]["deployedBytecode"][
+                                "sourceMap"
+                            ],
+                            "deployedBytecode": contract["evm"]["deployedBytecode"][
+                                "object"
+                            ],
                             "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
                             "mainSourceFile": source_file,
+                            "ignoredSources": list(ignored_sources),
                         }
                     ]
                 except KeyError as e:
@@ -128,7 +136,6 @@ class DapptoolsArtifacts(IDEArtifacts):
 
         for source_file_path, source_file in source_files.items():
             file_index = str(source_file["id"])
-
 
             # We can select any dict on the build_files_by_source_file[source_file] array
             # because the .source and .ast values will be the same in all.
@@ -140,28 +147,13 @@ class DapptoolsArtifacts(IDEArtifacts):
             }
 
             if (
-                map_to_original_source
+                self.map_to_original_source
                 and Path(source_file_path + ".original").is_file()
             ):
                 # we check if the current source file has a non instrumented version
                 # if it does, we include that one as the source code
-                result_sources[source_file_path][
-                    "source"
-                ] = get_content_from_file(source_file_path + ".original")
+                result_sources[source_file_path]["source"] = get_content_from_file(
+                    source_file_path + ".original"
+                )
         print(json.dumps(result_sources))
-        # exit(-1)
-        return result_contracts, result_sources
-
-
-class DapptoolsJob:
-    def __init__(
-        self, target: List[str], build_dir: Path, map_to_original_source: bool
-    ):
-        artifacts = DapptoolsArtifacts(
-            build_dir, targets=target, map_to_original_source=map_to_original_source
-        )
-        self._jb = JobBuilder(artifacts)
-        self.payload = None
-
-    def generate_payload(self):
-        self.payload = self._jb.payload()
+        return self.flatten_contracts(result_contracts), result_sources
