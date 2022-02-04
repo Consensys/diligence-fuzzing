@@ -113,6 +113,7 @@ def fuzz_run(
     map_to_original_source,
     project,
 ):
+    """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
         key = refresh_token
     analyze_config = ctx.get("fuzz")
