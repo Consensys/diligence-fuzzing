@@ -64,7 +64,7 @@ def __select_targets(targets: List[str]) -> List[str]:
                 [
                     inquirer.Checkbox(
                         "targets",
-                        message="Please select target files",
+                        message="Please select target files (SPACE to select, RETURN to finish)",
                         choices=[
                             (relpath(t, Path.cwd().absolute()), t)
                             for t in files_in_dirs
@@ -72,7 +72,11 @@ def __select_targets(targets: List[str]) -> List[str]:
                     )
                 ]
             )
-            targets = answers["targets"] + files
+            if not answers["targets"]:
+                click.secho(
+                    "⚠️  No targets are selected, please configure them manually in a config file"
+                )
+            targets = answers.get("targets", []) + files
     return targets
 
 
@@ -100,7 +104,9 @@ def determine_targets(ide: str) -> List[str]:
     targets = [str(target)]
 
     if target.exists() and target.is_dir():
-        if not click.confirm(f"{QM} Is {ts} correct directory to fuzz contracts from?"):
+        if not click.confirm(
+            f"{QM} Is {ts} correct directory to fuzz contracts from?", default=True
+        ):
             targets = __prompt_targets()
 
     elif click.confirm(
@@ -124,10 +130,13 @@ def determine_build_dir(ide: str) -> str:
     bds = style(build_dir, fg="yellow")
 
     if build_dir.exists() and build_dir.is_dir():
-        if not click.confirm(f"{QM} Is {bds} correct build directory for the project?"):
+        if not click.confirm(
+            f"{QM} Is {bds} correct build directory for the project?", default=True
+        ):
             build_dir = str(click.prompt(message)).strip()
     elif click.confirm(
-        f"{QM} We couldn't find build directory at {bds}. Have you configured a custom build directory?"
+        f"{QM} We couldn't find build directory at {bds}. Have you configured a custom build directory?",
+        default=True,
     ):
         build_dir = str(click.prompt(message)).strip()
 
@@ -171,7 +180,7 @@ def determine_campaign_name() -> str:
     return name
 
 
-def recreate_config():
+def recreate_config(config_file: str):
     ide = determine_ide()
     targets = determine_targets(ide)
     build_dir = determine_build_dir(ide)
@@ -179,7 +188,7 @@ def recreate_config():
     number_of_cores = determine_cpu_cores()
     campaign_name_prefix = determine_campaign_name()
 
-    config_path = Path().cwd().joinpath(".fuzz.yml")
+    config_path = Path().cwd().joinpath(config_file)
 
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
@@ -202,8 +211,8 @@ def recreate_config():
     click.echo("Done 🎉")
 
 
-def sync_config():
-    config_path = Path().cwd().joinpath(".fuzz.yml")
+def sync_config(config_file: str):
+    config_path = Path().cwd().joinpath(config_file)
     if not config_path.exists() or not config_path.is_file():
         raise UsageError(f"Could not find config file to re-sync. Create one first.")
 
@@ -225,8 +234,30 @@ def sync_config():
 
 @click.command("generate-config")
 @click.option("--sync", help="Option to update targets", is_flag=True, default=False)
+@click.argument("config-file", type=click.Path(), default=".fuzz.yml", nargs=1)
 @click.pass_obj
-def fuzz_generate_config(ctx, sync: bool) -> None:
+def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
+    """Generate config file for fuzzing
+
+    CONFIG_FILE config file name (default is .fuzz.yml)
+    """
+    cfs = style(config_file, fg="yellow")
     if sync:
-        return sync_config()
-    recreate_config()
+        if not Path.cwd().joinpath(config_file).exists():
+            command = style(
+                f"fuzz generate-config {config_file}", italic=True, fg="green"
+            )
+            raise click.UsageError(
+                f"⚠️  Config file {cfs} does not exist. "
+                f"Please create one either manually or using {command} command"
+            )
+        return sync_config(config_file)
+    if Path(config_file).exists():
+        command = style(
+            f"fuzz generate-config {config_file} --sync", italic=True, fg="green"
+        )
+        raise click.UsageError(
+            f"⚠️  Config file {cfs} already exists. "
+            f"Please specify another file or run {command} to update one."
+        )
+    recreate_config(config_file)

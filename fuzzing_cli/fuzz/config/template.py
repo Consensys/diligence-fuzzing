@@ -37,9 +37,16 @@ fuzz:
   rpc_url: {{ rpc_url }}
 
   # This is the contract that the campaign will show coverage for, map issues to, etc.
-  # It's a list of all the relevant contracts (don't worry about dependencies, we'll get those automatically 🙌)
+  # It's a list of all the relevant contracts (don't worry about dependencies, we'll get those automatically 🙌){% if targets %}
   targets:{% for target in targets %}
     - "{{ target }}"{% endfor %}
+{% else %}
+  # targets:
+    # entire directory with contracts
+    # - "contracts/Proxy"
+    # individual files
+    # - "contracts/Token.sol"
+{% endif %}
 """
 
 env = Environment()
