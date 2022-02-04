@@ -74,7 +74,7 @@ def __select_targets(targets: List[str]) -> List[str]:
             )
             if not answers["targets"]:
                 click.secho(
-                    "⚠️ No targets are selected, please manually configure them later in a config file"
+                    "⚠️  No targets are selected, please configure them manually in a config file"
                 )
             targets = answers.get("targets", []) + files
     return targets
@@ -248,7 +248,7 @@ def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
                 f"fuzz generate-config {config_file}", italic=True, fg="green"
             )
             raise click.UsageError(
-                f"⚠️ Config file {cfs} does not exist. "
+                f"⚠️  Config file {cfs} does not exist. "
                 f"Please create one either manually or using {command} command"
             )
         return sync_config(config_file)
@@ -257,7 +257,7 @@ def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
             f"fuzz generate-config {config_file} --sync", italic=True, fg="green"
         )
         raise click.UsageError(
-            f"⚠️ Config file {cfs} already exists. "
+            f"⚠️  Config file {cfs} already exists. "
             f"Please specify another file or run {command} to update one."
         )
     recreate_config(config_file)
