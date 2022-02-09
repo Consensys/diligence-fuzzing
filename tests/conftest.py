@@ -19,6 +19,8 @@ def truffle_project(tmp_path, request):
     os.makedirs(str(tmp_path / "build/contracts/MasterChefV2.sol/"))
     os.makedirs(str(tmp_path / "contracts"))
 
+    # we create the config file NOT in the temp directory, but in the CWD because it's where pytest
+    # is running and looking for the file. At the end of the test we delete the file
     with open("./truffle-config.js", "w+") as config_f:
         json.dump("sample", config_f)
 
@@ -43,6 +45,8 @@ def brownie_project(tmp_path):
     os.makedirs(str(tmp_path / "build/contracts/"))
     os.makedirs(str(tmp_path / "contracts/"))
 
+    # we create the config file NOT in the temp directory, but in the CWD because it's where pytest
+    # is running and looking for the file. At the end of the test we delete the file
     with open("brownie-config.yaml", "w+") as config_f:
         json.dump("sample", config_f)
 
@@ -75,6 +79,8 @@ def dapptools_project(tmp_path):
     os.makedirs(str(tmp_path / "lib/ds-test/src/"))
 
     # create dapptools config file
+    # we create the config file NOT in the temp directory, but in the CWD because it's where pytest
+    # is running and looking for the file. At the end of the test we delete the file
     with open(".dapprc", "w+") as config_f:
         json.dump("sample", config_f)
 
