@@ -25,10 +25,7 @@ class DapptoolsArtifacts(IDEArtifacts):
 
     @classmethod
     def validate_project(cls) -> bool:
-        # pass
-        root_dir = Path.cwd().absolute()
-        files = list(os.walk(root_dir))[0][2]
-        return ".dapprc" in files
+        pass
 
     @property
     def contracts(self) -> List[Contract]:

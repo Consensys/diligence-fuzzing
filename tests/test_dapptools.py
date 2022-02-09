@@ -40,7 +40,9 @@ def test_fuzz_run(tmp_path, dapptools_project):
         start_faas_campaign_mock.return_value = campaign_id
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["run", f"{tmp_path}/src/Greeter.sol"])
+        result = runner.invoke(
+            cli, ["run", f"{tmp_path}/src/Greeter.sol", "-d", "dapptools"]
+        )
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"
