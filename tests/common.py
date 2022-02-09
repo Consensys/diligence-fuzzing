@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import List
 from unittest.mock import patch
 
-from mythx_models.response import DetectedIssuesResponse
-
 
 def get_test_case(path: str, obj=None, raw=False):
     with open(str(Path(__file__).parent / path)) as f:
@@ -16,10 +14,7 @@ def get_test_case(path: str, obj=None, raw=False):
     if obj is None:
         return dict_data
 
-    if obj is DetectedIssuesResponse and type(dict_data) is list:
-        return obj(issue_reports=dict_data)
-    else:
-        return obj(**dict_data)
+    return obj(**dict_data)
 
 
 @contextmanager
