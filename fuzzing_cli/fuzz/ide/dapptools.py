@@ -36,6 +36,14 @@ class DapptoolsArtifacts(IDEArtifacts):
         return self.fetch_data()[1]
 
     @staticmethod
+    def get_default_build_dir() -> str:
+        return "out"
+
+    @staticmethod
+    def get_default_sources_dir() -> str:
+        return "src"
+
+    @staticmethod
     def _get_build_artifacts(build_dir) -> tuple:
         build_files_by_source_file = {}
         source_files = {}
