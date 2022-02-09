@@ -9,6 +9,7 @@ import yaml
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
+from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.run import fuzz_run
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -64,20 +65,6 @@ def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
     ctx.obj["analyze"] = parsed_config.get("analyze", {})
     ctx.obj["fuzz"] = parsed_config.get("fuzz", {})
 
-    # overwrite context with top-level YAML config keys if necessary
-    # update_context(ctx.obj, "ci", parsed_config, "ci", False)
-    # if stdout:
-    #     # if forced stdout, don't set output file
-    #     ctx.obj["output"] = None
-    # else:
-    #     update_context(ctx.obj, "output", parsed_config, "output", None)
-    # update_context(ctx.obj, "fmt", parsed_config, "format", "table")
-    # update_context(ctx.obj, "yes", parsed_config, "confirm", False)
-    # update_context(ctx.obj, "table_sort_key", parsed_config, "table-sort-key", "line")
-
-    # set return value - used for CI failures
-    ctx.obj["retval"] = 0
-
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
 
 
@@ -88,6 +75,7 @@ LOGGER.debug("Registering fuzz commands")
 cli.add_command(fuzz_run)
 cli.add_command(fuzz_arm)
 cli.add_command(fuzz_disarm)
+cli.add_command(fuzz_generate_config)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

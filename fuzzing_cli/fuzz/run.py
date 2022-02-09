@@ -122,6 +122,7 @@ def fuzz_run(
     map_to_original_source,
     project,
 ):
+    """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
         key = refresh_token
     analyze_config = ctx.get("fuzz")
@@ -180,6 +181,7 @@ def fuzz_run(
     )
 
     repo = IDERepository.get_instance()
+    
     if options.ide:
         LOGGER.debug(f'"{options.ide}" IDE is specified')
         _IDEClass = repo.get_ide(options.ide)
