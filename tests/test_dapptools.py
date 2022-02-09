@@ -18,7 +18,12 @@ ORIGINAL_SOL_CODE = "original sol code here"
 
 
 def test_fuzz_run(tmp_path, dapptools_project):
-    write_config(base_path=str(tmp_path), build_directory="out", not_include=["targets"], import_remaps=True)
+    write_config(
+        base_path=str(tmp_path),
+        build_directory="out",
+        not_include=["targets"],
+        import_remaps=True,
+    )
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -74,6 +79,7 @@ def test_fuzz_run(tmp_path, dapptools_project):
         assert keyword in request_payload
 
     assert result.exit_code == 0
+
 
 #
 # def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):

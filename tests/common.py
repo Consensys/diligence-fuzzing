@@ -39,9 +39,9 @@ def generate_fuzz_config(
     targets: str = "contracts",
     not_include: List[str] = [],
     add_refresh_token: bool = False,
-    import_remaps: bool = False
+    import_remaps: bool = False,
 ):
-    config_file=''
+    config_file = ""
     if import_remaps:
         config_file += "analyze:"
         config_file += "\n  remappings:"

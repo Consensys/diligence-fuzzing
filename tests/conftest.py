@@ -66,7 +66,6 @@ def brownie_project(tmp_path):
     os.remove(Path("brownie-config.yaml").absolute())
 
 
-
 @pytest.fixture()
 def dapptools_project(tmp_path):
     original_artifact = get_test_case("testdata/dapptools_artifact.json")
@@ -100,7 +99,6 @@ def dapptools_project(tmp_path):
             sol_f.write("sol code here")
     yield None
     os.remove(Path(".dapprc").absolute())
-
 
 
 @pytest.fixture()
