@@ -43,7 +43,7 @@ def brownie_project(tmp_path):
     os.makedirs(str(tmp_path / "build/contracts/"))
     os.makedirs(str(tmp_path / "contracts/"))
 
-    with open("./brownie-config.yaml", "w+") as config_f:
+    with open("brownie-config.yaml", "w+") as config_f:
         json.dump("sample", config_f)
 
     # patch brownie artifact with temp path
@@ -58,6 +58,10 @@ def brownie_project(tmp_path):
     with open(tmp_path / "contracts/sample.sol.original", "w+") as sol_f:
         sol_f.write("original sol code here")
 
+    yield None
+    os.remove(Path("brownie-config.yaml").absolute())
+
+
 
 @pytest.fixture()
 def dapptools_project(tmp_path):
@@ -71,7 +75,7 @@ def dapptools_project(tmp_path):
     os.makedirs(str(tmp_path / "lib/ds-test/src/"))
 
     # create dapptools config file
-    with open(tmp_path / ".dapprc", "w+") as config_f:
+    with open(".dapprc", "w+") as config_f:
         json.dump("sample", config_f)
 
     # patch dapptools artifact with temp path
@@ -88,10 +92,9 @@ def dapptools_project(tmp_path):
     for k, v in artifact["contracts"].items():
         with open(k, "w+") as sol_f:
             sol_f.write("sol code here")
-
     yield None
-    # cleaning up test files
-    os.remove(str(Path(tmp_path / ".dapprc").absolute()))
+    os.remove(Path(".dapprc").absolute())
+
 
 
 @pytest.fixture()
