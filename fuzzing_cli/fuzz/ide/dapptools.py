@@ -94,8 +94,6 @@ class DapptoolsArtifacts(IDEArtifacts):
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
-            print("Source file: ", source_file)
-
             if source_file not in self._include:
                 continue
             result_contracts[source_file] = []
@@ -156,5 +154,4 @@ class DapptoolsArtifacts(IDEArtifacts):
                 result_sources[source_file_path]["source"] = get_content_from_file(
                     source_file_path + ".original"
                 )
-        print(json.dumps(result_sources))
         return self.flatten_contracts(result_contracts), result_sources

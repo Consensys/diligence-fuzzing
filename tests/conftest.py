@@ -97,6 +97,9 @@ def dapptools_project(tmp_path):
     for k, v in artifact["contracts"].items():
         with open(k, "w+") as sol_f:
             sol_f.write("sol code here")
+        with open(k+".original", "w+") as original_sol_f:
+            original_sol_f.write("original sol code here")
+
     yield None
     os.remove(Path(".dapprc").absolute())
 
