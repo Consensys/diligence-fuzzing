@@ -1,15 +1,14 @@
 import logging
-import os
 import traceback
-from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 import click
 from click import ClickException, UsageError
 
 from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
-from .ide import BrownieJob, HardhatJob, TruffleJob
+from .ide import IDEArtifacts, IDERepository
 from .options import FuzzingOptions
 from .rpc import RPCClient
 
@@ -18,27 +17,6 @@ LOGGER = logging.getLogger("fuzzing-cli")
 headers = {"Content-Type": "application/json"}
 
 time_limit_seconds = 3000
-
-
-class IDE(Enum):
-    BROWNIE = "brownie"
-    HARDHAT = "hardhat"
-    TRUFFLE = "truffle"
-    SOLIDITY = "solidity"
-
-
-def determine_ide() -> IDE:
-    root_dir = Path.cwd().absolute()
-    files = list(os.walk(root_dir))[0][2]
-    if "brownie-config.yaml" in files:
-        return IDE.BROWNIE
-    if "hardhat.config.ts" in files:
-        return IDE.HARDHAT
-    if "hardhat.config.js" in files:
-        return IDE.HARDHAT
-    if "truffle-config.js" in files:
-        return IDE.TRUFFLE
-    return IDE.SOLIDITY
 
 
 def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
@@ -55,6 +33,13 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
 
 @click.command("run")
 @click.argument("target", default=None, nargs=-1)
+@click.option(
+    "-d",
+    "--ide",
+    type=click.STRING,
+    default=None,
+    help=f"Project's IDE. Valid values - {', '.join(IDERepository.get_instance().ides.keys())}",
+)
 @click.option(
     "-a",
     "--address",
@@ -126,6 +111,7 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
 def fuzz_run(
     ctx,
     target,
+    ide: Optional[str],
     address,
     more_addresses,
     corpus_target,
@@ -136,6 +122,7 @@ def fuzz_run(
     map_to_original_source,
     project,
 ):
+    """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
         key = refresh_token
     analyze_config = ctx.get("fuzz")
@@ -157,6 +144,7 @@ def fuzz_run(
             k: v
             for k, v in (
                 {
+                    "ide": ide or analyze_config.get("ide"),
                     "build_directory": analyze_config.get("build_directory"),
                     "deployed_contract_address": address
                     or analyze_config.get("deployed_contract_address"),
@@ -192,36 +180,28 @@ def fuzz_run(
         options.corpus_target,
     )
 
-    ide = determine_ide()
-
-    if ide == IDE.BROWNIE:
-        artifacts = BrownieJob(
-            options.target,
-            Path(options.build_directory),
-            map_to_original_source=options.map_to_original_source,
-        )
-        artifacts.generate_payload()
-    elif ide == IDE.HARDHAT:
-        artifacts = HardhatJob(
-            options.target,
-            Path(options.build_directory),
-            map_to_original_source=options.map_to_original_source,
-        )
-        artifacts.generate_payload()
-    elif ide == IDE.TRUFFLE:
-        artifacts = TruffleJob(
-            str(Path.cwd().absolute()), options.target, Path(options.build_directory)
-        )
-        artifacts.generate_payload()
+    repo = IDERepository.get_instance()
+    if options.ide:
+        LOGGER.debug(f'"{options.ide}" IDE is specified')
+        _IDEClass = repo.get_ide(options.ide)
     else:
-        raise UsageError(
-            f"Projects using plain solidity files is not supported right now"
-        )
+        LOGGER.debug("IDE not specified. Detecting one")
+        _IDEClass = repo.detect_ide()
+        if not _IDEClass:
+            LOGGER.debug("No supported IDE was detected")
+            raise UsageError(f"No supported IDE was detected")
+        LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
+
+    artifacts: IDEArtifacts = _IDEClass(
+        targets=options.target,
+        build_dir=Path(options.build_directory),
+        map_to_original_source=options.map_to_original_source,
+    )
 
     faas_client = FaasClient(
         faas_url=options.faas_url,
         campaign_name_prefix=options.campaign_name_prefix,
-        project_type=ide,
+        project_type=_IDEClass.get_name(),
         api_key=options.api_key,
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,

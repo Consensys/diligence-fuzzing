@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import List
 from unittest.mock import patch
 
-from mythx_models.response import DetectedIssuesResponse
-
 
 def get_test_case(path: str, obj=None, raw=False):
     with open(str(Path(__file__).parent / path)) as f:
@@ -16,10 +14,7 @@ def get_test_case(path: str, obj=None, raw=False):
     if obj is None:
         return dict_data
 
-    if obj is DetectedIssuesResponse and type(dict_data) is list:
-        return obj(issue_reports=dict_data)
-    else:
-        return obj(**dict_data)
+    return obj(**dict_data)
 
 
 @contextmanager
@@ -39,8 +34,15 @@ def generate_fuzz_config(
     targets: str = "contracts",
     not_include: List[str] = [],
     add_refresh_token: bool = False,
+    import_remaps: bool = False,
 ):
-    config_file = "fuzz:"
+    config_file = ""
+    if import_remaps:
+        config_file += "analyze:"
+        config_file += "\n  remappings:"
+        config_file += '\n    - "@openzeppelin=lib/openzeppelin-contracts"'
+
+    config_file += "\nfuzz:"
     if "deployed_contract_address" not in not_include:
         config_file += '\n  deployed_contract_address: "0x7277646075fa72737e1F6114654C5d9949a67dF2"'
     if "number_of_cores" not in not_include:

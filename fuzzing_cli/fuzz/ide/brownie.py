@@ -1,42 +1,87 @@
 import logging
+import os
+from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.ide.generic import IDEArtifacts, JobBuilder
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 
-from ...util import get_content_from_file, sol_files_by_directory
+from ...util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class BrownieArtifacts(IDEArtifacts):
-    def __init__(self, build_dir=None, targets=None, map_to_original_source=False):
-        self._include = []
-        if targets:
-            include = []
-            for target in targets:
-                include.extend(sol_files_by_directory(target))
-            self._include = include
-
-        self._build_dir = build_dir or Path("./build/contracts")
-        build_files_by_source_file = self._get_build_artifacts(self._build_dir)
-
-        self._contracts, self._sources = self.fetch_data(
-            build_files_by_source_file, map_to_original_source
+    def __init__(
+        self,
+        targets: Optional[List[str]] = None,
+        build_dir: Optional[Path] = None,
+        map_to_original_source: bool = False,
+    ):
+        super(BrownieArtifacts, self).__init__(
+            targets, build_dir or Path("./build/contracts"), map_to_original_source
         )
 
-    @property
-    def contracts(self):
-        return self._contracts
+    @classmethod
+    def get_name(cls) -> str:
+        return "brownie"
+
+    @classmethod
+    def validate_project(cls) -> bool:
+        root_dir = Path.cwd().absolute()
+        files = list(os.walk(root_dir))[0][2]
+        return "brownie-config.yaml" in files
+
+    @staticmethod
+    def get_default_build_dir() -> str:
+        return "build/contracts"
+
+    @staticmethod
+    def get_default_sources_dir() -> str:
+        return "contracts"
 
     @property
-    def sources(self):
-        return self._sources
+    def contracts(self) -> List[Contract]:
+        return self.fetch_data()[0]
 
-    def fetch_data(self, build_files_by_source_file, map_to_original_source=False):
+    @property
+    def sources(self) -> Dict[str, Source]:
+        return self.fetch_data()[1]
+
+    @staticmethod
+    def get_compiler_generated_source_ids(
+        source_map: str, sources: Dict[str, str]
+    ) -> List[int]:
+        # this method is necessary because brownie does not preserve `generatedSources` for deployedBytecode
+        # from solidity compiler's output (i.e. `deployedGeneratedSources`)
+        sm = source_map.split(";")
+        allFileIds = set()
+        for c in sm:
+            component = c.split(":")
+            if len(component) < 3 or component[2] == "":
+                continue
+            allFileIds.add(component[2])
+        return [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
+
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        """ example build_files_by_source_file
+            {
+                'contracts/Token.sol':
+                    {
+                        'abi':... ,
+                        'ast':... ,
+                        'source':...,
+                        ''
+                    }
+            }
+        """
+        build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         result_contracts = {}
         result_sources = {}
+
+        # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
             if source_file not in self._include:
                 continue
@@ -53,6 +98,10 @@ class BrownieArtifacts(IDEArtifacts):
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
                             "mainSourceFile": contract["sourcePath"],
+                            "ignoredSources": self.get_compiler_generated_source_ids(
+                                source_map=contract["deployedSourceMap"],
+                                sources=contract["allSourcePaths"],
+                            ),
                         }
                     ]
                 except KeyError as e:
@@ -78,7 +127,7 @@ class BrownieArtifacts(IDEArtifacts):
                     }
 
                     if (
-                        map_to_original_source
+                        self.map_to_original_source
                         and Path(source_file_dep + ".original").is_file()
                     ):
                         # we check if the current source file has a non instrumented version
@@ -86,18 +135,4 @@ class BrownieArtifacts(IDEArtifacts):
                         result_sources[source_file_dep][
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
-        return result_contracts, result_sources
-
-
-class BrownieJob:
-    def __init__(
-        self, target: List[str], build_dir: Path, map_to_original_source: bool
-    ):
-        artifacts = BrownieArtifacts(
-            build_dir, targets=target, map_to_original_source=map_to_original_source
-        )
-        self._jb = JobBuilder(artifacts)
-        self.payload = None
-
-    def generate_payload(self):
-        self.payload = self._jb.payload()
+        return self.flatten_contracts(result_contracts), result_sources

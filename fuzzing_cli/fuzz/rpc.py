@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import click
 import requests
@@ -78,7 +78,7 @@ class RPCClient:
 
     def get_seed_state(
         self, address: str, other_addresses: [str], corpus_target: Optional[str] = None
-    ):
+    ) -> Dict[str, any]:
         seed_state = {
             "time-limit-secs": time_limit_seconds,
             "discovery-probability-threshold": 0.0,
@@ -86,9 +86,6 @@ class RPCClient:
             "emit-mythx-report": True,
             "num-cores": self.number_of_cores,
         }
-        """Get a seed state for the target contract to be used by Harvey"""
-        if corpus_target:
-            return dict({**seed_state, "analysis-setup": {"target": corpus_target}})
 
         try:
             blocks = self.get_all_blocks()
@@ -106,6 +103,9 @@ class RPCClient:
                     "other-addresses-under-test": other_addresses,
                 }
             )
+            """Get a seed state for the target contract to be used by Harvey"""
+            if corpus_target:
+                setup["target"] = corpus_target
             return dict({**seed_state, "analysis-setup": setup})
         except Exception as e:
             LOGGER.warning(f"Could not generate seed state for address: {address}")
