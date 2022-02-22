@@ -28,7 +28,7 @@ def __prompt_ide() -> str:
     )
     if not answers or not answers.get("ide"):
         raise UsageError("You must select IDE")
-    return answers["ide"].lowercase()
+    return answers["ide"].lower()
 
 
 def determine_ide(confirm=False) -> str:
