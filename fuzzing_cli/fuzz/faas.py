@@ -94,10 +94,16 @@ class FaasClient:
             response = requests.post(req_url, json=payload, headers=h)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
-                raise BadStatusCode(
-                    f"Got http status code {response.status_code} for request {req_url}",
-                    detail=response_data["detail"],
-                )
+                if response.status_code == 403 and ("no subscription" in response_data["detail"].lower()):
+                    raise BadStatusCode(
+                        f"No valid subscription detected, unable to submit campaign.",
+                        f"In order to use Diligence Fuzzing you need a subscription plan. You may start with the free trial, which gives you 2 hours of fuzzing. \nLearn more at https://fuzzing.diligence.tools",
+                    )
+                else:
+                    raise BadStatusCode(
+                        f"Got http status code {response.status_code} for request {req_url}",
+                        detail=response_data["detail"],
+                    )
             return response_data["id"]
         except Exception as e:
             if isinstance(e, BadStatusCode):
