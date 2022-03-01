@@ -79,6 +79,7 @@ def test_fuzz_run(tmp_path, dapptools_project):
 
     assert result.exit_code == 0
 
+
 def test_fuzz_run_no_ide(tmp_path, dapptools_project):
     write_config(
         base_path=str(tmp_path),
@@ -102,9 +103,7 @@ def test_fuzz_run_no_ide(tmp_path, dapptools_project):
         start_faas_campaign_mock.return_value = campaign_id
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["run", f"{tmp_path}/src/Greeter.sol"]
-        )
+        result = runner.invoke(cli, ["run", f"{tmp_path}/src/Greeter.sol"])
 
     contract_exists_mock.assert_called_with(
         "0x7277646075fa72737e1F6114654C5d9949a67dF2"
@@ -113,7 +112,6 @@ def test_fuzz_run_no_ide(tmp_path, dapptools_project):
     get_all_blocks_mock.assert_called_once()
 
     assert result.exit_code != 0
-
 
 
 def test_fuzz_run_map_to_original_source(tmp_path, dapptools_project):
@@ -140,7 +138,14 @@ def test_fuzz_run_map_to_original_source(tmp_path, dapptools_project):
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["run", "--map-to-original-source", "-d", "dapptools", f"{tmp_path}/src/Greeter.sol"]
+            cli,
+            [
+                "run",
+                "--map-to-original-source",
+                "-d",
+                "dapptools",
+                f"{tmp_path}/src/Greeter.sol",
+            ],
         )
 
     contract_exists_mock.assert_called_with(
@@ -208,7 +213,7 @@ def test_fuzz_arm(mock, tmp_path, dapptools_project):
     mock.assert_called_with(
         file_list=(f"{tmp_path}/src/Greeter.sol",),
         scribble_path="scribble",
-        remappings=['@openzeppelin=lib/openzeppelin-contracts'],
+        remappings=["@openzeppelin=lib/openzeppelin-contracts"],
         solc_version=None,
     )
     assert result.exit_code == 0
@@ -229,7 +234,7 @@ def test_fuzz_disarm(mock, tmp_path, dapptools_project):
     mock.assert_called_with(
         file_list=(f"{tmp_path}/src/Greeter.sol",),
         scribble_path="scribble",
-        remappings=['@openzeppelin=lib/openzeppelin-contracts'],
+        remappings=["@openzeppelin=lib/openzeppelin-contracts"],
         solc_version=None,
     )
     assert result.exit_code == 0

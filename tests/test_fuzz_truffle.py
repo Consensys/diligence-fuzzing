@@ -163,7 +163,7 @@ def test_fuzz_run_corpus_target(tmp_path, truffle_project):
             [
                 "run",
                 f"{tmp_path}/contracts/sample.sol",
-                "-c",
+                "--corpus-target",
                 "prj_639cffb2a3e0407fbe2c701caaf5ab33",
             ],
         )

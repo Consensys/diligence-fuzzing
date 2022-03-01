@@ -55,7 +55,6 @@ def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
     help="Addresses of other contracts to analyze, separated by commas",
 )
 @click.option(
-    "-c",
     "--corpus-target",
     type=click.STRING,
     help="Project UUID, Campaign UUID or Corpus UUID to reuse the corpus from. "
