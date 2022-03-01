@@ -99,6 +99,11 @@ class FaasClient:
                         f"No valid subscription detected, unable to submit campaign.",
                         f"In order to use Diligence Fuzzing you need a subscription plan. You may start with the free trial, which gives you 2 hours of fuzzing. \nLearn more at https://fuzzing.diligence.tools",
                     )
+                elif response.status_code == 403 and ("another campaign is running" in response_data["detail"].lower()):
+                    raise BadStatusCode(
+                        f"Only one campaign at a time is allowed in the Free Trial.",
+                        f"Multiple campaigns are available in all other subscription plans.",
+                    )
                 else:
                     raise BadStatusCode(
                         f"Got http status code {response.status_code} for request {req_url}",
