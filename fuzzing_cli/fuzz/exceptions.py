@@ -1,6 +1,7 @@
 #
 # FaaS Client Errors
 #
+import click.exceptions
 
 
 class FaaSError(Exception):
@@ -58,7 +59,7 @@ class CreateFaaSCampaignError(FaaSError):
 #
 
 
-class RPCCallError(FaaSError):
+class RPCCallError(click.exceptions.ClickException):
     """Exception raised when there is an error calling the RPC endpoint"""
 
     pass

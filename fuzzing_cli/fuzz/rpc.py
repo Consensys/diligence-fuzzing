@@ -1,8 +1,9 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import click
 import requests
+from click import ClickException
 from requests import RequestException
 
 from .exceptions import RPCCallError
@@ -42,8 +43,11 @@ class RPCClient:
                 f"\nAre you sure the RPC is running at {self.rpc_url}?"
             )
 
-    def contract_exists(self, contract_address):
-        return self.call("eth_getCode", '["' + contract_address + '","latest"]')
+    def contract_exists(self, contract_address) -> bool:
+        code = self.call("eth_getCode", '["' + contract_address + '","latest"]')
+        if not code or code == "0x":
+            return False
+        return True
 
     def get_block(self, latest: bool = False, block_number: int = -1):
         block_value = "latest" if latest else str(block_number)
@@ -66,18 +70,21 @@ class RPCClient:
 
         num_of_blocks = int(latest_block["number"], 16) + 1
         if num_of_blocks > NUM_BLOCKS_UPPER_LIMIT:
-            raise click.exceptions.UsageError(
-                "Number of blocks existing on the ethereum node running at"
+            raise click.exceptions.ClickException(
+                "Number of blocks existing on the ethereum node running at "
                 + str(self.rpc_url)
-                + "can not exceed 10000. Did you pass the correct RPC url?"
+                + " can not exceed 10000. Did you pass the correct RPC url?"
             )
         blocks = []
-        for i in range(0, num_of_blocks, 1):
+        for i in range(0, num_of_blocks):
             blocks.append(self.get_block(block_number=i))
         return blocks
 
     def get_seed_state(
-        self, address: str, other_addresses: [str], corpus_target: Optional[str] = None
+        self,
+        address: str,
+        other_addresses: Optional[List[str]],
+        corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         seed_state = {
             "time-limit-secs": time_limit_seconds,
@@ -96,6 +103,13 @@ class RPCClient:
                         if value is None:
                             transaction[key] = ""
                     processed_transactions.append(transaction)
+
+            if len(processed_transactions) == 0:
+                raise click.exceptions.UsageError(
+                    f"Unable to generate the seed state for address {address}. "
+                    f"No transactions were found in an ethereum node running at {self.rpc_url}"
+                )
+
             setup = dict(
                 {
                     "address-under-test": address,
@@ -107,12 +121,15 @@ class RPCClient:
             if corpus_target:
                 setup["target"] = corpus_target
             return dict({**seed_state, "analysis-setup": setup})
+
+        except ClickException:
+            raise
         except Exception as e:
             LOGGER.warning(f"Could not generate seed state for address: {address}")
             raise click.exceptions.UsageError(
                 (
-                    "Unable to generate the seed state for address"
+                    "Unable to generate the seed state for address "
                     + str(address)
-                    + "Are you sure you passed the correct contract address?"
+                    + ". Are you sure you passed the correct contract address?"
                 )
             ) from e

@@ -1,5 +1,5 @@
 import base64
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import click
 
@@ -17,14 +17,13 @@ class FuzzingOptions:
         number_of_cores: int = 2,
         campaign_name_prefix: str = "untitled",
         corpus_target: Optional[str] = None,
-        additional_contracts_addresses: Optional[List[str]] = None,
+        additional_contracts_addresses: Optional[Union[List[str], str]] = None,
         dry_run: bool = False,
         refresh_token: Optional[str] = None,
         api_key: Optional[str] = None,
         project: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
-        self.additional_contracts_addresses = additional_contracts_addresses
         self.corpus_target = corpus_target
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
@@ -44,6 +43,13 @@ class FuzzingOptions:
         self.validate(refresh_token)
 
         self.project = project
+
+        if type(additional_contracts_addresses) == str:
+            self.additional_contracts_addresses: Optional[List[str]] = [
+                a.strip() for a in additional_contracts_addresses.split(",")
+            ]
+        else:
+            self.additional_contracts_addresses = additional_contracts_addresses
 
         if not api_key:
             self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(

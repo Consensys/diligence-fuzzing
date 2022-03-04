@@ -1,7 +1,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import click
 from click import ClickException, UsageError
@@ -19,16 +19,23 @@ headers = {"Content-Type": "application/json"}
 time_limit_seconds = 3000
 
 
-def check_contract(rpc_client: RPCClient, deployed_contract_address: str):
+def check_contracts(rpc_client: RPCClient, deployed_contracts_addresses: List[str]):
+    not_found_addr = []
     try:
-        contract_code_response = rpc_client.contract_exists(deployed_contract_address)
+        for address in deployed_contracts_addresses:
+            contract_code_response = rpc_client.contract_exists(address)
+            if not contract_code_response:
+                not_found_addr.append(address)
+
+        if len(not_found_addr) > 0:
+            raise ClickException(
+                f"Unable to find contracts deployed at {', '.join(not_found_addr)}"
+            )
+
     except RPCCallError as e:
         raise UsageError(f"{e}")
-
-    if not contract_code_response:
-        raise ClickException(
-            f"Unable to find a contract deployed at {deployed_contract_address}"
-        )
+    except:
+        raise
 
 
 @click.command("run")
@@ -111,9 +118,9 @@ def fuzz_run(
     ctx,
     target,
     ide: Optional[str],
-    address,
-    more_addresses,
-    corpus_target,
+    address: str,
+    more_addresses: str,
+    corpus_target: str,
     dry_run,
     api_key,
     key,
@@ -170,8 +177,11 @@ def fuzz_run(
     )
 
     rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
-    if not options.corpus_target:
-        check_contract(rpc_client, options.deployed_contract_address)
+    check_contracts(
+        rpc_client,
+        [options.deployed_contract_address]
+        + (options.additional_contracts_addresses or []),
+    )
 
     seed_state = rpc_client.get_seed_state(
         options.deployed_contract_address,
