@@ -163,12 +163,12 @@ def test_fuzz_run_corpus_target(tmp_path, truffle_project):
             [
                 "run",
                 f"{tmp_path}/contracts/sample.sol",
-                "-c",
+                "--corpus-target",
                 "prj_639cffb2a3e0407fbe2c701caaf5ab33",
             ],
         )
 
-    contract_exists_mock.assert_not_called()
+    contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args

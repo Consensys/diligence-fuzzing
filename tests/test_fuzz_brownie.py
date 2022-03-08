@@ -66,7 +66,7 @@ def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "Error: Unable to find a contract deployed" in result.output
+    assert "Error: Unable to find contracts deployed" in result.output
     assert result.exit_code != 0
 
 
