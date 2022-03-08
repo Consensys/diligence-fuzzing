@@ -215,9 +215,30 @@ def test_fuzz_arm(mock, tmp_path, dapptools_project):
         scribble_path="scribble",
         remappings=["@openzeppelin=lib/openzeppelin-contracts"],
         solc_version=None,
+        no_assert=False,
     )
     assert result.exit_code == 0
 
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
+def test_fuzz_arm_no_assert(mock, tmp_path, dapptools_project):
+    write_config(
+        base_path=str(tmp_path),
+        build_directory="out",
+        not_include=["targets"],
+        import_remaps=True,
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["arm", "--no-assert", f"{tmp_path}/src/Greeter.sol"])
+
+    mock.assert_called()
+    mock.assert_called_with(
+        file_list=(f"{tmp_path}/src/Greeter.sol",),
+        scribble_path="scribble",
+        remappings=["@openzeppelin=lib/openzeppelin-contracts"],
+        solc_version=None,
+        no_assert=True,
+    )
+    assert result.exit_code == 0
 
 @patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, dapptools_project):

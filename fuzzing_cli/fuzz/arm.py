@@ -29,9 +29,16 @@ LOGGER = logging.getLogger("fuzzing-cli")
     help="The solc version to use for compilation",
     default=None,
 )
+@click.option(
+    "--no-assert",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="If specified execution will not halt when an invariant is violated (only an event will be emitted).",
+)
 @click.pass_obj
 def fuzz_arm(
-    ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str
+    ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str, no_assert: bool
 ) -> None:
     """Prepare the target files for Diligence Fuzzing API submission.
 
@@ -53,11 +60,13 @@ def fuzz_arm(
     :param scribble_path: Optional path to the scribble executable
     :param remap_import: List of import remappings to pass on to solc
     :param solc_version: The solc version to use for Solidity compilation
+    :param no_assert: If set execution will not halt when an invariant is violated (only an event will be emitted)
     """
     analyze_config = ctx.get("analyze")
     solc_version = solc_version or analyze_config.get("solc") or None
     remap_import = remap_import or analyze_config.get("remappings") or []
     scribble_path = scribble_path or analyze_config.get("scribble-path") or "scribble"
+    no_assert = no_assert or analyze_config.get("no-assert") or False
 
     fuzz_config = ctx.get("fuzz")
     targets = targets or fuzz_config.get("targets") or None
@@ -67,4 +76,5 @@ def fuzz_arm(
         scribble_path=scribble_path,
         remappings=remap_import,
         solc_version=solc_version,
+        no_assert=no_assert,
     )

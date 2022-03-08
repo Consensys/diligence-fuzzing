@@ -280,8 +280,25 @@ def test_fuzz_arm(mock, tmp_path, brownie_project):
         scribble_path="scribble",
         remappings=[],
         solc_version=None,
+        no_assert=False,
     )
     assert result.exit_code == 0
+
+@patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
+def test_fuzz_arm_no_assert(mock, tmp_path, brownie_project):
+    runner = CliRunner()
+    result = runner.invoke(cli, ["arm", "--no-assert", f"{tmp_path}/contracts/sample.sol"])
+
+    mock.assert_called()
+    mock.assert_called_with(
+        file_list=(f"{tmp_path}/contracts/sample.sol",),
+        scribble_path="scribble",
+        remappings=[],
+        solc_version=None,
+        no_assert=True,
+    )
+    assert result.exit_code == 0
+
 
 
 @patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
