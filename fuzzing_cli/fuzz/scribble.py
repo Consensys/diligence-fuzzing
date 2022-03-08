@@ -110,9 +110,11 @@ class ScribbleMixin:
         scribble_path: str,
         remappings: List[str] = None,
         solc_version: str = None,
+        no_assert: bool = False,
     ) -> None:
         """Instrument a collection of Solidity files in place.
 
+        :param no_assert: If set execution will not halt when an invariant is violated (only an event will be emitted)
         :param file_list: List of paths to Solidity files to instrument
         :param scribble_path: The path to the scribble executable
         :param remappings: List of import remappings to pass to solc
@@ -130,6 +132,9 @@ class ScribbleMixin:
 
         if solc_version:
             command.append(f"--compiler-version={solc_version}")
+
+        if no_assert:
+            command.append(f"--no-assert")
 
         # Scribble doesnt currently support directories as inputs
         # so we create a list of all solidity files inside each of the targets
