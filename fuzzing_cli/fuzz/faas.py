@@ -94,10 +94,17 @@ class FaasClient:
             response = requests.post(req_url, json=payload, headers=h)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
-                raise BadStatusCode(
-                    f"Got http status code {response.status_code} for request {req_url}",
-                    detail=response_data["detail"],
-                )
+                if response.status_code == 403 and response_data["detail"] and response_data["error"] == "SubscriptionError":
+                    raise BadStatusCode(
+                        "Subscription Error",
+                        response_data["detail"]
+                    )
+
+                else:
+                    raise BadStatusCode(
+                        f"Got http status code {response.status_code} for request {req_url}",
+                        detail=response_data["detail"],
+                    )
             return response_data["id"]
         except Exception as e:
             if isinstance(e, BadStatusCode):

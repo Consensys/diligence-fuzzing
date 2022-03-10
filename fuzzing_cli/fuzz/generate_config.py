@@ -203,6 +203,7 @@ def recreate_config(config_file: str):
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,
                     "campaign_name_prefix": campaign_name_prefix,
+                    "no-assert": True
                 }
             )
         )
