@@ -40,6 +40,7 @@ class FaasClient:
         refresh_token,
         auth_endpoint,
         project,
+        time_limit,
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
@@ -50,6 +51,7 @@ class FaasClient:
         self._client_id = client_id
         self._refresh_token = refresh_token
         self._auth_endpoint = auth_endpoint
+        self.time_limit = time_limit
 
     @property
     def headers(self):
@@ -149,6 +151,7 @@ class FaasClient:
                 "sources": campaign_data.sources,
                 "contracts": campaign_data.contracts,
                 "project": self.project,
+                "time-limit": self.time_limit
             }
         except KeyError as e:
             raise PayloadError(
