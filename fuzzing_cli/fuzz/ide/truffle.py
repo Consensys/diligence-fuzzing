@@ -1,6 +1,7 @@
 import json
 import os
 from functools import lru_cache
+from json import JSONDecodeError
 from os.path import abspath
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired
@@ -105,41 +106,64 @@ class TruffleArtifacts(IDEArtifacts):
 
     @staticmethod
     def query_truffle_db(query: str, project_dir: str) -> Dict[str, Any]:
-        try:
-            # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
-            # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
-            with TemporaryFile() as stdout_file, TemporaryFile() as stderr_file:
-                with Popen(
-                    ["truffle", "db", "query", f"{query}"],
-                    stdout=stdout_file,
-                    stderr=stderr_file,
-                    cwd=project_dir,
-                ) as p:
-                    p.communicate(timeout=3 * 60)
+        executables = [
+            "truffle",
+            str(Path(project_dir).joinpath("node_modules/.bin/truffle").absolute()),
+        ]
+        _executables = executables[::-1]
+        with TemporaryFile() as stdout_file, TemporaryFile() as stderr_file:
+            while _executables:
+                try:
+                    executable = _executables.pop()
+                    # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
+                    # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
+                    with Popen(
+                        [executable, "db", "query", f"{query}"],
+                        stdout=stdout_file,
+                        stderr=stderr_file,
+                        cwd=project_dir,
+                    ) as p:
+                        p.communicate(timeout=3 * 60)
+
                     if stdout_file.tell() == 0:
                         error = ""
                         if stderr_file.tell() > 0:
                             stderr_file.seek(0)
-                            error = f"\nError: {str(stderr_file.read())}"
-                        raise BuildArtifactsError(
-                            f'Empty response from the Truffle DB.\nQuery: "{query}"{error}'
+                            error = str(stderr_file.read())
+                        LOGGER.debug(
+                            f'Empty response from the Truffle DB.\nQuery: "{query}" \nError: {error}'
                         )
+                        return {}
+
                     stdout_file.seek(0)
                     result = json.load(stdout_file)
-        except BuildArtifactsError as e:
-            raise e
-        except TimeoutExpired:
-            raise BuildArtifactsError(f'Truffle DB query timeout.\nQuery: "{query}"')
-        except Exception as e:
-            stdout_file.seek(0)
+                    if not result.get("data"):
+                        LOGGER.debug(
+                            f'Empty response from the Truffle DB.\nQuery: "{query}" \nRaw response: {stdout_file.read()}'
+                        )
+                        return {}
+                    return result.get("data")
+                except FileNotFoundError:
+                    # try next executable path
+                    continue
+                except JSONDecodeError:
+                    stdout_file.seek(0)
+                    LOGGER.debug(
+                        f'JSONDecodeError. \nQuery: "{query}" \nRaw response: {stdout_file.read()}'
+                    )
+                except TimeoutExpired:
+                    LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
+                except Exception as e:
+                    stdout_file.seek(0)
+                    LOGGER.debug(
+                        f'Truffle DB query error.\nQuery: "{query}". \nRaw result: {stdout_file.read()}\nError: {e}'
+                    )
+                return {}
+
             raise BuildArtifactsError(
-                f'Truffle DB query error.\nQuery: "{query}". \nRaw result: {stdout_file.read()}'
-            ) from e
-        if not result.get("data"):
-            raise BuildArtifactsError(
-                f'"data" field is not found in the query result.\n Result: "{json.dumps(result)}".\nQuery: "{query}"'
+                f"Truffle DB connection error. Tried executable at paths: {executables}. "
+                f"Please make sure Truffle is installed properly."
             )
-        return result.get("data")
 
     @staticmethod
     def _get_project_sources(project_dir: str) -> Dict[str, List[str]]:
@@ -150,8 +174,10 @@ class TruffleArtifacts(IDEArtifacts):
         project_id = result.get("projectId")
 
         if not project_id:
+            LOGGER.debug(f'No project artifacts found. Path: "{project_dir}"')
             raise BuildArtifactsError(
-                f'No project artifacts found. Path: "{project_dir}"'
+                "No project artifacts found. "
+                "Please make sure that your local truffle configuration has Truffle DB enabled"
             )
 
         result = TruffleArtifacts.query_truffle_db(
@@ -176,9 +202,17 @@ class TruffleArtifacts(IDEArtifacts):
 
         contracts = {}
 
-        if not result.get("project") or not result["project"]["contracts"]:
-            raise BuildArtifactsError(
+        if (
+            not result.get("project")
+            or not result["project"]["contracts"]
+            or len(result["project"]["contracts"]) == 0
+        ):
+            LOGGER.debug(
                 f'No project artifacts found. Path: "{project_dir}". Project ID "{project_id}"'
+            )
+            raise BuildArtifactsError(
+                "No project artifacts found. "
+                "Please make sure that your local truffle configuration has Truffle DB enabled"
             )
 
         for contract in result["project"]["contracts"]:
