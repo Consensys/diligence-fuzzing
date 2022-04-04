@@ -131,8 +131,9 @@ class TruffleArtifacts(IDEArtifacts):
         except TimeoutExpired:
             raise BuildArtifactsError(f'Truffle DB query timeout.\nQuery: "{query}"')
         except Exception as e:
+            stdout_file.seek(0)
             raise BuildArtifactsError(
-                f'Truffle DB query error.\nQuery: "{query}"'
+                f'Truffle DB query error.\nQuery: "{query}". \nRaw result: {stdout_file.read()}'
             ) from e
         if not result.get("data"):
             raise BuildArtifactsError(
