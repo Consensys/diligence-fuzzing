@@ -1,22 +1,27 @@
 import json
 import logging
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
-
-from ...util import get_content_from_file
+from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class DapptoolsArtifacts(IDEArtifacts):
-    def __init__(self, targets=None, build_dir=None, map_to_original_source=False):
+    def __init__(
+        self,
+        options: FuzzingOptions,
+        targets=None,
+        build_dir=None,
+        map_to_original_source=False,
+    ):
         super(DapptoolsArtifacts, self).__init__(
-            targets, build_dir or Path("./out"), map_to_original_source
+            options, targets, build_dir or Path("./out"), map_to_original_source
         )
 
     @classmethod

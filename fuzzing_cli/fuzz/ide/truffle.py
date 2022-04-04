@@ -10,15 +10,23 @@ from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
+from fuzzing_cli.fuzz.options import FuzzingOptions
 from fuzzing_cli.util import LOGGER
 
 
 class TruffleArtifacts(IDEArtifacts):
     def __init__(
-        self, targets: List[str], build_dir: Path, map_to_original_source: bool = False
+        self,
+        options: FuzzingOptions,
+        targets: List[str],
+        build_dir: Path,
+        map_to_original_source: bool = False,
     ):
         super(TruffleArtifacts, self).__init__(
-            targets, build_dir or Path("./build/contracts"), map_to_original_source
+            options,
+            targets,
+            build_dir or Path("./build/contracts"),
+            map_to_original_source,
         )
         project_dir = str(Path.cwd().absolute())
         self.build_files_by_source_file = self._get_build_artifacts(self.build_dir)
@@ -104,17 +112,19 @@ class TruffleArtifacts(IDEArtifacts):
                     }
         return self.flatten_contracts(result_contracts), result_sources
 
-    @staticmethod
-    def query_truffle_db(query: str, project_dir: str) -> Dict[str, Any]:
-        executables = [
-            "truffle",
-            str(Path(project_dir).joinpath("node_modules/.bin/truffle").absolute()),
-        ]
+    def query_truffle_db(self, query: str, project_dir: str) -> Dict[str, Any]:
+        executables = ["truffle", "node_modules/.bin/truffle"]
+        if self._options.truffle_executable_path:
+            LOGGER.debug(
+                f'Got user-provided Truffle executable path "{self._options.truffle_executable_path}"'
+            )
+            executables.insert(0, self._options.truffle_executable_path)
         _executables = executables[::-1]
         with TemporaryFile() as stdout_file, TemporaryFile() as stderr_file:
             while _executables:
                 try:
                     executable = _executables.pop()
+                    LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
                     # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
                     # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
                     with Popen(
@@ -124,7 +134,6 @@ class TruffleArtifacts(IDEArtifacts):
                         cwd=project_dir,
                     ) as p:
                         p.communicate(timeout=3 * 60)
-
                     if stdout_file.tell() == 0:
                         error = ""
                         if stderr_file.tell() > 0:
@@ -162,12 +171,12 @@ class TruffleArtifacts(IDEArtifacts):
 
             raise BuildArtifactsError(
                 f"Truffle DB connection error. Tried executable at paths: {executables}. "
-                f"Please make sure Truffle is installed properly."
+                f"Please make sure truffle is installed properly or provide path "
+                f"to a truffle executable using `--truffle-path` option to `fuzz run`"
             )
 
-    @staticmethod
-    def _get_project_sources(project_dir: str) -> Dict[str, List[str]]:
-        result = TruffleArtifacts.query_truffle_db(
+    def _get_project_sources(self, project_dir: str) -> Dict[str, List[str]]:
+        result = self.query_truffle_db(
             f'query {{ projectId(input: {{ directory: "{project_dir}" }}) }}',
             project_dir,
         )
@@ -180,7 +189,7 @@ class TruffleArtifacts(IDEArtifacts):
                 "Please make sure that your local truffle configuration has Truffle DB enabled"
             )
 
-        result = TruffleArtifacts.query_truffle_db(
+        result = self.query_truffle_db(
             f"""
             {{
               project(id:"{project_id}") {{
