@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from typing_extensions import TypedDict
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.options import FuzzingOptions
 from fuzzing_cli.util import sol_files_by_directory
 
 
@@ -33,9 +34,14 @@ class Source(TypedDict):
 
 class IDEArtifacts(ABC):
     def __init__(
-        self, targets: List[str], build_dir: Path, map_to_original_source: bool = False
+        self,
+        options: FuzzingOptions,
+        targets: List[str],
+        build_dir: Path,
+        map_to_original_source: bool = False,
     ):
         self._payload: Optional[IDEPayload] = None
+        self._options = options
         self.targets = targets
         self.build_dir = build_dir
         self.map_to_original_source = map_to_original_source

@@ -219,6 +219,7 @@ def test_fuzz_arm(mock, tmp_path, dapptools_project):
     )
     assert result.exit_code == 0
 
+
 @patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.instrument_solc_in_place")
 def test_fuzz_arm_no_assert(mock, tmp_path, dapptools_project):
     write_config(
@@ -239,6 +240,7 @@ def test_fuzz_arm_no_assert(mock, tmp_path, dapptools_project):
         no_assert=True,
     )
     assert result.exit_code == 0
+
 
 @patch("fuzzing_cli.fuzz.scribble.ScribbleMixin.disarm_solc_in_place")
 def test_fuzz_disarm(mock, tmp_path, dapptools_project):

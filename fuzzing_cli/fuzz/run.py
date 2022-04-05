@@ -113,6 +113,12 @@ def check_contracts(rpc_client: RPCClient, deployed_contracts_addresses: List[st
     "Alternatively, you may also configure the 'project' field in the .fuzz.yml configuration file."
     "If no project is configured the scan will be attached to the 'Default Project'.",
 )
+@click.option(
+    "--truffle-path",
+    type=click.STRING,
+    default=None,
+    help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
+)
 @click.pass_obj
 def fuzz_run(
     ctx,
@@ -127,6 +133,7 @@ def fuzz_run(
     refresh_token,
     map_to_original_source,
     project,
+    truffle_path: Optional[str],
 ):
     """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
@@ -170,6 +177,7 @@ def fuzz_run(
                     or analyze_config.get("refresh_token"),
                     "api_key": api_key or analyze_config.get("api_key"),
                     "project": project or analyze_config.get("project"),
+                    "truffle_executable_path": truffle_path,
                 }
             ).items()
             if v is not None
@@ -202,6 +210,7 @@ def fuzz_run(
         LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
 
     artifacts: IDEArtifacts = _IDEClass(
+        options=options,
         targets=options.target,
         build_dir=Path(options.build_directory),
         map_to_original_source=options.map_to_original_source,
