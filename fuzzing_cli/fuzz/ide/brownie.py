@@ -6,8 +6,8 @@ from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
-
-from ...util import get_content_from_file
+from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -15,12 +15,16 @@ LOGGER = logging.getLogger("fuzzing-cli")
 class BrownieArtifacts(IDEArtifacts):
     def __init__(
         self,
+        options: FuzzingOptions,
         targets: Optional[List[str]] = None,
         build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
         super(BrownieArtifacts, self).__init__(
-            targets, build_dir or Path("./build/contracts"), map_to_original_source
+            options,
+            targets,
+            build_dir or Path("./build/contracts"),
+            map_to_original_source,
         )
 
     @classmethod

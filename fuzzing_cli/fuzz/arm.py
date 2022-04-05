@@ -38,7 +38,12 @@ LOGGER = logging.getLogger("fuzzing-cli")
 )
 @click.pass_obj
 def fuzz_arm(
-    ctx, targets, scribble_path: str, remap_import: Tuple[str], solc_version: str, no_assert: bool
+    ctx,
+    targets,
+    scribble_path: str,
+    remap_import: Tuple[str],
+    solc_version: str,
+    no_assert: bool,
 ) -> None:
     """Prepare the target files for Diligence Fuzzing API submission.
 

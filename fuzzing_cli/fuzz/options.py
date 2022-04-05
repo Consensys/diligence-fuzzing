@@ -22,6 +22,7 @@ class FuzzingOptions:
         refresh_token: Optional[str] = None,
         api_key: Optional[str] = None,
         project: Optional[str] = None,
+        truffle_executable_path: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.corpus_target = corpus_target
@@ -35,6 +36,7 @@ class FuzzingOptions:
         self.faas_url = faas_url
         self.number_of_cores = int(number_of_cores)
         self.campaign_name_prefix = campaign_name_prefix
+        self.truffle_executable_path = truffle_executable_path
 
         self.auth_endpoint = None
         self.refresh_token = None
