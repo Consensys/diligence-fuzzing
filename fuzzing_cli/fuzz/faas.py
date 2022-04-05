@@ -151,7 +151,7 @@ class FaasClient:
                 "sources": campaign_data.sources,
                 "contracts": campaign_data.contracts,
                 "project": self.project,
-                "time-limit": self.time_limit
+                "timeLimit": self.time_limit
             }
         except KeyError as e:
             raise PayloadError(
