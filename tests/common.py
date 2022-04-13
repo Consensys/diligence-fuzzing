@@ -35,6 +35,7 @@ def generate_fuzz_config(
     not_include: List[str] = [],
     add_refresh_token: bool = False,
     import_remaps: bool = False,
+    time_limit: bool = False
 ):
     config_file = ""
     if import_remaps:
@@ -63,6 +64,10 @@ def generate_fuzz_config(
     if add_refresh_token:
         config_file += (
             f'\n  refresh_token: "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
+        )
+    if time_limit:
+        config_file += (
+            f'\n  time_limit: 15min'
         )
 
     return config_file

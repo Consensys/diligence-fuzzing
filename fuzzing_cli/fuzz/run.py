@@ -172,6 +172,7 @@ def fuzz_run(
                     "additional_contracts_addresses": more_addresses
                     or analyze_config.get("additional_contracts_addresses"),
                     "dry_run": dry_run,
+                    "time_limit": analyze_config.get("time_limit"),
                     "refresh_token": key
                     or analyze_config.get("key")
                     or analyze_config.get("refresh_token"),
@@ -183,6 +184,9 @@ def fuzz_run(
             if v is not None
         }
     )
+
+    # print("---> time limit: ", options.time_limit)
+    # exit()
 
     rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
     check_contracts(
@@ -225,6 +229,7 @@ def fuzz_run(
         refresh_token=options.refresh_token,
         auth_endpoint=options.auth_endpoint,
         project=options.project,
+        time_limit=options.time_limit,
     )
 
     try:

@@ -1,7 +1,8 @@
 import base64
+import math
 from typing import List, Optional, Tuple, Union
-
 import click
+from .pytimer import str_to_time, time_to_str, dtime_it
 
 
 class FuzzingOptions:
@@ -22,6 +23,7 @@ class FuzzingOptions:
         refresh_token: Optional[str] = None,
         api_key: Optional[str] = None,
         project: Optional[str] = None,
+        time_limit: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
@@ -36,6 +38,7 @@ class FuzzingOptions:
         self.faas_url = faas_url
         self.number_of_cores = int(number_of_cores)
         self.campaign_name_prefix = campaign_name_prefix
+        self.time_limit = self._parse_time_limit(time_limit)
         self.truffle_executable_path = truffle_executable_path
 
         self.auth_endpoint = None
@@ -57,6 +60,17 @@ class FuzzingOptions:
             self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
                 refresh_token
             )
+
+    @staticmethod
+    def _parse_time_limit(time_limit: str) -> int:
+        if not time_limit:
+            return None
+        try:
+            return math.floor(str_to_time(time_limit, 's'))
+        except Exception as e:
+            raise click.exceptions.UsageError("Error parsing time_limit config parameter. Make sure the string in the "
+                                              "correct format") from e
+        pass
 
     @staticmethod
     def _decode_refresh_token(refresh_token: str) -> Tuple[str, str, str]:
