@@ -6,18 +6,20 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
-
-from ...util import files_by_directory, get_content_from_file
+from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.util import files_by_directory, get_content_from_file
 
 
 class HardhatArtifacts(IDEArtifacts):
     def __init__(
         self,
+        options: FuzzingOptions,
         targets: Optional[List[str]] = None,
         build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
         super(HardhatArtifacts, self).__init__(
+            options,
             targets,
             Path(build_dir).absolute() or Path("./artifacts").absolute(),
             map_to_original_source,

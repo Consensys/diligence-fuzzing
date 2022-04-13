@@ -24,6 +24,7 @@ class FuzzingOptions:
         api_key: Optional[str] = None,
         project: Optional[str] = None,
         time_limit: Optional[str] = None,
+        truffle_executable_path: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.corpus_target = corpus_target
@@ -38,6 +39,7 @@ class FuzzingOptions:
         self.number_of_cores = int(number_of_cores)
         self.campaign_name_prefix = campaign_name_prefix
         self.time_limit = self._parse_time_limit(time_limit)
+        self.truffle_executable_path = truffle_executable_path
 
         self.auth_endpoint = None
         self.refresh_token = None

@@ -1,5 +1,6 @@
 """The main runtime of the Fuzzing CLI."""
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,8 @@ from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.run import fuzz_run
 
 LOGGER = logging.getLogger("fuzzing-cli")
-logging.basicConfig(level=logging.WARNING)
+LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
+logging.basicConfig(level=LOGLEVEL)
 
 
 # noinspection PyIncorrectDocstring

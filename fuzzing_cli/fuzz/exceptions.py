@@ -77,7 +77,7 @@ class BrownieError(FaaSError):
     pass
 
 
-class BuildArtifactsError(BrownieError):
+class BuildArtifactsError(click.exceptions.ClickException):
     """Exception raised for errors fetching the build artifacts"""
 
     pass
