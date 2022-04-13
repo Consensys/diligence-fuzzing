@@ -139,10 +139,6 @@ def test_rpc_not_running(tmp_path):
 
 
 def test_fuzz_run(tmp_path, brownie_project):
-    # write_config(base_path=str(tmp_path))
-    # config = generate_fuzz_config(base_path=str(tmp_path), time_limit=True)
-    # with open(".fuzz.yml", "w+") as conf_f:
-    #     conf_f.write(config)
     write_config(base_path=str(tmp_path), time_limit=True)
 
     with patch.object(
