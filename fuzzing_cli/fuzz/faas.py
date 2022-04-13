@@ -150,9 +150,11 @@ class FaasClient:
                 "corpus": seed_state["analysis-setup"],
                 "sources": campaign_data.sources,
                 "contracts": campaign_data.contracts,
-                "project": self.project,
-                "timeLimit": self.time_limit
+                "project": self.project
             }
+            if self.time_limit:
+                api_payload["timeLimit"] = self.time_limit
+
         except KeyError as e:
             raise PayloadError(
                 "Error extracting data from payload", detail=f"Key {str(e)} not found"

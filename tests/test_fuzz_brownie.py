@@ -140,6 +140,7 @@ def test_rpc_not_running(tmp_path):
 
 def test_fuzz_run(tmp_path, brownie_project):
     write_config(base_path=str(tmp_path))
+    # write_config(base_path=str(tmp_path), time_limit=True)
 
     with patch.object(
         RPCClient, "contract_exists"
