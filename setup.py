@@ -55,6 +55,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/ConsenSys/diligence-fuzzing",
-    version="0.9.5",
+    version="0.9.6",
     zip_safe=False,
 )
