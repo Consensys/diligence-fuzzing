@@ -11,7 +11,7 @@ from fuzzing_cli.fuzz.exceptions import RequestError
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.rpc import RPCClient
 
-from .common import get_test_case, write_config
+from .common import get_test_case, write_config, generate_fuzz_config
 
 FAAS_URL = "http://localhost:9899"
 ORIGINAL_SOL_CODE = "original sol code here"
@@ -139,8 +139,11 @@ def test_rpc_not_running(tmp_path):
 
 
 def test_fuzz_run(tmp_path, brownie_project):
-    write_config(base_path=str(tmp_path))
-    # write_config(base_path=str(tmp_path), time_limit=True)
+    # write_config(base_path=str(tmp_path))
+    # config = generate_fuzz_config(base_path=str(tmp_path), time_limit=True)
+    # with open(".fuzz.yml", "w+") as conf_f:
+    #     conf_f.write(config)
+    write_config(base_path=str(tmp_path), time_limit=True)
 
     with patch.object(
         RPCClient, "contract_exists"
@@ -190,6 +193,7 @@ def test_fuzz_run(tmp_path, brownie_project):
         "deployedBytecode",
         "sourceMap",
         "deployedSourceMap",
+        "timeLimit"
     ]
 
     for keyword in keywords:

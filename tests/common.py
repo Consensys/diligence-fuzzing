@@ -67,7 +67,7 @@ def generate_fuzz_config(
         )
     if time_limit:
         config_file += (
-            f'\n   time_limit: 15min'
+            f'\n  time_limit: 15min'
         )
 
     return config_file
