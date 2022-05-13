@@ -198,12 +198,14 @@ def recreate_config(config_file: str):
         f.write(
             generate_yaml(
                 {
+                    "ide": ide,
                     "build_directory": build_dir,
                     "targets": targets,
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,
                     "campaign_name_prefix": campaign_name_prefix,
                     "no-assert": True,
+                    "quick_check": False,
                 }
             )
         )

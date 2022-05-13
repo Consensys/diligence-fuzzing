@@ -11,7 +11,6 @@ from .exceptions import RPCCallError
 LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
-time_limit_seconds = 3000
 NUM_BLOCKS_UPPER_LIMIT = 9999
 
 
@@ -86,14 +85,6 @@ class RPCClient:
         other_addresses: Optional[List[str]],
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
-        seed_state = {
-            "time-limit-secs": time_limit_seconds,
-            "discovery-probability-threshold": 0.0,
-            "assertion-checking-mode": 1,
-            "emit-mythx-report": True,
-            "num-cores": self.number_of_cores,
-        }
-
         try:
             blocks = self.get_all_blocks()
             processed_transactions = []
@@ -120,7 +111,12 @@ class RPCClient:
             """Get a seed state for the target contract to be used by Harvey"""
             if corpus_target:
                 setup["target"] = corpus_target
-            return dict({**seed_state, "analysis-setup": setup})
+            return {
+                "discovery-probability-threshold": 0.0,
+                "assertion-checking-mode": 1,
+                "num-cores": self.number_of_cores,
+                "analysis-setup": setup,
+            }
 
         except ClickException:
             raise

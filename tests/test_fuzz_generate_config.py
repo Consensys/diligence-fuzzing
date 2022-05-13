@@ -26,6 +26,8 @@ def test_generate_config(tmp_path, isolated_hardhat_project):
     assert config == {
         "analyze": None,
         "fuzz": {
+            "ide": "hardhat",
+            "quick_check": False,
             "build_directory": str(Path(tmp_path).joinpath("artifacts")),
             "targets": [str(Path(tmp_path).joinpath("contracts"))],
             "rpc_url": "http://localhost:1111/",

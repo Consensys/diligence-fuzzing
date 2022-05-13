@@ -8,6 +8,7 @@ class FuzzingOptions:
     def __init__(
         self,
         ide: Optional[str] = None,
+        quick_check: bool = False,
         build_directory: str = None,
         deployed_contract_address: Optional[str] = None,
         target: Optional[List[str]] = None,
@@ -25,6 +26,7 @@ class FuzzingOptions:
         truffle_executable_path: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
+        self.quick_check = quick_check
         self.corpus_target = corpus_target
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
@@ -92,7 +94,7 @@ class FuzzingOptions:
                 "as the `--api-key` or `--refresh-token` parameters respectively of the fuzz run command"
                 "or set `api_key` or `refresh_token` on the `fuzz` key of your .fuzz.yml config file."
             )
-        if not self.deployed_contract_address:
+        if not self.quick_check and not self.deployed_contract_address:
             raise click.exceptions.UsageError(
                 "Deployed contract address not provided. You need to provide an address as the `--address` "
                 "parameter of the fuzz run command.\nYou can also set the `deployed_contract_address`"

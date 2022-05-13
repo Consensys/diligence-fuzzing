@@ -10,6 +10,7 @@ from .exceptions import FaaSError, RPCCallError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .options import FuzzingOptions
+from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
 from .rpc import RPCClient
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -138,15 +139,17 @@ def fuzz_run(
     """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
         key = refresh_token
-    analyze_config = ctx.get("fuzz")
 
-    if analyze_config.get("api_key") or api_key:
+    analyze_config = ctx.get("analyze")
+    fuzz_config = ctx.get("fuzz")
+
+    if fuzz_config.get("api_key") or api_key:
         LOGGER.warning(
             "The --api-key parameter and 'api_key' configuration file option value have been"
             " deprecated. You should use the --key and 'key' options instead."
         )
 
-    if analyze_config.get("refresh_token") or refresh_token:
+    if fuzz_config.get("refresh_token") or refresh_token:
         LOGGER.warning(
             "The --refresh-token parameter and 'refresh_token' configuration file option have been"
             " deprecated. You should use the --key and 'key' options instead."
@@ -157,26 +160,26 @@ def fuzz_run(
             k: v
             for k, v in (
                 {
-                    "ide": ide or analyze_config.get("ide"),
-                    "build_directory": analyze_config.get("build_directory"),
+                    "ide": ide or fuzz_config.get("ide"),
+                    "quick_check": fuzz_config.get("quick_check", False),
+                    "build_directory": fuzz_config.get("build_directory"),
                     "deployed_contract_address": address
-                    or analyze_config.get("deployed_contract_address"),
-                    "target": target or analyze_config.get("targets"),
+                    or fuzz_config.get("deployed_contract_address"),
+                    "target": target or fuzz_config.get("targets"),
                     "map_to_original_source": map_to_original_source,
-                    "rpc_url": analyze_config.get("rpc_url"),
-                    "faas_url": analyze_config.get("faas_url"),
-                    "number_of_cores": analyze_config.get("number_of_cores"),
-                    "campaign_name_prefix": analyze_config.get("campaign_name_prefix"),
-                    "corpus_target": corpus_target
-                    or analyze_config.get("corpus_target"),
+                    "rpc_url": fuzz_config.get("rpc_url"),
+                    "faas_url": fuzz_config.get("faas_url"),
+                    "number_of_cores": fuzz_config.get("number_of_cores"),
+                    "campaign_name_prefix": fuzz_config.get("campaign_name_prefix"),
+                    "corpus_target": corpus_target or fuzz_config.get("corpus_target"),
                     "additional_contracts_addresses": more_addresses
-                    or analyze_config.get("additional_contracts_addresses"),
+                    or fuzz_config.get("additional_contracts_addresses"),
                     "dry_run": dry_run,
                     "refresh_token": key
-                    or analyze_config.get("key")
-                    or analyze_config.get("refresh_token"),
-                    "api_key": api_key or analyze_config.get("api_key"),
-                    "project": project or analyze_config.get("project"),
+                    or fuzz_config.get("key")
+                    or fuzz_config.get("refresh_token"),
+                    "api_key": api_key or fuzz_config.get("api_key"),
+                    "project": project or fuzz_config.get("project"),
                     "truffle_executable_path": truffle_path,
                 }
             ).items()
@@ -184,42 +187,61 @@ def fuzz_run(
         }
     )
 
-    rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
-    check_contracts(
-        rpc_client,
-        [options.deployed_contract_address]
-        + (options.additional_contracts_addresses or []),
-    )
-
-    seed_state = rpc_client.get_seed_state(
-        options.deployed_contract_address,
-        options.additional_contracts_addresses,
-        options.corpus_target,
-    )
-
-    repo = IDERepository.get_instance()
-    if options.ide:
-        LOGGER.debug(f'"{options.ide}" IDE is specified')
-        _IDEClass = repo.get_ide(options.ide)
+    if options.quick_check:
+        project_type: str = "QuickCheck"
+        artifacts: IDEArtifacts = QuickCheck(
+            options=options,
+            scribble_path=analyze_config.get("scribble-path"),
+            targets=options.target,
+            build_dir=None,
+            map_to_original_source=map_to_original_source
+            or options.map_to_original_source,
+            remappings=analyze_config.get("remappings", []),
+            solc_version=analyze_config.get("solc-version", []),
+            solc_path=None,
+            no_assert=analyze_config.get("no-assert", False),
+        )
+        seed_state = prepare_seed_state(
+            artifacts.contracts, options.number_of_cores, corpus_target
+        )
     else:
-        LOGGER.debug("IDE not specified. Detecting one")
-        _IDEClass = repo.detect_ide()
-        if not _IDEClass:
-            LOGGER.debug("No supported IDE was detected")
-            raise UsageError(f"No supported IDE was detected")
-        LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
+        rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
+        check_contracts(
+            rpc_client,
+            [options.deployed_contract_address]
+            + (options.additional_contracts_addresses or []),
+        )
 
-    artifacts: IDEArtifacts = _IDEClass(
-        options=options,
-        targets=options.target,
-        build_dir=Path(options.build_directory),
-        map_to_original_source=options.map_to_original_source,
-    )
+        seed_state = rpc_client.get_seed_state(
+            options.deployed_contract_address,
+            options.additional_contracts_addresses,
+            options.corpus_target,
+        )
+
+        repo = IDERepository.get_instance()
+        if options.ide:
+            LOGGER.debug(f'"{options.ide}" IDE is specified')
+            _IDEClass = repo.get_ide(options.ide)
+        else:
+            LOGGER.debug("IDE not specified. Detecting one")
+            _IDEClass = repo.detect_ide()
+            if not _IDEClass:
+                LOGGER.debug("No supported IDE was detected")
+                raise UsageError(f"No supported IDE was detected")
+            LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
+
+        artifacts: IDEArtifacts = _IDEClass(
+            options=options,
+            targets=options.target,
+            build_dir=Path(options.build_directory),
+            map_to_original_source=options.map_to_original_source,
+        )
+        project_type: str = _IDEClass.get_name()
 
     faas_client = FaasClient(
         faas_url=options.faas_url,
         campaign_name_prefix=options.campaign_name_prefix,
-        project_type=_IDEClass.get_name(),
+        project_type=project_type,
         api_key=options.api_key,
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
