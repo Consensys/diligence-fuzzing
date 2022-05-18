@@ -7,3 +7,4 @@ ruamel.yaml==0.17.20
 requests==2.25.0
 pycryptodome==3.14.1
 rlp==3.0.0
+py-solc-x==1.1.0
