@@ -247,6 +247,7 @@ def fuzz_run(
         refresh_token=options.refresh_token,
         auth_endpoint=options.auth_endpoint,
         project=options.project,
+        quick_check=options.quick_check,
     )
 
     try:

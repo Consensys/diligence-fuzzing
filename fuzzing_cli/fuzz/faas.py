@@ -40,11 +40,13 @@ class FaasClient:
         refresh_token,
         auth_endpoint,
         project,
+        quick_check=False,
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
         self.project = project
+        self.quick_check = quick_check
 
         self._api_key = api_key
         self._client_id = client_id
@@ -150,6 +152,7 @@ class FaasClient:
                 "sources": campaign_data.sources,
                 "contracts": campaign_data.contracts,
                 "project": self.project,
+                "quickCheck": self.quick_check,
             }
         except KeyError as e:
             raise PayloadError(

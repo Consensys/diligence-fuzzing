@@ -161,6 +161,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
             },
         ],
         "project": None,
+        "quickCheck": False,
     }
 
 
