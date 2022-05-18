@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
-from typing import List
+from typing import List, Tuple
 
 import click
 
@@ -83,7 +83,7 @@ class ScribbleMixin:
         return json.loads(process.stdout.decode())
 
     def instrument_solc_file(
-        self, target: str, scribble_path: str, remappings: List[str]
+        self, target: str, scribble_path: str, remappings: Tuple[str]
     ) -> dict:
         """Instrument a single Solidity file with scribble.
 

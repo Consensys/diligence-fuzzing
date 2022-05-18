@@ -75,6 +75,7 @@ def test_get_corpus(tmp_path, hardhat_project):
         "sources": {},
         "contracts": [],
         "project": None,
+        "quickCheck": False,
     }
 
 

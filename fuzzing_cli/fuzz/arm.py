@@ -68,7 +68,7 @@ def fuzz_arm(
     :param no_assert: If set execution will not halt when an invariant is violated (only an event will be emitted)
     """
     analyze_config = ctx.get("analyze")
-    solc_version = solc_version or analyze_config.get("solc") or None
+    solc_version = solc_version or analyze_config.get("solc-version") or None
     remap_import = remap_import or analyze_config.get("remappings") or []
     scribble_path = scribble_path or analyze_config.get("scribble-path") or "scribble"
     no_assert = no_assert or analyze_config.get("no-assert") or False
