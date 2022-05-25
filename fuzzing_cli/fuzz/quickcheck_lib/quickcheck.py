@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import rlp
 from Crypto.Hash import keccak
 
+from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.options import FuzzingOptions
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
@@ -19,6 +20,7 @@ BASE_ADDRESS = "affeaffeaffeaffeaffeaffeaffeaffeaffeaffe"
 
 
 def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List[Path]:
+    LOGGER.debug(f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}")
     _targets = [Path(t) for t in targets]
     # for cases when it's complex command. e.g.: npx scribble-generate
     _scribble_generator_path = scribble_generator_path.split(" ")
@@ -26,25 +28,34 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 
     annotated_files: List[Path] = []
 
-    process: subprocess.CompletedProcess = subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    try:
+        process: subprocess.CompletedProcess = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if process.returncode != 0:
+            reason = f"{process.stdout.decode()}\n{process.stderr.decode()}"
+            raise Exception(f"Annotating failed. Captured output: {reason}")
 
-    if process.returncode != 0:
-        reason = f"{process.stdout.decode()}\n{process.stderr.decode()}"
-        raise Exception(f"Annotating failed. Captured output: {reason}")
+        for target in _targets:
+            if target.is_dir():  # find all annotated contracts
+                _changed_files = [x for x in target.rglob("*.sol.sg_original")]
+                _files = [f.parent.joinpath(f.stem) for f in _changed_files]
+            else:
+                orig_file = target.parent.joinpath(f"{target.name}.sg_original")
+                if not orig_file.exists():
+                    LOGGER.warning(f'Target "{target}" was not annotated')
+                    continue
+                _files = [target]
+            annotated_files.extend(_files)
+    except FileNotFoundError:
+        raise QuickCheckError(
+            f"scribble-generator invocation error. Tried executable at {scribble_generator_path}. "
+            f"Please make sure `scribble-generator` is installed properly or provide path "
+            f"to the executable using `--scribble-generator-path` option to `fuzz auto`"
+        )
+    except Exception as e:
+        LOGGER.error(e)
 
-    for target in _targets:
-        if target.is_dir():  # find all annotated contracts
-            _changed_files = [x for x in target.rglob("*.sol.sg_original")]
-            _files = [target.joinpath(f.stem) for f in _changed_files]
-        else:
-            orig_file = target.parent.joinpath(f"{target.name}.sg_original")
-            if not orig_file.exists():
-                LOGGER.warning(f'Target "{target}" was not annotated')
-                continue
-            _files = [target]
-        annotated_files.extend(_files)
     return annotated_files
 
 

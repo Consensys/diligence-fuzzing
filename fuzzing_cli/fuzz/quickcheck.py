@@ -56,7 +56,7 @@ def generate_config_name(suffix: Optional[str] = None, randomize_name=False):
         suffix = Path.cwd().name.lower().replace("-", "_")
     if randomize_name:
         suffix += f"_{''.join(random.choice(string.ascii_lowercase) for _ in range(3))}"
-    return f".fuzz_{suffix}"
+    return f".fuzz_{suffix}.yml"
 
 
 @click.command("auto")
@@ -122,11 +122,11 @@ def fuzz_auto(
     annotated_targets = annotate_contracts(targets, scribble_generator_path)
 
     targets_list_output = [
-        f"  🛠 {style(target, fg='yellow', italic=True)}" for target in annotated_targets
+        f"  🛠  {style(target, fg='yellow', italic=True)}" for target in annotated_targets
     ]
     targets_list_output_string = "\n".join(targets_list_output)
     click.echo(
-        f"\n🛠 Here's the list of instrumented contracts:\n  {targets_list_output_string}"
+        f"\n🛠  Here's the list of instrumented contracts:\n  {targets_list_output_string}"
     )
 
     if individual:
