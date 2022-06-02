@@ -31,6 +31,7 @@ def mock_faas_context():
 def generate_fuzz_config(
     base_path: str = "",
     build_directory: str = "build",
+    sources_directory: str = "contracts",
     targets: str = "contracts",
     not_include: List[str] = [],
     add_refresh_token: bool = False,
@@ -57,6 +58,8 @@ def generate_fuzz_config(
         config_file += f'\n  api_key:\n    "test"'
     if "build_directory" not in not_include:
         config_file += f"\n  build_directory: {base_path}/{build_directory}"
+    if "sources_directory" not in not_include:
+        config_file += f"\n  sources_directory: {base_path}/{sources_directory}"
     if "targets" not in not_include:
         config_file += f'\n  targets:\n    - "{base_path}/{targets}"'
 

@@ -1,7 +1,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 
 import click
 from click import ClickException, UsageError
@@ -20,18 +20,32 @@ headers = {"Content-Type": "application/json"}
 time_limit_seconds = 3000
 
 
-def check_contracts(rpc_client: RPCClient, deployed_contracts_addresses: List[str]):
-    not_found_addr = []
+def check_contracts(rpc_client: RPCClient, seed_state: Dict[str, any], artifacts: IDEArtifacts):
     try:
-        for address in deployed_contracts_addresses:
-            contract_code_response = rpc_client.contract_exists(address)
-            if not contract_code_response:
-                not_found_addr.append(address)
+        missing_targets, unknown_targets = rpc_client.validate_seed_state(seed_state)
 
-        if len(not_found_addr) > 0:
+        if unknown_targets:
             raise ClickException(
-                f"Unable to find contracts deployed at {', '.join(not_found_addr)}"
+                f"Unable to find contracts deployed at {', '.join(unknown_targets)}"
             )
+
+        missing_targets_resolved: List[Tuple[str, Optional[str], Optional[str]]] = []
+        for address, deployed_bytecode in missing_targets.items():
+            contract = artifacts.get_contract(deployed_bytecode)
+            missing_targets_resolved.append(
+                (
+                    address,
+                    contract["mainSourceFile"] if contract else 'null',
+                    contract["contractName"] if contract else 'null',
+                ),
+            )
+
+        if missing_targets_resolved:
+            data = '\n'.join([
+                f"  ◦ Address: {t[0]} Source File: {t[1]} Contract Name: {t[2]}"
+                for t in missing_targets_resolved
+            ])
+            click.secho(f"⚠️ Following contracts were not included in the seed state:\n{data}")
 
     except RPCCallError as e:
         raise UsageError(f"{e}")
@@ -120,6 +134,12 @@ def check_contracts(rpc_client: RPCClient, deployed_contracts_addresses: List[st
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
+@click.option(
+    "--no-target",
+    type=click.BOOL,
+    default=False,
+    help="[Optional] Allow empty target",
+)
 @click.pass_obj
 def fuzz_run(
     ctx,
@@ -135,6 +155,7 @@ def fuzz_run(
     map_to_original_source,
     project,
     truffle_path: Optional[str],
+    no_target: bool,
 ):
     """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
@@ -163,6 +184,7 @@ def fuzz_run(
                     "ide": ide or fuzz_config.get("ide"),
                     "quick_check": fuzz_config.get("quick_check", False),
                     "build_directory": fuzz_config.get("build_directory"),
+                    "sources_directory": fuzz_config.get("sources_directory"),
                     "deployed_contract_address": address
                     or fuzz_config.get("deployed_contract_address"),
                     "target": target or fuzz_config.get("targets"),
@@ -181,6 +203,7 @@ def fuzz_run(
                     "api_key": api_key or fuzz_config.get("api_key"),
                     "project": project or fuzz_config.get("project"),
                     "truffle_executable_path": truffle_path,
+                    "no_target": no_target,
                 }
             ).items()
             if v is not None
@@ -206,11 +229,6 @@ def fuzz_run(
         )
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
-        check_contracts(
-            rpc_client,
-            [options.deployed_contract_address]
-            + (options.additional_contracts_addresses or []),
-        )
 
         seed_state = rpc_client.get_seed_state(
             options.deployed_contract_address,
@@ -233,10 +251,17 @@ def fuzz_run(
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
             targets=options.target,
-            build_dir=Path(options.build_directory),
+            build_dir=Path(options.build_directory or _IDEClass.get_default_build_dir()),
+            sources_dir=Path(options.sources_directory or _IDEClass.get_default_sources_dir()),
             map_to_original_source=options.map_to_original_source,
         )
         project_type: str = _IDEClass.get_name()
+
+        check_contracts(
+            rpc_client,
+            seed_state,
+            artifacts,
+        )
 
     faas_client = FaasClient(
         faas_url=options.faas_url,

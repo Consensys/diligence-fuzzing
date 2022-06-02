@@ -7,21 +7,23 @@ from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.options import FuzzingOptions
-from fuzzing_cli.util import files_by_directory, get_content_from_file
+from fuzzing_cli.util import files_by_directory, get_content_from_file, sol_files_by_directory
 
 
 class HardhatArtifacts(IDEArtifacts):
     def __init__(
         self,
         options: FuzzingOptions,
+        build_dir: Path,
+        sources_dir: Path,
         targets: Optional[List[str]] = None,
-        build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
         super(HardhatArtifacts, self).__init__(
             options,
             targets,
-            Path(build_dir).absolute() or Path("./artifacts").absolute(),
+            build_dir,
+            sources_dir,
             map_to_original_source,
         )
         self._include = [abspath(fp) for fp in self._include]
@@ -52,12 +54,33 @@ class HardhatArtifacts(IDEArtifacts):
     def sources(self) -> Dict[str, Source]:
         return self.fetch_data()[1]
 
+    def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
+        result_contracts, _ = self.process_artifacts()
+        for _, contracts in result_contracts.items():
+            for contract in contracts:
+                if deployed_bytecode == contract["deployedBytecode"]:
+                    return contract
+        return None
+
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        _result_contracts, _result_sources = self.process_artifacts()
+        relative_paths_include = []
+        for p in self._include:
+            cp = commonpath([self.build_dir, p])
+            relative_paths_include.append(relpath(p, cp))
+
+        result_contracts = {k: v for k, v in _result_contracts.items() if k in relative_paths_include}
+        result_sources = {k: v for k, v in _result_sources.items() if k in relative_paths_include}
+        return self.flatten_contracts(result_contracts), result_sources
+
+    @lru_cache(maxsize=1)
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
+        _include = sol_files_by_directory(str(self.sources_dir.absolute()))
         result_contracts = {}
         result_sources = {}
 
-        for file_path in self._include:
+        for file_path in _include:
             cp = commonpath([self.build_dir, file_path])
             relative_file_path = relpath(file_path, cp)
 
@@ -149,4 +172,4 @@ class HardhatArtifacts(IDEArtifacts):
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
 
-        return self.flatten_contracts(result_contracts), result_sources
+        return result_contracts, result_sources

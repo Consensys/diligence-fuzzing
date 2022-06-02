@@ -1,17 +1,47 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import click
 import requests
 from click import ClickException
 from requests import RequestException
+from typing import TypedDict
 
-from .exceptions import RPCCallError
+from .exceptions import RPCCallError, FaaSError
+from .quickcheck_lib.utils import mk_contract_address
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
 NUM_BLOCKS_UPPER_LIMIT = 9999
+
+EVMTransaction = TypedDict(
+    "EVMTransaction",
+    {
+        "hash": str,
+        "nonce": str,
+        "blockHash": str,
+        "blockNumber": str,
+        "transactionIndex": str,
+        "from": str,
+        "to": str,
+        "value": str,
+        "gas": str,
+        "gasPrice": str,
+        "input": str,
+        "v": str,
+        "r": str,
+        "s": str,
+    },
+)
+
+
+class MissingTargetsError(FaaSError):
+    pass
+
+
+class TargetsNotFoundError(FaaSError):
+    pass
 
 
 class RPCClient:
@@ -56,6 +86,12 @@ class RPCClient:
         block = self.call("eth_getBlockByNumber", '["' + block_value + '", true]')
         return block
 
+    def get_code(self, contract_address: str) -> Optional[str]:
+        deployed_bytecode = self.call("eth_getCode", f'["{contract_address}", "latest"]')
+        if deployed_bytecode == "0x":
+            return None
+        return deployed_bytecode
+
     def get_all_blocks(self):
         """ Get all blocks from the node running at rpc_url
 
@@ -78,6 +114,31 @@ class RPCClient:
         for i in range(0, num_of_blocks):
             blocks.append(self.get_block(block_number=i))
         return blocks
+
+    def validate_seed_state(self, seed_state: Dict[str, any]) -> Tuple[Dict[str, str], List[str]]:
+        steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
+        contracts: List[str] = []
+        for txn in steps:
+            if txn["to"]:
+                continue
+            contracts.append(
+                mk_contract_address(txn["from"][2:], int(txn["nonce"], base=16)),
+            )
+
+        unknown_targets = []
+
+        targets: List[str] = [seed_state["analysis-setup"]["address-under-test"]] + (seed_state["analysis-setup"]["other-addresses-under-test"] or [])
+
+        for target in targets:
+            if target not in contracts:
+                unknown_targets.append(target)
+
+        missing_targets: Dict[str, str] = {}
+        for contract in contracts:
+            if contract not in targets:
+                missing_targets[contract] = self.get_code(contract)
+
+        return missing_targets, unknown_targets
 
     def get_seed_state(
         self,

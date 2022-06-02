@@ -25,6 +25,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
+        sources_directory="contracts",
         targets="contracts/MasterChefV2.sol",
     )
 

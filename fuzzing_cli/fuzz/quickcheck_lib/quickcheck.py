@@ -3,9 +3,7 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
-import rlp
-from Crypto.Hash import keccak
+from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import Contract, IDEArtifacts, Source
@@ -59,20 +57,12 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
     return annotated_files
 
 
-def __mk_contract_address(sender: str, nonce: int) -> str:
-    sender_address = bytes.fromhex(sender)
-    address = keccak.new(
-        digest_bits=256, data=rlp.encode([sender_address, nonce])
-    ).digest()[12:]
-    return address.hex()
-
-
 def prepare_seed_state(
     contracts: List[Contract], number_of_cores: int, corpus_target: Optional[str] = None
 ) -> Dict[str, any]:
     accounts = {}
     for idx, contract in enumerate(contracts):
-        contract_address = __mk_contract_address(BASE_ADDRESS, idx)
+        contract_address = mk_contract_address(BASE_ADDRESS, idx)
         accounts[contract_address] = {
             "nonce": idx,
             "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",

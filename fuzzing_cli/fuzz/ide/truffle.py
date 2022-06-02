@@ -46,7 +46,7 @@ class TruffleArtifacts(IDEArtifacts):
         return "truffle-config.js" in files
 
     @property
-    def contracts(self) -> List[Contract]:
+    def contracts(self, only_included: bool = True) -> List[Contract]:
         return self.fetch_data()[0]
 
     @property

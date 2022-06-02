@@ -9,7 +9,8 @@ class FuzzingOptions:
         self,
         ide: Optional[str] = None,
         quick_check: bool = False,
-        build_directory: str = None,
+        build_directory: Optional[str] = None,
+        sources_directory: Optional[str] = None,
         deployed_contract_address: Optional[str] = None,
         target: Optional[List[str]] = None,
         map_to_original_source: bool = False,
@@ -24,6 +25,7 @@ class FuzzingOptions:
         api_key: Optional[str] = None,
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
+        no_target: bool = False,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -32,6 +34,7 @@ class FuzzingOptions:
         self.dry_run = dry_run
         self.api_key = api_key
         self.build_directory = build_directory
+        self.sources_directory = sources_directory
         self.deployed_contract_address = deployed_contract_address
         self.target = target
         self.rpc_url = rpc_url
@@ -39,6 +42,7 @@ class FuzzingOptions:
         self.number_of_cores = int(number_of_cores)
         self.campaign_name_prefix = campaign_name_prefix
         self.truffle_executable_path = truffle_executable_path
+        self.no_target = no_target
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -86,8 +90,12 @@ class FuzzingOptions:
         if not self.build_directory:
             raise click.exceptions.UsageError(
                 "Build directory not provided. You need to set the `build_directory` "
-                "on the `fuzz` key of your .fuzz.yml config file."
+                "under the `fuzz` key of your .fuzz.yml config file."
             )
+        if not self.sources_directory:
+            click.secho("Warning: Sources directory not specified. Using IDE defaults. For a proper seed state check "
+                        "please set the `sources_directory` under the `fuzz` key of your .fuzz.yml config file.")
+
         if not self.api_key and not refresh_token:
             raise click.exceptions.UsageError(
                 "API key or Refresh Token were not provided. You need to provide either an API key or a Refresh Token"
@@ -100,8 +108,9 @@ class FuzzingOptions:
                 "parameter of the fuzz run command.\nYou can also set the `deployed_contract_address`"
                 "on the `fuzz` key of your .fuzz.yml config file."
             )
-        if not self.target:
+        if not self.target and not self.no_target:
             raise click.exceptions.UsageError(
-                "Target not provided. You need to provide a target as the last parameter of the fuzz run command."
+                "Target not provided. You need to provide a target as the last parameter of the fuzz run command or "
+                "`--no-target` option to fuzz run."
                 "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
             )
