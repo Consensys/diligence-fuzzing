@@ -44,7 +44,9 @@ def test_no_keys(tmp_path, truffle_project):
     assert result.exit_code != 0
 
 
-@patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
+@patch.object(
+    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+)
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
@@ -76,7 +78,9 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
     assert "You can view campaign here:" in result.output
 
 
-@patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
+@patch.object(
+    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+)
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
@@ -106,7 +110,9 @@ def test_wrong_refresh_token(refresh_token: str, tmp_path):
     assert REFRESH_TOKEN_MALFORMED_ERROR in result.output
 
 
-@patch.object(RPCClient, attribute="contract_exists", new=Mock(return_value=True))
+@patch.object(
+    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+)
 @patch.object(
     RPCClient,
     attribute="get_seed_state",

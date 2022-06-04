@@ -93,8 +93,10 @@ class FuzzingOptions:
                 "under the `fuzz` key of your .fuzz.yml config file."
             )
         if not self.sources_directory:
-            click.secho("Warning: Sources directory not specified. Using IDE defaults. For a proper seed state check "
-                        "please set the `sources_directory` under the `fuzz` key of your .fuzz.yml config file.")
+            click.secho(
+                "Warning: Sources directory not specified. Using IDE defaults. For a proper seed state check "
+                "please set the `sources_directory` under the `fuzz` key of your .fuzz.yml config file."
+            )
 
         if not self.api_key and not refresh_token:
             raise click.exceptions.UsageError(

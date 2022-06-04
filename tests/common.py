@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from unittest.mock import patch
 
 
@@ -24,11 +24,11 @@ def mock_faas_context():
         instance.get_all_blocks.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        instance.contract_exists.return_value = True
     yield
 
 
 def generate_fuzz_config(
+    ide: Optional[str] = None,
     base_path: str = "",
     build_directory: str = "build",
     sources_directory: str = "contracts",
@@ -36,6 +36,7 @@ def generate_fuzz_config(
     not_include: List[str] = [],
     add_refresh_token: bool = False,
     import_remaps: bool = False,
+    deployed_contract_address="0x7277646075fa72737e1F6114654C5d9949a67dF2",
 ):
     config_file = ""
     if import_remaps:
@@ -44,8 +45,10 @@ def generate_fuzz_config(
         config_file += '\n    - "@openzeppelin=lib/openzeppelin-contracts"'
 
     config_file += "\nfuzz:"
+    if ide:
+        config_file += f'\n  ide: {ide}'
     if "deployed_contract_address" not in not_include:
-        config_file += '\n  deployed_contract_address: "0x7277646075fa72737e1F6114654C5d9949a67dF2"'
+        config_file += f'\n  deployed_contract_address: "{deployed_contract_address}"'
     if "number_of_cores" not in not_include:
         config_file += "\n  number_of_cores: 1"
     if "campaign_name_prefix" not in not_include:

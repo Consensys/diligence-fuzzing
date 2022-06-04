@@ -51,39 +51,41 @@ def test_fuzz_no_target(tmp_path):
 
 
 def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
-    write_config(base_path=str(tmp_path))
+    write_config(
+        base_path=str(tmp_path),
+        deployed_contract_address="0x1111646075fa72737e1F6114654C5d9949a6aaaa",
+    )
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock:
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = False
+        get_code_mock.return_value = None
 
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "Error: Unable to find contracts deployed" in result.output
+    assert (
+        "Error: Unable to find contracts deployed at 0x1111646075fa72737e1F6114654C5d9949a6aaaa"
+        in result.output
+    )
     assert result.exit_code != 0
 
 
 def test_faas_not_running(tmp_path, brownie_project):
     write_config(base_path=str(tmp_path))
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock:
+        get_code_mock.return_value = "0x1"
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
         start_faas_campaign_mock.side_effect = RequestError(
             f"Error starting FaaS campaign."
         )
@@ -102,9 +104,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
     and the test would fail"""
     write_config(base_path=str(tmp_path))
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
@@ -112,7 +112,7 @@ def test_faas_target_config_file(tmp_path, brownie_project):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
+        get_code_mock.return_value = "0x1"
         start_faas_campaign_mock.side_effect = RequestError(
             f"Error starting FaaS campaign."
         )
@@ -134,16 +134,17 @@ def test_rpc_not_running(tmp_path):
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "HTTP error calling RPC method eth_getCode with parameters" in result.output
+    assert (
+        "HTTP error calling RPC method eth_getBlockByNumber with parameters"
+        in result.output
+    )
     assert result.exit_code != 0
 
 
 def test_fuzz_run(tmp_path, brownie_project):
     write_config(base_path=str(tmp_path))
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
@@ -151,17 +152,13 @@ def test_fuzz_run(tmp_path, brownie_project):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
+        get_code_mock.return_value = "0x1"
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
 
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    contract_exists_mock.assert_called_with(
-        "0x7277646075fa72737e1F6114654C5d9949a67dF2"
-    )
-    contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args
@@ -200,9 +197,7 @@ def test_fuzz_run(tmp_path, brownie_project):
 def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
     write_config(base_path=str(tmp_path))
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
@@ -210,7 +205,7 @@ def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
+        get_code_mock.return_value = "0x1"
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
 
@@ -219,10 +214,6 @@ def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
             cli, ["run", "--map-to-original-source", f"{tmp_path}/contracts"]
         )
 
-    contract_exists_mock.assert_called_with(
-        "0x7277646075fa72737e1F6114654C5d9949a67dF2"
-    )
-    contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args

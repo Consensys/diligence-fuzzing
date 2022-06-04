@@ -6,12 +6,12 @@ from os.path import abspath
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired
 from tempfile import TemporaryFile
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.options import FuzzingOptions
-from fuzzing_cli.util import LOGGER
+from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
 
 class TruffleArtifacts(IDEArtifacts):
@@ -20,13 +20,11 @@ class TruffleArtifacts(IDEArtifacts):
         options: FuzzingOptions,
         targets: List[str],
         build_dir: Path,
+        sources_dir: Path,
         map_to_original_source: bool = False,
     ):
         super(TruffleArtifacts, self).__init__(
-            options,
-            targets,
-            build_dir or Path("./build/contracts"),
-            map_to_original_source,
+            options, targets, build_dir, sources_dir, map_to_original_source
         )
         project_dir = str(Path.cwd().absolute())
         self.build_files_by_source_file = self._get_build_artifacts(self.build_dir)
@@ -54,12 +52,10 @@ class TruffleArtifacts(IDEArtifacts):
         return self.fetch_data()[1]
 
     @lru_cache(maxsize=1)
-    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         result_contracts = {}
         result_sources = {}
         for source_file, contracts in self.build_files_by_source_file.items():
-            if source_file not in self._include:
-                continue
             result_contracts[source_file] = []
             for contract in contracts:
                 ignored_sources = set()
@@ -110,7 +106,7 @@ class TruffleArtifacts(IDEArtifacts):
                         "source": target_file["source"],
                         "ast": target_file["ast"],
                     }
-        return self.flatten_contracts(result_contracts), result_sources
+        return result_contracts, result_sources
 
     def query_truffle_db(self, query: str, project_dir: str) -> Dict[str, Any]:
         executables = ["truffle", "node_modules/.bin/truffle"]

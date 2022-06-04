@@ -9,7 +9,7 @@ from requests import RequestException
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.rpc import RPCClient
-from tests.common import write_config
+from tests.common import get_test_case, write_config
 
 
 def test_get_corpus(tmp_path, hardhat_project):
@@ -20,11 +20,11 @@ def test_get_corpus(tmp_path, hardhat_project):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+        RPCClient, "validate_seed_state"
+    ) as validate_seed_state_mock, patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock:
-        contract_exists_mock.return_value = True
+        validate_seed_state_mock.return_value = ({}, [])
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
         m.register_uri(
@@ -87,9 +87,9 @@ def test_transactions_limit(tmp_path):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock:
-        contract_exists_mock.return_value = True
+        RPCClient, "validate_seed_state"
+    ) as validate_seed_state_mock:
+        validate_seed_state_mock.return_value = ({}, [])
         m.register_uri(
             "POST",
             "http://localhost:9898",
@@ -123,9 +123,9 @@ def test_call_error(tmp_path):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock:
-        contract_exists_mock.return_value = True
+        RPCClient, "validate_seed_state"
+    ) as validate_seed_state_mock:
+        validate_seed_state_mock.return_value = ({}, [])
         m.register_uri("POST", "http://localhost:9898", exc=RequestException)
 
         runner = CliRunner()
@@ -155,9 +155,9 @@ def test_no_latest_block(tmp_path, block):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock:
-        contract_exists_mock.return_value = True
+        RPCClient, "validate_seed_state"
+    ) as validate_seed_state_mock:
+        validate_seed_state_mock.return_value = ({}, [])
         m.register_uri(
             "POST", "http://localhost:9898", status_code=200, json={"result": block}
         )
@@ -179,41 +179,3 @@ def test_no_latest_block(tmp_path, block):
         in result.output
     )
 
-
-def test_address_not_found(tmp_path):
-    write_config(
-        base_path=str(tmp_path),
-        build_directory="artifacts",
-        targets="contracts/MasterChefV2.sol",
-    )
-
-    with requests_mock.Mocker() as m:
-        m.register_uri(
-            "POST",
-            "http://localhost:9898",
-            [
-                {"status_code": 200, "json": {"result": None}},
-                {"status_code": 200, "json": {"result": "0x0a123"}},
-                {"status_code": 200, "json": {"result": "0x"}},
-            ],
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                f"{tmp_path}/contracts/MasterChefV2.sol",
-                "-a",
-                "0xa7f2264164B49C866857f34aC4d7371c8e85e435",
-                "-m",
-                "0xD89F8B7eA865EF67b32Fc661c800819660324Bc9,0x4614F99875763Cd84656Ec658eb38E841cE8B172",
-            ],
-        )
-
-    assert result.exit_code == 1
-    assert (
-        f"Unable to find contracts deployed at "
-        f"0xa7f2264164B49C866857f34aC4d7371c8e85e435, 0x4614F99875763Cd84656Ec658eb38E841cE8B172"
-        in result.output
-    )

@@ -3,11 +3,11 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
 from fuzzing_cli.util import get_content_from_file
@@ -18,7 +18,9 @@ BASE_ADDRESS = "affeaffeaffeaffeaffeaffeaffeaffeaffeaffe"
 
 
 def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List[Path]:
-    LOGGER.debug(f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}")
+    LOGGER.debug(
+        f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}"
+    )
     _targets = [Path(t) for t in targets]
     # for cases when it's complex command. e.g.: npx scribble-generate
     _scribble_generator_path = scribble_generator_path.split(" ")

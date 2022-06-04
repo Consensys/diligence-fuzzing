@@ -16,12 +16,13 @@ class DapptoolsArtifacts(IDEArtifacts):
     def __init__(
         self,
         options: FuzzingOptions,
+        build_dir: Path,
+        sources_dir: Path,
         targets=None,
-        build_dir=None,
         map_to_original_source=False,
     ):
         super(DapptoolsArtifacts, self).__init__(
-            options, targets, build_dir or Path("./out"), map_to_original_source
+            options, targets, build_dir, sources_dir, map_to_original_source
         )
 
     @classmethod
@@ -71,7 +72,7 @@ class DapptoolsArtifacts(IDEArtifacts):
         return build_files_by_source_file, source_files
 
     @lru_cache(maxsize=1)
-    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         """ example build_files_by_source_file
             {
                 'contracts': {
@@ -107,8 +108,6 @@ class DapptoolsArtifacts(IDEArtifacts):
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
-            if source_file not in self._include:
-                continue
             result_contracts[source_file] = []
             for (contract_name, contract) in contracts.items():
                 # We get the build items from dapptools and rename them into the properties used by the FaaS
@@ -167,4 +166,4 @@ class DapptoolsArtifacts(IDEArtifacts):
                 result_sources[source_file_path]["source"] = get_content_from_file(
                     source_file_path + ".original"
                 )
-        return self.flatten_contracts(result_contracts), result_sources
+        return result_contracts, result_sources

@@ -122,7 +122,8 @@ def fuzz_auto(
     annotated_targets = annotate_contracts(targets, scribble_generator_path)
 
     targets_list_output = [
-        f"  🛠  {style(target, fg='yellow', italic=True)}" for target in annotated_targets
+        f"  🛠  {style(target, fg='yellow', italic=True)}"
+        for target in annotated_targets
     ]
     targets_list_output_string = "\n".join(targets_list_output)
     click.echo(

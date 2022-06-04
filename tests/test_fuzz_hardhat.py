@@ -29,11 +29,9 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         targets="contracts/MasterChefV2.sol",
     )
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
-        RPCClient, "get_all_blocks"
-    ) as get_all_blocks_mock, patch.object(
+    with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
+        RPCClient, "get_code"
+    ) as get_code_mock, patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         FaasClient, "generate_campaign_name"
@@ -41,7 +39,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
+        get_code_mock.return_value = "0x1"
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
         generate_campaign_name_mock.return_value = "test_campaign_1"
@@ -51,10 +49,6 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         result = runner.invoke(cli, ["run", target])
 
     assert result.exit_code == 0
-    contract_exists_mock.assert_called_with(
-        "0x7277646075fa72737e1F6114654C5d9949a67dF2"
-    )
-    contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
     assert (
@@ -173,9 +167,7 @@ def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
         targets="contracts/MasterChefV2.sol",
     )
 
-    with patch.object(
-        RPCClient, "contract_exists"
-    ) as contract_exists_mock, patch.object(
+    with patch.object(RPCClient, "get_code") as get_code_mock, patch.object(
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
@@ -183,7 +175,7 @@ def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
-        contract_exists_mock.return_value = True
+        get_code_mock.return_value = "0x1"
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
 
@@ -198,7 +190,6 @@ def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
             ],
         )
 
-    contract_exists_mock.assert_called_once()
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args

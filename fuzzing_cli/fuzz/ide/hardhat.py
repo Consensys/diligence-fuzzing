@@ -7,7 +7,11 @@ from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.options import FuzzingOptions
-from fuzzing_cli.util import files_by_directory, get_content_from_file, sol_files_by_directory
+from fuzzing_cli.util import (
+    files_by_directory,
+    get_content_from_file,
+    sol_files_by_directory,
+)
 
 
 class HardhatArtifacts(IDEArtifacts):
@@ -20,13 +24,12 @@ class HardhatArtifacts(IDEArtifacts):
         map_to_original_source: bool = False,
     ):
         super(HardhatArtifacts, self).__init__(
-            options,
-            targets,
-            build_dir,
-            sources_dir,
-            map_to_original_source,
+            options, targets, build_dir, sources_dir, map_to_original_source
         )
-        self._include = [abspath(fp) for fp in self._include]
+        self._include = [
+            relpath(fp, commonpath([self.build_dir, abspath(fp)]))
+            for fp in self._include
+        ]
 
     @classmethod
     def get_name(cls) -> str:
@@ -53,26 +56,6 @@ class HardhatArtifacts(IDEArtifacts):
     @property
     def sources(self) -> Dict[str, Source]:
         return self.fetch_data()[1]
-
-    def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
-        result_contracts, _ = self.process_artifacts()
-        for _, contracts in result_contracts.items():
-            for contract in contracts:
-                if deployed_bytecode == contract["deployedBytecode"]:
-                    return contract
-        return None
-
-    @lru_cache(maxsize=1)
-    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
-        _result_contracts, _result_sources = self.process_artifacts()
-        relative_paths_include = []
-        for p in self._include:
-            cp = commonpath([self.build_dir, p])
-            relative_paths_include.append(relpath(p, cp))
-
-        result_contracts = {k: v for k, v in _result_contracts.items() if k in relative_paths_include}
-        result_sources = {k: v for k, v in _result_sources.items() if k in relative_paths_include}
-        return self.flatten_contracts(result_contracts), result_sources
 
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:

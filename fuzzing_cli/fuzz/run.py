@@ -1,7 +1,7 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import List, Optional, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import click
 from click import ClickException, UsageError
@@ -20,7 +20,9 @@ headers = {"Content-Type": "application/json"}
 time_limit_seconds = 3000
 
 
-def check_contracts(rpc_client: RPCClient, seed_state: Dict[str, any], artifacts: IDEArtifacts):
+def check_contracts(
+    rpc_client: RPCClient, seed_state: Dict[str, any], artifacts: IDEArtifacts
+):
     try:
         missing_targets, unknown_targets = rpc_client.validate_seed_state(seed_state)
 
@@ -35,17 +37,21 @@ def check_contracts(rpc_client: RPCClient, seed_state: Dict[str, any], artifacts
             missing_targets_resolved.append(
                 (
                     address,
-                    contract["mainSourceFile"] if contract else 'null',
-                    contract["contractName"] if contract else 'null',
-                ),
+                    contract["mainSourceFile"] if contract else "null",
+                    contract["contractName"] if contract else "null",
+                )
             )
 
         if missing_targets_resolved:
-            data = '\n'.join([
-                f"  ◦ Address: {t[0]} Source File: {t[1]} Contract Name: {t[2]}"
-                for t in missing_targets_resolved
-            ])
-            click.secho(f"⚠️ Following contracts were not included in the seed state:\n{data}")
+            data = "\n".join(
+                [
+                    f"  ◦ Address: {t[0]} Source File: {t[1]} Contract Name: {t[2]}"
+                    for t in missing_targets_resolved
+                ]
+            )
+            click.secho(
+                f"⚠️ Following contracts were not included in the seed state:\n{data}"
+            )
 
     except RPCCallError as e:
         raise UsageError(f"{e}")
@@ -135,10 +141,7 @@ def check_contracts(rpc_client: RPCClient, seed_state: Dict[str, any], artifacts
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
 @click.option(
-    "--no-target",
-    type=click.BOOL,
-    default=False,
-    help="[Optional] Allow empty target",
+    "--no-target", type=click.BOOL, default=False, help="[Optional] Allow empty target"
 )
 @click.pass_obj
 def fuzz_run(
@@ -251,17 +254,17 @@ def fuzz_run(
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
             targets=options.target,
-            build_dir=Path(options.build_directory or _IDEClass.get_default_build_dir()),
-            sources_dir=Path(options.sources_directory or _IDEClass.get_default_sources_dir()),
+            build_dir=Path(
+                options.build_directory or _IDEClass.get_default_build_dir()
+            ),
+            sources_dir=Path(
+                options.sources_directory or _IDEClass.get_default_sources_dir()
+            ),
             map_to_original_source=options.map_to_original_source,
         )
         project_type: str = _IDEClass.get_name()
 
-        check_contracts(
-            rpc_client,
-            seed_state,
-            artifacts,
-        )
+        check_contracts(rpc_client, seed_state, artifacts)
 
     faas_client = FaasClient(
         faas_url=options.faas_url,

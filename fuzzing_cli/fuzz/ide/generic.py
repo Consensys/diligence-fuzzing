@@ -1,7 +1,8 @@
 import json
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from typing_extensions import TypedDict
 
@@ -64,10 +65,6 @@ class IDEArtifacts(ABC):
     @classmethod
     @abstractmethod
     def validate_project(cls) -> bool:
-        pass
-
-    @abstractmethod
-    def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
         pass
 
     @property
@@ -146,3 +143,27 @@ class IDEArtifacts(ABC):
         return [
             c for contracts_for_file in contracts.values() for c in contracts_for_file
         ]
+
+    def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
+        result_contracts, _ = self.process_artifacts()
+        for _, contracts in result_contracts.items():
+            for contract in contracts:
+                if deployed_bytecode == contract["deployedBytecode"]:
+                    return contract
+        return None
+
+    @lru_cache(maxsize=1)
+    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        _result_contracts, _result_sources = self.process_artifacts()
+        result_contracts = {
+            k: v for k, v in _result_contracts.items() if k in self._include
+        }
+        result_sources = {
+            k: v for k, v in _result_sources.items() if k in self._include
+        }
+        return self.flatten_contracts(result_contracts), result_sources
+
+    @abstractmethod
+    @lru_cache(maxsize=1)
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
+        pass

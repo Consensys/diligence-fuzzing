@@ -1,13 +1,12 @@
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TypedDict
 
 import click
 import requests
 from click import ClickException
 from requests import RequestException
-from typing import TypedDict
 
-from .exceptions import RPCCallError, FaaSError
+from .exceptions import FaaSError, RPCCallError
 from .quickcheck_lib.utils import mk_contract_address
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -72,12 +71,6 @@ class RPCClient:
                 f"\nAre you sure the RPC is running at {self.rpc_url}?"
             )
 
-    def contract_exists(self, contract_address) -> bool:
-        code = self.call("eth_getCode", '["' + contract_address + '","latest"]')
-        if not code or code == "0x":
-            return False
-        return True
-
     def get_block(self, latest: bool = False, block_number: int = -1):
         block_value = "latest" if latest else str(block_number)
         if not latest:
@@ -87,7 +80,9 @@ class RPCClient:
         return block
 
     def get_code(self, contract_address: str) -> Optional[str]:
-        deployed_bytecode = self.call("eth_getCode", f'["{contract_address}", "latest"]')
+        deployed_bytecode = self.call(
+            "eth_getCode", f'["{contract_address}", "latest"]'
+        )
         if deployed_bytecode == "0x":
             return None
         return deployed_bytecode
@@ -115,22 +110,28 @@ class RPCClient:
             blocks.append(self.get_block(block_number=i))
         return blocks
 
-    def validate_seed_state(self, seed_state: Dict[str, any]) -> Tuple[Dict[str, str], List[str]]:
+    def validate_seed_state(
+        self, seed_state: Dict[str, any]
+    ) -> Tuple[Dict[str, str], List[str]]:
         steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
         contracts: List[str] = []
         for txn in steps:
             if txn["to"]:
                 continue
             contracts.append(
-                mk_contract_address(txn["from"][2:], int(txn["nonce"], base=16)),
+                mk_contract_address(
+                    txn["from"][2:], int(txn["nonce"], base=16), prefix=True
+                )
             )
 
         unknown_targets = []
 
-        targets: List[str] = [seed_state["analysis-setup"]["address-under-test"]] + (seed_state["analysis-setup"]["other-addresses-under-test"] or [])
+        targets: List[str] = [seed_state["analysis-setup"]["address-under-test"]] + (
+            seed_state["analysis-setup"].get("other-addresses-under-test", []) or []
+        )
 
         for target in targets:
-            if target not in contracts:
+            if target.lower() not in contracts:
                 unknown_targets.append(target)
 
         missing_targets: Dict[str, str] = {}
