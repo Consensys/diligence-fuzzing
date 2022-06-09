@@ -1,5 +1,6 @@
 import json
 import os
+import tarfile
 from os import remove
 from pathlib import Path
 
@@ -263,6 +264,25 @@ def isolated_truffle_project(tmp_path):
         json.dump(artifact, artifact_f)
     with open(tmp_path / "contracts/sample.sol", "w+") as sol_f:
         sol_f.write("sol code here")
+
+
+@pytest.fixture()
+def bootstrapped_truffle_project(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "truffle_project", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+
+    for artifact_path in Path(tmp_path).joinpath("build", "contracts").glob("*.json"):
+        with artifact_path.open() as f:
+            artifact = json.load(f)
+            artifact["sourcePath"] = str(
+                Path(tmp_path).joinpath("contracts", Path(artifact["sourcePath"]).name)
+            )
+        with artifact_path.open("w") as f:
+            json.dump(artifact, f)
 
 
 @pytest.fixture(autouse=True)

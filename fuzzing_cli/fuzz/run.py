@@ -1,12 +1,12 @@
 import logging
 import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import click
 from click import ClickException, UsageError
 
-from .exceptions import FaaSError, RPCCallError
+from .exceptions import FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .options import FuzzingOptions
@@ -18,45 +18,6 @@ LOGGER = logging.getLogger("fuzzing-cli")
 headers = {"Content-Type": "application/json"}
 
 time_limit_seconds = 3000
-
-
-def check_contracts(
-    rpc_client: RPCClient, seed_state: Dict[str, any], artifacts: IDEArtifacts
-):
-    try:
-        missing_targets, unknown_targets = rpc_client.validate_seed_state(seed_state)
-
-        if unknown_targets:
-            raise ClickException(
-                f"Unable to find contracts deployed at {', '.join(unknown_targets)}"
-            )
-
-        missing_targets_resolved: List[Tuple[str, Optional[str], Optional[str]]] = []
-        for address, deployed_bytecode in missing_targets.items():
-            contract = artifacts.get_contract(deployed_bytecode)
-            missing_targets_resolved.append(
-                (
-                    address,
-                    contract["mainSourceFile"] if contract else "null",
-                    contract["contractName"] if contract else "null",
-                )
-            )
-
-        if missing_targets_resolved:
-            data = "\n".join(
-                [
-                    f"  ◦ Address: {t[0]} Source File: {t[1]} Contract Name: {t[2]}"
-                    for t in missing_targets_resolved
-                ]
-            )
-            click.secho(
-                f"⚠️ Following contracts were not included in the seed state:\n{data}"
-            )
-
-    except RPCCallError as e:
-        raise UsageError(f"{e}")
-    except:
-        raise
 
 
 @click.command("run")
@@ -264,7 +225,7 @@ def fuzz_run(
         )
         project_type: str = _IDEClass.get_name()
 
-        check_contracts(rpc_client, seed_state, artifacts)
+        rpc_client.check_contracts(seed_state, artifacts, options.target)
 
     faas_client = FaasClient(
         faas_url=options.faas_url,

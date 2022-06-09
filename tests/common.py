@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 from unittest.mock import patch
 
 
@@ -46,7 +46,7 @@ def generate_fuzz_config(
 
     config_file += "\nfuzz:"
     if ide:
-        config_file += f'\n  ide: {ide}'
+        config_file += f"\n  ide: {ide}"
     if "deployed_contract_address" not in not_include:
         config_file += f'\n  deployed_contract_address: "{deployed_contract_address}"'
     if "number_of_cores" not in not_include:
@@ -74,6 +74,18 @@ def generate_fuzz_config(
     return config_file
 
 
-def write_config(*args, **kwargs):
-    with open(".fuzz.yml", "w+") as conf_f:
+def write_config(config_path=".fuzz.yml", *args, **kwargs):
+    with open(config_path, "w+") as conf_f:
         conf_f.write(generate_fuzz_config(*args, **kwargs))
+
+
+def get_code_mocker(contracts: Dict[str, any]):
+    _contracts = {}
+    for contract_name, data in contracts.items():
+        address = data["address"].lower()
+        _contracts[address] = data["deployedBytecode"]
+
+    def mock(address: str):
+        return _contracts.get(address.lower(), None)
+
+    return mock

@@ -1,5 +1,5 @@
-import json
-from unittest.mock import patch
+import os
+from unittest.mock import Mock, patch
 
 import pytest
 import requests_mock
@@ -8,11 +8,13 @@ from requests import RequestException
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.ide.truffle import TruffleArtifacts
 from fuzzing_cli.fuzz.rpc import RPCClient
-from tests.common import get_test_case, write_config
+from tests.common import get_code_mocker, get_test_case, write_config
+from tests.testdata.truffle_project.mocks import db_calls_mock
 
 
-def test_get_corpus(tmp_path, hardhat_project):
+def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -23,7 +25,9 @@ def test_get_corpus(tmp_path, hardhat_project):
         RPCClient, "validate_seed_state"
     ) as validate_seed_state_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         validate_seed_state_mock.return_value = ({}, [])
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
@@ -179,3 +183,165 @@ def test_no_latest_block(tmp_path, block):
         in result.output
     )
 
+
+def test_missing_targets_detection(tmp_path, bootstrapped_truffle_project):
+    # multiple deployments
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="build",
+        targets="contracts/Foo.sol",
+        deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+    )
+    blocks = get_test_case("testdata/truffle_project/blocks.json")
+    contracts = get_test_case("testdata/truffle_project/contracts.json")
+    query_truffle_db_mocker = db_calls_mock(contracts, str(tmp_path))
+    os.chdir(tmp_path)
+    with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
+        RPCClient, "get_code"
+    ) as get_code_mock, patch.object(
+        TruffleArtifacts, "query_truffle_db"
+    ) as query_truffle_db_mock, patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock:
+        get_all_blocks_mock.return_value = blocks
+        get_code_mock.side_effect = get_code_mocker(contracts)
+        query_truffle_db_mock.side_effect = query_truffle_db_mocker
+        start_faas_campaign_mock.return_value = "cmp_0"
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run"])
+
+    assert result.exit_code == 0
+    payload = start_faas_campaign_mock.call_args[0][0]
+    assert (
+        payload["corpus"]["address-under-test"]
+        == "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065"
+    )
+    assert len(payload["contracts"]) == 1
+    assert payload["contracts"][0]["contractName"] == "Foo"
+    assert len(list(payload["sources"].keys())) == 1
+    assert list(payload["sources"].keys())[0] == f"{tmp_path}/contracts/Foo.sol"
+    assert (
+        f"⚠️ Following contracts were not included into the seed state:\n"
+        f"  ◦ Address: 0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6 Source File: {tmp_path}/contracts/Migrations.sol Contract Name: Migrations\n"
+        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Source File: {tmp_path}/contracts/Bar.sol Contract Name: Bar\n"
+        f"  ◦ Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579 Source File: {tmp_path}/contracts/ABC.sol Contract Name: ABC"
+        in result.output
+    )
+
+
+def test_mismatched_targets_detection(tmp_path, bootstrapped_truffle_project):
+    # multiple deployments
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="build",
+        targets="contracts/ABC.sol",
+        deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+    )
+    blocks = get_test_case("testdata/truffle_project/blocks.json")
+    contracts = get_test_case("testdata/truffle_project/contracts.json")
+    query_truffle_db_mocker = db_calls_mock(contracts, str(tmp_path))
+    os.chdir(tmp_path)
+    with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
+        RPCClient, "get_code"
+    ) as get_code_mock, patch.object(
+        TruffleArtifacts, "query_truffle_db"
+    ) as query_truffle_db_mock, patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock:
+        get_all_blocks_mock.return_value = blocks
+        get_code_mock.side_effect = get_code_mocker(contracts)
+        query_truffle_db_mock.side_effect = query_truffle_db_mocker
+        start_faas_campaign_mock.return_value = "cmp_0"
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run"])
+
+    assert result.exit_code == 1
+    assert start_faas_campaign_mock.called is False
+    assert (
+        f"Error: Following targets were provided without setting up "
+        f"their addresses in the config file or as parameters to `fuzz run`:\n  "
+        f"◦ Target: {tmp_path}/contracts/ABC.sol "
+        f"Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579\n" == result.output
+    )
+
+
+def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
+    # multiple deployments
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="build",
+        targets="contracts/Foo.sol",
+        deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+    )
+    blocks = get_test_case("testdata/truffle_project/blocks.json")
+    contracts = get_test_case("testdata/truffle_project/contracts.json")
+    query_truffle_db_mocker = db_calls_mock(contracts, str(tmp_path))
+    os.chdir(tmp_path)
+    with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
+        RPCClient, "get_code"
+    ) as get_code_mock, patch.object(
+        TruffleArtifacts, "query_truffle_db"
+    ) as query_truffle_db_mock, patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock:
+        get_all_blocks_mock.return_value = blocks
+        get_code_mock.side_effect = get_code_mocker(contracts)
+        query_truffle_db_mock.side_effect = query_truffle_db_mocker
+        start_faas_campaign_mock.return_value = "cmp_0"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["run", "-m", "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9"]
+        )
+
+    assert result.exit_code == 1
+    assert start_faas_campaign_mock.called is False
+    assert (
+        f"Error: Following contract's addresses were provided without specifying them as "
+        f"a target prior to `fuzz run`:\n"
+        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Target: {tmp_path}/contracts/Bar.sol\n"
+        == result.output[522:]
+    )
+
+
+def test_unknown_addresses_detection(tmp_path, bootstrapped_truffle_project):
+    # multiple deployments
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="build",
+        targets="contracts/Foo.sol",
+        deployed_contract_address="0x0000fB2eb51789aBd1a9f2FE83d69C6f4C8830aa",
+    )
+    blocks = get_test_case("testdata/truffle_project/blocks.json")
+    contracts = get_test_case("testdata/truffle_project/contracts.json")
+    query_truffle_db_mocker = db_calls_mock(contracts, str(tmp_path))
+    os.chdir(tmp_path)
+    with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
+        RPCClient, "get_code"
+    ) as get_code_mock, patch.object(
+        TruffleArtifacts, "query_truffle_db"
+    ) as query_truffle_db_mock, patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock:
+        get_all_blocks_mock.return_value = blocks
+        get_code_mock.side_effect = get_code_mocker(contracts)
+        query_truffle_db_mock.side_effect = query_truffle_db_mocker
+        start_faas_campaign_mock.return_value = "cmp_0"
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["run", "-m", "0x0000fB2eb51789aBd1a9f2FE83d69C6f4C88bbbb"]
+        )
+
+    assert result.exit_code == 1
+    assert start_faas_campaign_mock.called is False
+    assert (
+        "Error: Unable to find contracts deployed at 0x0000fb2eb51789abd1a9f2fe83d69c6f4c8830aa, "
+        "0x0000fb2eb51789abd1a9f2fe83d69c6f4c88bbbb\n" == result.output
+    )

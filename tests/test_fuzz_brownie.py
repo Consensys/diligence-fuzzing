@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
@@ -68,7 +68,7 @@ def test_fuzz_no_contract_at_address(tmp_path, brownie_project):
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert (
-        "Error: Unable to find contracts deployed at 0x1111646075fa72737e1F6114654C5d9949a6aaaa"
+        "Error: Unable to find contracts deployed at 0x1111646075fa72737e1f6114654c5d9949a6aaaa\n"
         in result.output
     )
     assert result.exit_code != 0
@@ -81,7 +81,9 @@ def test_faas_not_running(tmp_path, brownie_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_code_mock.return_value = "0x1"
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
@@ -108,7 +110,9 @@ def test_faas_target_config_file(tmp_path, brownie_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
@@ -148,7 +152,9 @@ def test_fuzz_run(tmp_path, brownie_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
@@ -201,7 +207,9 @@ def test_fuzz_run_map_to_original_source(tmp_path, brownie_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )

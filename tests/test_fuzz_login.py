@@ -48,6 +48,7 @@ def test_no_keys(tmp_path, truffle_project):
     RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
 )
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
+@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
@@ -82,6 +83,7 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
     RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
 )
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
+@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
@@ -129,6 +131,7 @@ def test_wrong_refresh_token(refresh_token: str, tmp_path):
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
+@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @mark.parametrize("return_error,", [True, False])
 def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
     requests_mock.real_http = True

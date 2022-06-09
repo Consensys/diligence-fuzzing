@@ -3,10 +3,11 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 
 import click
 import requests
-from click import ClickException
+from click import ClickException, UsageError
 from requests import RequestException
 
 from .exceptions import FaaSError, RPCCallError
+from .ide import IDEArtifacts
 from .quickcheck_lib.utils import mk_contract_address
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -129,6 +130,7 @@ class RPCClient:
         targets: List[str] = [seed_state["analysis-setup"]["address-under-test"]] + (
             seed_state["analysis-setup"].get("other-addresses-under-test", []) or []
         )
+        targets = [t.lower() for t in targets]
 
         for target in targets:
             if target.lower() not in contracts:
@@ -191,3 +193,101 @@ class RPCClient:
                     + ". Are you sure you passed the correct contract address?"
                 )
             ) from e
+
+    def check_contracts(
+        self,
+        seed_state: Dict[str, any],
+        artifacts: IDEArtifacts,
+        source_targets: List[str],
+    ):
+        try:
+            missing_targets, unknown_targets = self.validate_seed_state(seed_state)
+
+            if unknown_targets:
+                raise ClickException(
+                    f"Unable to find contracts deployed at {', '.join(unknown_targets)}"
+                )
+
+            missing_targets_resolved: List[
+                Tuple[str, Optional[str], Optional[str]]
+            ] = []
+            for address, deployed_bytecode in missing_targets.items():
+                if deployed_bytecode is None:
+                    contract = None
+                else:
+                    contract = artifacts.get_contract(deployed_bytecode)
+                missing_targets_resolved.append(
+                    (
+                        address,
+                        contract.get("mainSourceFile", "null") if contract else "null",
+                        contract.get("contractName", "null") if contract else "null",
+                    )
+                )
+
+            mismatched_targets: List[Tuple[str, str]] = []
+            for t in missing_targets_resolved:
+                source_file = t[1]
+                if source_file == "null":
+                    continue
+                if source_file in source_targets:
+                    mismatched_targets.append((source_file, t[0]))
+
+            if mismatched_targets:
+                data = "\n".join(
+                    [f"  ◦ Target: {t} Address: {a}" for t, a in mismatched_targets]
+                )
+                raise ClickException(
+                    f"Following targets were provided without setting up "
+                    f"their addresses in the config file or as parameters to `fuzz run`:\n{data}"
+                )
+
+            if missing_targets_resolved:
+                data = "\n".join(
+                    [
+                        f"  ◦ Address: {t[0]} Source File: {t[1]} Contract Name: {t[2]}"
+                        for t in missing_targets_resolved
+                    ]
+                )
+                click.secho(
+                    f"⚠️ Following contracts were not included into the seed state:\n{data}"
+                )
+
+            contract_targets: List[str] = [
+                seed_state["analysis-setup"]["address-under-test"]
+            ] + (
+                seed_state["analysis-setup"].get("other-addresses-under-test", []) or []
+            )
+            contract_targets = [t.lower() for t in contract_targets]
+            dangling_contract_targets: List[Tuple[Optional[str], str]] = []
+            for t in contract_targets:
+                # correlate to the source file
+                deployed_bytecode = self.get_code(t)
+                if deployed_bytecode is None:  # it's unknown contract
+                    dangling_contract_targets.append((None, t))
+                    continue
+                contract = artifacts.get_contract(deployed_bytecode)
+                if (
+                    not contract
+                    or contract.get("mainSourceFile", None) is None
+                    or contract["mainSourceFile"] not in source_targets
+                ):
+                    dangling_contract_targets.append(
+                        (contract.get("mainSourceFile", None) if contract else None, t)
+                    )
+
+            if dangling_contract_targets:
+                data = "\n".join(
+                    [
+                        f"  ◦ Address: {a} Target: {t}"
+                        for t, a in dangling_contract_targets
+                    ]
+                )
+                raise ClickException(
+                    f"Following contract's addresses were provided without specifying them as "
+                    f"a target prior to `fuzz run`:\n{data}"
+                )
+
+        except RPCCallError as e:
+            raise UsageError(f"{e}")
+        except:
+            raise

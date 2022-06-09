@@ -164,6 +164,5 @@ class IDEArtifacts(ABC):
         return self.flatten_contracts(result_contracts), result_sources
 
     @abstractmethod
-    @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         pass

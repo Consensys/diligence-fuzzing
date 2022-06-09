@@ -1,6 +1,6 @@
 from copy import deepcopy
 from operator import itemgetter
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -35,7 +35,9 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         FaasClient, "generate_campaign_name"
-    ) as generate_campaign_name_mock:
+    ) as generate_campaign_name_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
@@ -171,7 +173,9 @@ def test_fuzz_run_corpus_target(tmp_path, hardhat_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )

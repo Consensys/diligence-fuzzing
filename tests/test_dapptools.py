@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -26,7 +26,9 @@ def test_fuzz_run(tmp_path, dapptools_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
@@ -86,7 +88,9 @@ def test_fuzz_run_no_ide(tmp_path, dapptools_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )
@@ -114,7 +118,9 @@ def test_fuzz_run_map_to_original_source(tmp_path, dapptools_project):
         RPCClient, "get_all_blocks"
     ) as get_all_blocks_mock, patch.object(
         FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock:
+    ) as start_faas_campaign_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
         )

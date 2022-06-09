@@ -1,7 +1,7 @@
 import json
 import os
 from typing import Dict
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -36,7 +36,9 @@ def test_fuzz_run(tmp_path, truffle_project: Dict[str, any], absolute_target):
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         TruffleArtifacts, "query_truffle_db"
-    ) as query_truffle_db_mock:
+    ) as query_truffle_db_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_code_mock.return_value = "0x1"
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
@@ -119,7 +121,9 @@ def test_fuzz_run_corpus_target(tmp_path, truffle_project):
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         TruffleArtifacts, "query_truffle_db"
-    ) as query_truffle_db_mock:
+    ) as query_truffle_db_mock, patch.object(
+        RPCClient, "check_contracts", Mock(return_value=True)
+    ):
         get_code_mock.return_value = "0x1"
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"
