@@ -275,7 +275,7 @@ def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
         build_directory="build",
-        targets="contracts/Foo.sol",
+        targets="",
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
     )
     blocks = get_test_case("testdata/truffle_project/blocks.json")
@@ -296,7 +296,17 @@ def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["run", "-m", "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9"]
+            cli,
+            [
+                "run",
+                f"{tmp_path}/contracts/Foo.sol",
+                f"{tmp_path}/contracts/ABC.sol",
+                f"{tmp_path}/contracts/Migrations.sol",
+                "-m",
+                "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9, "
+                "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6, "
+                "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
+            ],
         )
 
     assert result.exit_code == 1
@@ -305,7 +315,7 @@ def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
         f"Error: Following contract's addresses were provided without specifying them as "
         f"a target prior to `fuzz run`:\n"
         f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Target: {tmp_path}/contracts/Bar.sol\n"
-        == result.output[522:]
+        == result.output
     )
 
 

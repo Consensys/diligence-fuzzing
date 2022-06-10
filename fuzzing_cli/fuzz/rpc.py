@@ -1,11 +1,11 @@
 import logging
 from typing import Dict, List, Optional, Tuple
-from typing_extensions import TypedDict
 
 import click
 import requests
 from click import ClickException, UsageError
 from requests import RequestException
+from typing_extensions import TypedDict
 
 from .exceptions import FaaSError, RPCCallError
 from .ide import IDEArtifacts
