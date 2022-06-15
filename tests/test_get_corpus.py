@@ -320,7 +320,7 @@ def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
 
 
 def test_unknown_addresses_detection(tmp_path, bootstrapped_truffle_project):
-    # multiple deployments
+    # TODO: multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),

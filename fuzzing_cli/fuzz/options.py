@@ -25,7 +25,7 @@ class FuzzingOptions:
         api_key: Optional[str] = None,
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
-        no_target: bool = False,
+        incremental: bool = False,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -42,15 +42,14 @@ class FuzzingOptions:
         self.number_of_cores = int(number_of_cores)
         self.campaign_name_prefix = campaign_name_prefix
         self.truffle_executable_path = truffle_executable_path
-        self.no_target = no_target
+        self.project = project
+        self.incremental = incremental
 
         self.auth_endpoint = None
         self.refresh_token = None
         self.auth_client_id = None
 
         self.validate(refresh_token)
-
-        self.project = project
 
         if type(additional_contracts_addresses) == str:
             self.additional_contracts_addresses: Optional[List[str]] = [
@@ -110,9 +109,19 @@ class FuzzingOptions:
                 "parameter of the fuzz run command.\nYou can also set the `deployed_contract_address`"
                 "on the `fuzz` key of your .fuzz.yml config file."
             )
-        if not self.target and not self.no_target:
+        if not self.target:
             raise click.exceptions.UsageError(
                 "Target not provided. You need to provide a target as the last parameter of the fuzz run command or "
                 "`--no-target` option to fuzz run."
                 "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
+            )
+
+        if self.incremental and not self.project:
+            raise click.exceptions.UsageError(
+                "`incremental` config parameter is set to true without specifying `project`. "
+                "Please provide the `project` in your .fuzz.yml config file."
+            )
+        if self.incremental and self.corpus_target:
+            raise click.exceptions.UsageError(
+                "Both `incremental` and `corpus_target` are set. Please set only one option in your config file"
             )

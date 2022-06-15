@@ -101,9 +101,6 @@ time_limit_seconds = 3000
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
-@click.option(
-    "--no-target", type=click.BOOL, default=False, help="[Optional] Allow empty target"
-)
 @click.pass_obj
 def fuzz_run(
     ctx,
@@ -119,7 +116,6 @@ def fuzz_run(
     map_to_original_source,
     project,
     truffle_path: Optional[str],
-    no_target: bool,
 ):
     """Submit contracts to the Diligence Fuzzing API"""
     if not key and refresh_token:
@@ -167,12 +163,16 @@ def fuzz_run(
                     "api_key": api_key or fuzz_config.get("api_key"),
                     "project": project or fuzz_config.get("project"),
                     "truffle_executable_path": truffle_path,
-                    "no_target": no_target,
+                    "incremental": fuzz_config.get("incremental"),
                 }
             ).items()
             if v is not None
         }
     )
+
+    _corpus_target = options.corpus_target
+    if options.incremental:
+        _corpus_target = options.project
 
     if options.quick_check:
         project_type: str = "QuickCheck"
@@ -189,7 +189,7 @@ def fuzz_run(
             no_assert=analyze_config.get("no-assert", False),
         )
         seed_state = prepare_seed_state(
-            artifacts.contracts, options.number_of_cores, corpus_target
+            artifacts.contracts, options.number_of_cores, _corpus_target
         )
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
@@ -197,7 +197,7 @@ def fuzz_run(
         seed_state = rpc_client.get_seed_state(
             options.deployed_contract_address,
             options.additional_contracts_addresses,
-            options.corpus_target,
+            _corpus_target,
         )
 
         repo = IDERepository.get_instance()
