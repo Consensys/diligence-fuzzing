@@ -7,6 +7,7 @@ import inquirer
 from click import BadParameter, UsageError, style
 from ruamel.yaml import YAML
 
+from fuzzing_cli.fuzz.config import update_config
 from fuzzing_cli.fuzz.config.template import generate_yaml
 from fuzzing_cli.fuzz.ide import IDERepository
 from fuzzing_cli.util import sol_files_by_directory
@@ -225,13 +226,7 @@ def sync_config(config_file: str):
     click.echo(
         f"⚡️ Alright! Syncing config at {style(config_path, fg='yellow', italic=True)}"
     )
-    with config_path.open("r") as f:
-        config = yaml.load(f)
-        config["fuzz"]["targets"] = targets
-
-    with config_path.open("w") as f:
-        yaml.dump(config, f)
-
+    update_config(config_path, {"fuzz": {"targets": targets}})
     click.echo("Done 🎉")
 
 

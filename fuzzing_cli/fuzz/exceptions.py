@@ -87,6 +87,10 @@ class QuickCheckError(click.exceptions.ClickException):
     pass
 
 
+class FuzzingLessonsError(click.exceptions.ClickException):
+    pass
+
+
 class SourceError(BrownieError):
     """Exception raised for errors the source and AST of a source file"""
 

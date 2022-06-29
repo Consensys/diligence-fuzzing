@@ -3,6 +3,8 @@ from typing import List, Optional, Tuple, Union
 
 import click
 
+from fuzzing_cli.fuzz.types import SeedSequenceTransaction
+
 
 class FuzzingOptions:
     def __init__(
@@ -12,7 +14,7 @@ class FuzzingOptions:
         build_directory: Optional[str] = None,
         sources_directory: Optional[str] = None,
         deployed_contract_address: Optional[str] = None,
-        target: Optional[List[str]] = None,
+        targets: Optional[List[str]] = None,
         map_to_original_source: bool = False,
         rpc_url: str = "http://localhost:7545",
         faas_url: str = "https://fuzzing.diligence.tools",
@@ -22,21 +24,22 @@ class FuzzingOptions:
         additional_contracts_addresses: Optional[Union[List[str], str]] = None,
         dry_run: bool = False,
         refresh_token: Optional[str] = None,
-        api_key: Optional[str] = None,
+        key: Optional[str] = None,
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
         incremental: bool = False,
+        suggested_seed_seqs: List[SeedSequenceTransaction] = [],
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
         self.corpus_target = corpus_target
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
-        self.api_key = api_key
+        self.api_key = key
         self.build_directory = build_directory
         self.sources_directory = sources_directory
         self.deployed_contract_address = deployed_contract_address
-        self.target = target
+        self.target = targets
         self.rpc_url = rpc_url
         self.faas_url = faas_url
         self.number_of_cores = int(number_of_cores)
@@ -44,6 +47,7 @@ class FuzzingOptions:
         self.truffle_executable_path = truffle_executable_path
         self.project = project
         self.incremental = incremental
+        self.suggested_seed_seqs = suggested_seed_seqs
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -58,10 +62,14 @@ class FuzzingOptions:
         else:
             self.additional_contracts_addresses = additional_contracts_addresses
 
-        if not api_key:
+        if not key:
             self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
                 refresh_token
             )
+
+    @classmethod
+    def parse_obj(cls, obj):
+        return cls(**obj)
 
     @staticmethod
     def _decode_refresh_token(refresh_token: str) -> Tuple[str, str, str]:

@@ -2,8 +2,6 @@ import json
 import logging
 import random
 import string
-import sys
-import traceback
 from typing import Dict
 
 import requests

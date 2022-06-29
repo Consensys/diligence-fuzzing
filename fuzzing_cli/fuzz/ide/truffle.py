@@ -6,11 +6,11 @@ from os.path import abspath
 from pathlib import Path
 from subprocess import Popen, TimeoutExpired
 from tempfile import TemporaryFile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
-from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.util import LOGGER
 
 

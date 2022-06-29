@@ -6,14 +6,14 @@ from typing import List, Optional
 import click
 from click import style
 
-from fuzzing_cli.fuzz.config.template import generate_yaml
+from fuzzing_cli.fuzz.config import generate_yaml
 from fuzzing_cli.fuzz.generate_config import (
     determine_campaign_name,
     determine_cpu_cores,
     determine_ide,
     determine_targets,
 )
-from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import annotate_contracts
+from fuzzing_cli.fuzz.quickcheck_lib import annotate_contracts
 
 
 def create_config(

@@ -4,33 +4,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from typing_extensions import TypedDict
-
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
-from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.fuzz.config import FuzzingOptions
+from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import sol_files_by_directory
-
-
-class IDEPayload(TypedDict):
-    contracts: List[any]
-    sources: Dict[str, any]
-
-
-class Contract(TypedDict):
-    sourcePaths: Dict[int, str]
-    deployedSourceMap: str
-    deployedBytecode: str
-    sourceMap: str
-    bytecode: str
-    contractName: str
-    mainSourceFile: str
-    ignoredSources: Optional[List[int]]
-
-
-class Source(TypedDict):
-    fileIndex: int
-    source: str
-    ast: Dict[str, any]
 
 
 class IDEArtifacts(ABC):
@@ -144,11 +121,21 @@ class IDEArtifacts(ABC):
             c for contracts_for_file in contracts.values() for c in contracts_for_file
         ]
 
+    @staticmethod
+    def compare_bytecode(x: str, y: str) -> bool:
+        if x.startswith("0x"):
+            x = x[2:]
+        if y.startswith("0x"):
+            y = y[2:]
+        return x == y
+
     def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
         result_contracts, _ = self.process_artifacts()
         for _, contracts in result_contracts.items():
             for contract in contracts:
-                if deployed_bytecode == contract["deployedBytecode"]:
+                if self.compare_bytecode(
+                    deployed_bytecode, contract["deployedBytecode"]
+                ):
                     return contract
         return None
 

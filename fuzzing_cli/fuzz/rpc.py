@@ -5,36 +5,16 @@ import click
 import requests
 from click import ClickException, UsageError
 from requests import RequestException
-from typing_extensions import TypedDict
 
 from .exceptions import FaaSError, RPCCallError
 from .ide import IDEArtifacts
 from .quickcheck_lib.utils import mk_contract_address
+from .types import EVMBlock, EVMTransaction, SeedSequenceTransaction
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
 NUM_BLOCKS_UPPER_LIMIT = 9999
-
-EVMTransaction = TypedDict(
-    "EVMTransaction",
-    {
-        "hash": str,
-        "nonce": str,
-        "blockHash": str,
-        "blockNumber": str,
-        "transactionIndex": str,
-        "from": str,
-        "to": str,
-        "value": str,
-        "gas": str,
-        "gasPrice": str,
-        "input": str,
-        "v": str,
-        "r": str,
-        "s": str,
-    },
-)
 
 
 class MissingTargetsError(FaaSError):
@@ -46,7 +26,7 @@ class TargetsNotFoundError(FaaSError):
 
 
 class RPCClient:
-    def __init__(self, rpc_url: str, number_of_cores: int):
+    def __init__(self, rpc_url: str, number_of_cores: int = 1):
         self.rpc_url = rpc_url
         self.number_of_cores = number_of_cores
 
@@ -73,7 +53,9 @@ class RPCClient:
                 f"\nAre you sure the RPC is running at {self.rpc_url}?"
             )
 
-    def get_block(self, latest: bool = False, block_number: int = -1):
+    def get_block(
+        self, latest: bool = False, block_number: int = -1
+    ) -> Optional[EVMBlock]:
         block_value = "latest" if latest else str(block_number)
         if not latest:
             block_value = hex(block_number)
@@ -89,18 +71,17 @@ class RPCClient:
             return None
         return deployed_bytecode
 
-    def get_all_blocks(self):
+    def get_all_blocks(self) -> List[EVMBlock]:
         """ Get all blocks from the node running at rpc_url
 
         Raises an exception if the number of blocks
         exceeds 10000 as it is likely a user error who passed the wrong
         RPC address.
         """
-        latest_block = self.get_block(latest=True)
-        if not latest_block:
+        num_of_blocks = self.get_latest_block_number() + 1
+        if num_of_blocks == 0:
             return []
 
-        num_of_blocks = int(latest_block["number"], 16) + 1
         if num_of_blocks > NUM_BLOCKS_UPPER_LIMIT:
             raise click.exceptions.ClickException(
                 "Number of blocks existing on the ethereum node running at "
@@ -111,6 +92,27 @@ class RPCClient:
         for i in range(0, num_of_blocks):
             blocks.append(self.get_block(block_number=i))
         return blocks
+
+    def get_latest_block_number(self) -> int:
+        latest_block = self.get_block(latest=True)
+        if not latest_block:
+            return -1
+        num_of_blocks = int(latest_block["number"], 16)
+        return num_of_blocks
+
+    def get_transactions(
+        self, blocks: Optional[List[EVMBlock]] = None
+    ) -> List[EVMTransaction]:
+        if not blocks:
+            blocks = self.get_all_blocks()
+        processed_transactions = []
+        for block in blocks:
+            for transaction in block["transactions"]:
+                for key, value in dict(transaction).items():
+                    if value is None:
+                        transaction[key] = ""
+                processed_transactions.append(transaction)
+        return processed_transactions
 
     def validate_seed_state(
         self, seed_state: Dict[str, any]
@@ -148,17 +150,11 @@ class RPCClient:
         self,
         address: str,
         other_addresses: Optional[List[str]],
+        suggested_seed_seqs: List[SeedSequenceTransaction],
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         try:
-            blocks = self.get_all_blocks()
-            processed_transactions = []
-            for block in blocks:
-                for transaction in block["transactions"]:
-                    for key, value in dict(transaction).items():
-                        if value is None:
-                            transaction[key] = ""
-                    processed_transactions.append(transaction)
+            processed_transactions = self.get_transactions()
 
             if len(processed_transactions) == 0:
                 raise click.exceptions.UsageError(
@@ -166,16 +162,16 @@ class RPCClient:
                     f"No transactions were found in an ethereum node running at {self.rpc_url}"
                 )
 
-            setup = dict(
-                {
-                    "address-under-test": address,
-                    "steps": processed_transactions,
-                    "other-addresses-under-test": other_addresses,
-                }
-            )
+            setup = {
+                "address-under-test": address,
+                "steps": processed_transactions,
+                "other-addresses-under-test": other_addresses,
+            }
             """Get a seed state for the target contract to be used by Harvey"""
             if corpus_target:
                 setup["target"] = corpus_target
+            if len(suggested_seed_seqs) > 0:
+                setup["suggested-seed-seqs"] = suggested_seed_seqs
             return {
                 "discovery-probability-threshold": 0.0,
                 "assertion-checking-mode": 1,

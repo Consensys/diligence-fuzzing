@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
-from fuzzing_cli.fuzz.ide import Contract, IDEArtifacts, Source
-from fuzzing_cli.fuzz.options import FuzzingOptions
+from fuzzing_cli.fuzz.ide import IDEArtifacts
+from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
+from fuzzing_cli.fuzz.types import Contract, SeedSequenceTransaction, Source
 from fuzzing_cli.util import get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -60,7 +61,10 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 
 
 def prepare_seed_state(
-    contracts: List[Contract], number_of_cores: int, corpus_target: Optional[str] = None
+    contracts: List[Contract],
+    number_of_cores: int,
+    suggested_seed_seqs: List[SeedSequenceTransaction],
+    corpus_target: Optional[str] = None,
 ) -> Dict[str, any]:
     accounts = {}
     for idx, contract in enumerate(contracts):
@@ -75,6 +79,8 @@ def prepare_seed_state(
     setup = {"initial-state": {"accounts": accounts}}
     if corpus_target:
         setup["target"] = corpus_target
+    if len(suggested_seed_seqs) > 0:
+        setup["suggested-seed-seqs"] = suggested_seed_seqs
 
     return {
         "discovery-probability-threshold": 0.0,
@@ -91,6 +97,7 @@ class QuickCheck(IDEArtifacts):
         scribble_path: str,
         targets: List[str],
         build_dir: Optional[Path] = None,
+        sources_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
         remappings: List[str] = (),
         solc_version: str = None,
@@ -101,6 +108,7 @@ class QuickCheck(IDEArtifacts):
             options,
             targets,
             Path(build_dir).absolute() if build_dir else Path.cwd().absolute(),
+            Path(sources_dir).absolute() if sources_dir else Path.cwd().absolute(),
             map_to_original_source,
         )
         self.targets = targets
@@ -182,6 +190,9 @@ class QuickCheck(IDEArtifacts):
                 continue
             allFileIds.add(component[2])
         return [int(fileId) for fileId in allFileIds if int(fileId) >= num_of_sources]
+
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
+        pass
 
     @lru_cache(maxsize=1)
     def process(self) -> Tuple[List[Contract], Dict[str, Source]]:

@@ -9,7 +9,7 @@ from click import ClickException, UsageError
 from .exceptions import FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
-from .options import FuzzingOptions
+from .config import FuzzingOptions
 from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
 from .rpc import RPCClient
 
@@ -136,39 +136,38 @@ def fuzz_run(
             " deprecated. You should use the --key and 'key' options instead."
         )
 
-    options = FuzzingOptions(
-        **{
-            k: v
-            for k, v in (
-                {
-                    "ide": ide or fuzz_config.get("ide"),
-                    "quick_check": fuzz_config.get("quick_check", False),
-                    "build_directory": fuzz_config.get("build_directory"),
-                    "sources_directory": fuzz_config.get("sources_directory"),
-                    "deployed_contract_address": address
-                    or fuzz_config.get("deployed_contract_address"),
-                    "target": target or fuzz_config.get("targets"),
-                    "map_to_original_source": map_to_original_source,
-                    "rpc_url": fuzz_config.get("rpc_url"),
-                    "faas_url": fuzz_config.get("faas_url"),
-                    "number_of_cores": fuzz_config.get("number_of_cores"),
-                    "campaign_name_prefix": fuzz_config.get("campaign_name_prefix"),
-                    "corpus_target": corpus_target or fuzz_config.get("corpus_target"),
-                    "additional_contracts_addresses": more_addresses
-                    or fuzz_config.get("additional_contracts_addresses"),
-                    "dry_run": dry_run,
-                    "refresh_token": key
-                    or fuzz_config.get("key")
-                    or fuzz_config.get("refresh_token"),
-                    "api_key": api_key or fuzz_config.get("api_key"),
-                    "project": project or fuzz_config.get("project"),
-                    "truffle_executable_path": truffle_path,
-                    "incremental": fuzz_config.get("incremental"),
-                }
-            ).items()
-            if v is not None
-        }
-    )
+    options = FuzzingOptions.parse_obj({
+        k: v
+        for k, v in (
+            {
+                "ide": ide or fuzz_config.get("ide"),
+                "quick_check": fuzz_config.get("quick_check", False),
+                "build_directory": fuzz_config.get("build_directory"),
+                "sources_directory": fuzz_config.get("sources_directory"),
+                "deployed_contract_address": address
+                or fuzz_config.get("deployed_contract_address"),
+                "targets": target or fuzz_config.get("targets"),
+                "map_to_original_source": map_to_original_source,
+                "rpc_url": fuzz_config.get("rpc_url"),
+                "faas_url": fuzz_config.get("faas_url"),
+                "number_of_cores": fuzz_config.get("number_of_cores"),
+                "campaign_name_prefix": fuzz_config.get("campaign_name_prefix"),
+                "corpus_target": corpus_target or fuzz_config.get("corpus_target"),
+                "additional_contracts_addresses": more_addresses
+                or fuzz_config.get("additional_contracts_addresses"),
+                "dry_run": dry_run,
+                "refresh_token": key
+                or fuzz_config.get("key")
+                or fuzz_config.get("refresh_token"),
+                "key": api_key or fuzz_config.get("api_key"),
+                "project": project or fuzz_config.get("project"),
+                "truffle_executable_path": truffle_path,
+                "incremental": fuzz_config.get("incremental"),
+                "suggested_seed_seqs": fuzz_config.get("suggested_seed_seqs"),
+            }
+        ).items()
+        if v is not None
+    })
 
     _corpus_target = options.corpus_target
     if options.incremental:
@@ -181,6 +180,7 @@ def fuzz_run(
             scribble_path=analyze_config.get("scribble-path"),
             targets=options.target,
             build_dir=None,
+            sources_dir=None,
             map_to_original_source=map_to_original_source
             or options.map_to_original_source,
             remappings=analyze_config.get("remappings", []),
@@ -189,7 +189,10 @@ def fuzz_run(
             no_assert=analyze_config.get("no-assert", False),
         )
         seed_state = prepare_seed_state(
-            artifacts.contracts, options.number_of_cores, _corpus_target
+            artifacts.contracts,
+            options.number_of_cores,
+            options.suggested_seed_seqs,
+            _corpus_target,
         )
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
@@ -197,6 +200,7 @@ def fuzz_run(
         seed_state = rpc_client.get_seed_state(
             options.deployed_contract_address,
             options.additional_contracts_addresses,
+            options.suggested_seed_seqs,
             _corpus_target,
         )
 
