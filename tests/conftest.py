@@ -276,6 +276,10 @@ def bootstrapped_truffle_project(tmp_path):
         f.extractall(tmp_path)
 
     for artifact_path in Path(tmp_path).joinpath("build", "contracts").glob("*.json"):
+        if artifact_path.name.startswith(
+            "."
+        ):  # some hidden file (probably created by OS, especially the Mac OS)
+            continue
         with artifact_path.open() as f:
             artifact = json.load(f)
             artifact["sourcePath"] = str(

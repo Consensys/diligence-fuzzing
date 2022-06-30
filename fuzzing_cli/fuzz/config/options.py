@@ -23,7 +23,6 @@ class FuzzingOptions:
         corpus_target: Optional[str] = None,
         additional_contracts_addresses: Optional[Union[List[str], str]] = None,
         dry_run: bool = False,
-        refresh_token: Optional[str] = None,
         key: Optional[str] = None,
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
@@ -35,7 +34,6 @@ class FuzzingOptions:
         self.corpus_target = corpus_target
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
-        self.api_key = key
         self.build_directory = build_directory
         self.sources_directory = sources_directory
         self.deployed_contract_address = deployed_contract_address
@@ -53,7 +51,7 @@ class FuzzingOptions:
         self.refresh_token = None
         self.auth_client_id = None
 
-        self.validate(refresh_token)
+        self.validate(key)
 
         if type(additional_contracts_addresses) == str:
             self.additional_contracts_addresses: Optional[List[str]] = [
@@ -62,10 +60,9 @@ class FuzzingOptions:
         else:
             self.additional_contracts_addresses = additional_contracts_addresses
 
-        if not key:
-            self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
-                refresh_token
-            )
+        self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
+            key
+        )
 
     @classmethod
     def parse_obj(cls, obj):
@@ -74,7 +71,7 @@ class FuzzingOptions:
     @staticmethod
     def _decode_refresh_token(refresh_token: str) -> Tuple[str, str, str]:
         error_message = (
-            "Refresh Token is malformed. The format is `<auth_data>::<refresh_token>`"
+            "API Key is malformed. The format is `<auth_data>::<refresh_token>`"
         )
         # format is "<auth_data>::<refresh_token>"
         if refresh_token.count("::") != 1:
@@ -93,7 +90,7 @@ class FuzzingOptions:
             raise click.exceptions.UsageError(error_message)
         return endpoint, client_id, rt
 
-    def validate(self, refresh_token: str):
+    def validate(self, key: Optional[str] = None):
         if not self.build_directory:
             raise click.exceptions.UsageError(
                 "Build directory not provided. You need to set the `build_directory` "
@@ -105,11 +102,10 @@ class FuzzingOptions:
                 "please set the `sources_directory` under the `fuzz` key of your .fuzz.yml config file."
             )
 
-        if not self.api_key and not refresh_token:
+        if not key:
             raise click.exceptions.UsageError(
-                "API key or Refresh Token were not provided. You need to provide either an API key or a Refresh Token"
-                "as the `--api-key` or `--refresh-token` parameters respectively of the fuzz run command"
-                "or set `api_key` or `refresh_token` on the `fuzz` key of your .fuzz.yml config file."
+                "API key was not provided. You need to provide an API key as the `--key` parameter "
+                "of the `fuzz run` command or set the `key` under the `fuzz` key of your .fuzz.yml config file."
             )
         if not self.quick_check and not self.deployed_contract_address:
             raise click.exceptions.UsageError(

@@ -74,8 +74,10 @@ def test_fuzz_run(tmp_path, truffle_project: Dict[str, any], absolute_target):
             if absolute_target
             else "contracts/sample.sol"
         )
-        cwd = os.getcwd()
-        result = runner.invoke(cli, ["run", target, "--api-key", "test"])
+        result = runner.invoke(
+            cli,
+            ["run", target, "--key", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"],
+        )
 
     get_all_blocks_mock.assert_called_once()
     start_faas_campaign_mock.assert_called_once()

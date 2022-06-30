@@ -103,6 +103,11 @@ class IDEArtifacts(ABC):
             if not child.name.endswith(".json"):
                 continue
 
+            if child.name.startswith(
+                "."
+            ):  # some hidden file (probably created by OS, especially the Mac OS)
+                continue
+
             data = json.loads(child.read_text("utf-8"))
 
             source_path = data["sourcePath"]

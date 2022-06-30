@@ -118,9 +118,6 @@ def fuzz_run(
     truffle_path: Optional[str],
 ):
     """Submit contracts to the Diligence Fuzzing API"""
-    if not key and refresh_token:
-        key = refresh_token
-
     analyze_config = ctx.get("analyze")
     fuzz_config = ctx.get("fuzz")
 
@@ -157,10 +154,12 @@ def fuzz_run(
                     "additional_contracts_addresses": more_addresses
                     or fuzz_config.get("additional_contracts_addresses"),
                     "dry_run": dry_run,
-                    "refresh_token": key
+                    "key": key
                     or fuzz_config.get("key")
+                    or api_key
+                    or fuzz_config.get("api_key")
+                    or refresh_token
                     or fuzz_config.get("refresh_token"),
-                    "key": api_key or fuzz_config.get("api_key"),
                     "project": project or fuzz_config.get("project"),
                     "truffle_executable_path": truffle_path,
                     "incremental": fuzz_config.get("incremental"),
@@ -237,7 +236,6 @@ def fuzz_run(
         faas_url=options.faas_url,
         campaign_name_prefix=options.campaign_name_prefix,
         project_type=project_type,
-        api_key=options.api_key,
         client_id=options.auth_client_id,
         refresh_token=options.refresh_token,
         auth_endpoint=options.auth_endpoint,

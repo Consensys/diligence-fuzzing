@@ -33,7 +33,7 @@ logging.basicConfig(level=LOGLEVEL)
 @click.option(
     "-c",
     "--config",
-    type=click.Path(exists=True),
+    type=click.Path(),
     help="YAML config file for default parameters",
     default=".fuzz.yml",
 )

@@ -8,8 +8,8 @@ from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.rpc import RPCClient
 from tests.common import write_config
 
-REFRESH_TOKEN_MALFORMED_ERROR = (
-    "Refresh Token is malformed. The format is `<auth_data>::<refresh_token>`"
+KEY_MALFORMED_ERROR = (
+    "API Key is malformed. The format is `<auth_data>::<refresh_token>`"
 )
 
 
@@ -40,7 +40,7 @@ def test_no_keys(tmp_path, truffle_project):
     write_config(not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "API key or Refresh Token were not provided." in result.output
+    assert "API key was not provided." in result.output
     assert result.exit_code != 0
 
 
@@ -109,7 +109,7 @@ def test_wrong_refresh_token(refresh_token: str, tmp_path):
         cli, ["run", f"{tmp_path}/contracts", "--refresh-token", refresh_token]
     )
     assert result.exit_code == 2
-    assert REFRESH_TOKEN_MALFORMED_ERROR in result.output
+    assert KEY_MALFORMED_ERROR in result.output
 
 
 @patch.object(

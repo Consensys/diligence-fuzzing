@@ -33,7 +33,6 @@ class FaasClient:
         faas_url,
         campaign_name_prefix,
         project_type,
-        api_key,
         client_id,
         refresh_token,
         auth_endpoint,
@@ -46,7 +45,6 @@ class FaasClient:
         self.project = project
         self.quick_check = quick_check
 
-        self._api_key = api_key
         self._client_id = client_id
         self._refresh_token = refresh_token
         self._auth_endpoint = auth_endpoint
@@ -60,9 +58,6 @@ class FaasClient:
 
     @property
     def api_key(self):
-        if self._api_key:
-            return self._api_key
-
         response = requests.post(
             f"https://{self._auth_endpoint}/oauth/token",
             data={

@@ -66,7 +66,9 @@ def generate_fuzz_config(
     if "faas_url" not in not_include:
         config_file += f'\n  faas_url: "http://localhost:9899"'
     if "api_key" not in not_include:
-        config_file += f'\n  key:\n    "test"'
+        config_file += (
+            f'\n  key:\n    "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
+        )
     if "build_directory" not in not_include:
         config_file += f"\n  build_directory: {base_path}/{build_directory}"
     if "sources_directory" not in not_include:
