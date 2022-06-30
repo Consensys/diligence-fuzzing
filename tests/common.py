@@ -4,6 +4,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from unittest.mock import patch
 
+import requests
+import requests_mock
+
+from fuzzing_cli.fuzz.types import EVMBlock
+
 
 def get_test_case(path: str, obj=None, raw=False):
     with open(str(Path(__file__).parent / path)) as f:
@@ -61,7 +66,7 @@ def generate_fuzz_config(
     if "faas_url" not in not_include:
         config_file += f'\n  faas_url: "http://localhost:9899"'
     if "api_key" not in not_include:
-        config_file += f'\n  api_key:\n    "test"'
+        config_file += f'\n  key:\n    "test"'
     if "build_directory" not in not_include:
         config_file += f"\n  build_directory: {base_path}/{build_directory}"
     if "sources_directory" not in not_include:
@@ -101,3 +106,22 @@ def get_code_mocker(contracts: Dict[str, any]):
         return _contracts.get(address.lower(), None)
 
     return mock
+
+
+@contextmanager
+def mocked_rpc_client(blocks: List[EVMBlock]):
+    def request_handler(request: requests.Request, context):
+        payload: Dict[str, any] = json.loads(request.text)
+        method = payload.get("method")
+        params = payload.get("params")
+        context.status_code = 200
+        response_body = {"id": 1, "jsonrpc": "2.0", "result": None}
+        if method == "eth_getBlockByNumber":
+            if params[0] == "latest":
+                return {**response_body, "result": blocks[-1]}
+            return {**response_body, "result": blocks[int(params[0], 16)]}
+        return response_body
+
+    with requests_mock.Mocker() as m:
+        m.register_uri("POST", "http://localhost:9898", json=request_handler)
+        yield

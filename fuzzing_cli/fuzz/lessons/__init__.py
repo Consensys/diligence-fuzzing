@@ -13,13 +13,17 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FuzzingLessons:
-
     @staticmethod
     def check_running_lessons(temp_file_path: Path) -> bool:
         return temp_file_path.exists() and temp_file_path.is_file()
 
     @staticmethod
-    def start_lesson(description: str, config_path: Path, rpc_client: RPCClient, temp_file_path: Path = Path(".fuzzing_lessons.json")):
+    def start_lesson(
+        description: str,
+        config_path: Path,
+        rpc_client: RPCClient,
+        temp_file_path: Path = Path(".fuzzing_lessons.json"),
+    ):
         if FuzzingLessons.check_running_lessons(temp_file_path):
             raise FuzzingLessonsError("Another fuzzing lesson is running")
 
@@ -35,19 +39,23 @@ class FuzzingLessons:
             )
 
     @staticmethod
-    def stop_lesson(rpc_client: RPCClient, temp_file_path: Path = Path(".fuzzing_lessons.json")):
+    def stop_lesson(
+        rpc_client: RPCClient, temp_file_path: Path = Path(".fuzzing_lessons.json")
+    ):
         if not FuzzingLessons.check_running_lessons(temp_file_path):
             raise FuzzingLessonsError("No fuzzing lesson is running")
         with temp_file_path.open("r") as f:
             lesson_data = json.load(f)
         number_of_blocks_at_start = lesson_data["numberOfBlocks"]
-        config_path = lesson_data["configFilePath"]
+        config_path = Path(lesson_data["configFilePath"])
 
         number_of_blocks_at_stop = rpc_client.get_latest_block_number() + 1
         if number_of_blocks_at_stop == number_of_blocks_at_start:
             LOGGER.warning("No transaction was recorded in this lesson")
         if number_of_blocks_at_start > 0:
-            number_of_blocks_at_start -= 1  # not an obvious conversion to index :)
+            number_of_blocks_at_start -= (
+                1
+            )  # not an obvious conversion to index. Sorry :(
 
         lesson_blocks: List[EVMBlock] = []
         for i in range(number_of_blocks_at_start, number_of_blocks_at_stop):
@@ -55,15 +63,15 @@ class FuzzingLessons:
             if not block:
                 continue
             lesson_blocks.append(block)
-
         seed_seqs = FuzzingLessons.prepare_suggested_seed_sequences(lesson_blocks)
-        update_config(config_path, {"fuzz": {"suggested_seed_seqs": seed_seqs}})
+        if len(seed_seqs[0]) > 0:
+            update_config(config_path, {"fuzz": {"suggested_seed_seqs": seed_seqs}})
         os.remove(temp_file_path)
 
     @staticmethod
     def prepare_suggested_seed_sequences(
         blocks: List[EVMBlock]
-    ) -> List[SeedSequenceTransaction]:
+    ) -> List[List[SeedSequenceTransaction]]:
         seed_seqs: List[SeedSequenceTransaction] = []
 
         for block in blocks:
@@ -86,7 +94,7 @@ class FuzzingLessons:
                     }
                 )
 
-        return seed_seqs
+        return [seed_seqs]
 
     @staticmethod
     def abort_lesson(temp_file_path: Path = Path(".fuzzing_lessons.json")):

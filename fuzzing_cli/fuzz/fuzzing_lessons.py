@@ -46,4 +46,3 @@ def stop(ctx):
 @cli.command("abort")
 def abort():
     FuzzingLessons.abort_lesson()
-

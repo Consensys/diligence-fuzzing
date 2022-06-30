@@ -28,7 +28,7 @@ class FuzzingOptions:
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
         incremental: bool = False,
-        suggested_seed_seqs: List[SeedSequenceTransaction] = [],
+        suggested_seed_seqs: List[List[SeedSequenceTransaction]] = [],
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check

@@ -4,9 +4,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.ide.generic import IDEArtifacts
-from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.types import Contract, Source
 from fuzzing_cli.util import get_content_from_file
 

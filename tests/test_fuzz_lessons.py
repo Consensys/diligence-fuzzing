@@ -1,0 +1,176 @@
+import json
+from pathlib import Path
+
+import pytest
+from click.testing import CliRunner
+
+from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.config.utils import parse_config
+from tests.common import get_test_case, mocked_rpc_client
+from tests.common import write_config as __write_config
+
+
+def write_config(tmp_path: Path):
+    __write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="artifacts",
+        targets="contracts/LessonTestContract.sol",
+        deployed_contract_address="0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
+    )
+
+
+@pytest.mark.parametrize("description", [None, "test description"])
+def test_start(tmp_path: Path, bootstrapped_hardhat_project, description: str):
+    write_config(tmp_path)
+
+    with mocked_rpc_client(
+        get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
+    ):
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["lesson", "start"]
+            + (["--description", description] if description else []),
+        )
+
+    assert result.exit_code == 0
+
+    with tmp_path.joinpath(".fuzzing_lessons.json").open("r") as f:
+        lesson_data = json.load(f)
+    assert lesson_data == {
+        "numberOfBlocks": 2,
+        "description": description or "",
+        "configFilePath": str(tmp_path.joinpath(".fuzz.yml")),
+    }
+
+    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
+    assert config["fuzz"].get("suggested_seed_sequences", None) is None
+
+
+def test_already_started(tmp_path: Path, bootstrapped_hardhat_project):
+    write_config(tmp_path)
+
+    with mocked_rpc_client(
+        get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
+    ):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["lesson", "start"])
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["lesson", "start"])
+
+    assert result.exit_code == 1
+    assert result.output == "Error: Another fuzzing lesson is running\n"
+    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is True
+
+
+def test_stop(tmp_path, bootstrapped_hardhat_project):
+    write_config(tmp_path)
+
+    with mocked_rpc_client(
+        get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
+    ):
+        runner = CliRunner()
+        runner.invoke(cli, ["lesson", "start"])
+
+    blocks_after_lesson = get_test_case(
+        "testdata/hardhat_fuzzing_lessons_project/lessons.json"
+    )
+
+    with mocked_rpc_client(blocks_after_lesson):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["lesson", "stop"])
+
+    assert result.exit_code == 0
+
+    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
+
+    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
+    suggested_seed_seqs = [
+        [dict(s) for s in _s] for _s in config["fuzz"].get("suggested_seed_seqs", [])
+    ]
+    assert suggested_seed_seqs == [
+        [
+            {
+                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockNumber": "0x2",
+                "blockTime": "0x62bd7444",
+                "gasLimit": "0x3381a",
+                "gasPrice": "0x4a817c800",
+                "input": "0x3f81a2c0000000000000000000000000000000000000000000000000000000000000002a",
+                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                "value": "0x0",
+            },
+            {
+                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockNumber": "0x3",
+                "blockTime": "0x62bd7444",
+                "gasLimit": "0x6691b7",
+                "gasPrice": "0x9184e72a000",
+                "input": "0x9507d39abeced09521047d05b8960b7e7bcc1d1292cf3e4b2a6b63f48335cbde5f7545d2",
+                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                "value": "0x0",
+            },
+        ]
+    ]
+
+
+def test_stop_no_transactions_in_lesson(tmp_path, bootstrapped_hardhat_project):
+    write_config(tmp_path)
+
+    with mocked_rpc_client(
+        get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
+    ):
+        runner = CliRunner()
+        runner.invoke(cli, ["lesson", "start"])
+
+    blocks_after_lesson = get_test_case(
+        "testdata/hardhat_fuzzing_lessons_project/blocks.json"
+    )
+
+    with mocked_rpc_client(blocks_after_lesson):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["lesson", "stop"])
+
+    assert result.exit_code == 0
+    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
+
+    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
+    assert config["fuzz"].get("suggested_seed_seqs", None) is None
+
+
+@pytest.mark.parametrize("command", ["stop", "abort"])
+def test_not_started(tmp_path: Path, bootstrapped_hardhat_project, command: str):
+    write_config(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["lesson", command])
+
+    assert result.exit_code == 1
+    assert result.output == "Error: No fuzzing lesson is running\n"
+
+
+def test_abort(tmp_path, bootstrapped_hardhat_project):
+    write_config(tmp_path)
+
+    with mocked_rpc_client(
+        get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
+    ):
+        runner = CliRunner()
+        runner.invoke(cli, ["lesson", "start"])
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["lesson", "abort"])
+
+    assert result.exit_code == 0
+
+    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
+
+    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
+    assert config["fuzz"].get("suggested_seed_sequences", None) is None

@@ -4,9 +4,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import IDEArtifacts
-from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
@@ -63,7 +63,7 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 def prepare_seed_state(
     contracts: List[Contract],
     number_of_cores: int,
-    suggested_seed_seqs: List[SeedSequenceTransaction],
+    suggested_seed_seqs: List[List[SeedSequenceTransaction]],
     corpus_target: Optional[str] = None,
 ) -> Dict[str, any]:
     accounts = {}

@@ -4,8 +4,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.config import FuzzingOptions
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import sol_files_by_directory
 

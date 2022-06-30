@@ -285,6 +285,17 @@ def bootstrapped_truffle_project(tmp_path):
             json.dump(artifact, f)
 
 
+@pytest.fixture()
+def bootstrapped_hardhat_project(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "hardhat_fuzzing_lessons_project", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+
+
 @pytest.fixture(autouse=True)
 def teardown():
     yield

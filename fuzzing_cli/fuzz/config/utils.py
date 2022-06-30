@@ -4,7 +4,7 @@ from typing import Dict, Optional
 from ruamel.yaml import YAML
 
 yaml = YAML()
-yaml.indent(offset=2)
+yaml.indent(offset=2, sequence=4)
 
 
 def merge(
@@ -26,3 +26,8 @@ def update_config(config_path: Path, update: Dict[str, any]):
     with config_path.open("w") as f:
         yaml.dump(config, f)
 
+
+def parse_config(config_path: Path) -> Dict[str, any]:
+    with config_path.open("r") as f:
+        config = yaml.load(f)
+    return config

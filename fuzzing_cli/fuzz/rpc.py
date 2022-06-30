@@ -101,12 +101,16 @@ class RPCClient:
         return num_of_blocks
 
     def get_transactions(
-        self, blocks: Optional[List[EVMBlock]] = None
+        self,
+        blocks: Optional[List[EVMBlock]] = None,
+        block_numbers_to_skip: List[str] = [],
     ) -> List[EVMTransaction]:
         if not blocks:
             blocks = self.get_all_blocks()
         processed_transactions = []
         for block in blocks:
+            if block["number"] in block_numbers_to_skip:
+                continue
             for transaction in block["transactions"]:
                 for key, value in dict(transaction).items():
                     if value is None:
@@ -150,11 +154,15 @@ class RPCClient:
         self,
         address: str,
         other_addresses: Optional[List[str]],
-        suggested_seed_seqs: List[SeedSequenceTransaction],
+        suggested_seed_seqs: List[List[SeedSequenceTransaction]],
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         try:
-            processed_transactions = self.get_transactions()
+            processed_transactions = self.get_transactions(
+                block_numbers_to_skip=list(
+                    {b["blockNumber"] for s in suggested_seed_seqs for b in s}
+                )
+            )
 
             if len(processed_transactions) == 0:
                 raise click.exceptions.UsageError(

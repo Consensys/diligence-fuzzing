@@ -11,10 +11,10 @@ import yaml
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
+from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.quickcheck import fuzz_auto
 from fuzzing_cli.fuzz.run import fuzz_run
-from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 
 LOGGER = logging.getLogger("fuzzing-cli")
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -64,7 +64,7 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     ctx.obj = {
         "debug": debug,
-        "config": config,
+        "config": str(Path(config).absolute()),
         "analyze": parsed_config.get("analyze", {}),
         "fuzz": parsed_config.get("fuzz", {}),
     }

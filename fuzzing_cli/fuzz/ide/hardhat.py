@@ -5,8 +5,8 @@ from os.path import abspath, commonpath, relpath
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.fuzz.config import FuzzingOptions
+from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
 from fuzzing_cli.util import (
     files_by_directory,
     get_content_from_file,
