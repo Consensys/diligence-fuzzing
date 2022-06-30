@@ -97,9 +97,7 @@ def __prompt_targets() -> List[str]:
 def determine_targets(ide: str) -> List[str]:
     repo = IDERepository.get_instance()
     _IDEArtifactsClass = repo.get_ide(ide)
-    target = (
-        Path.cwd().absolute().joinpath(_IDEArtifactsClass.get_default_sources_dir())
-    )
+    target = _IDEArtifactsClass.get_default_sources_dir()
     ts = style(target, fg="yellow")
 
     targets = [str(target)]

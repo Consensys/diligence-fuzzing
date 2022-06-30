@@ -111,7 +111,7 @@ def get_code_mocker(contracts: Dict[str, any]):
 
 
 @contextmanager
-def mocked_rpc_client(blocks: List[EVMBlock]):
+def mocked_rpc_client(blocks: List[EVMBlock], codes: Dict[str, str] = {}):
     def request_handler(request: requests.Request, context):
         payload: Dict[str, any] = json.loads(request.text)
         method = payload.get("method")
@@ -122,6 +122,9 @@ def mocked_rpc_client(blocks: List[EVMBlock]):
             if params[0] == "latest":
                 return {**response_body, "result": blocks[-1]}
             return {**response_body, "result": blocks[int(params[0], 16)]}
+        elif method == "eth_getCode":
+            contract_address = params[0]
+            return {**response_body, "result": codes.get(contract_address, None)}
         return response_body
 
     with requests_mock.Mocker() as m:

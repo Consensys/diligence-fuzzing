@@ -37,12 +37,12 @@ class BrownieArtifacts(IDEArtifacts):
         return "brownie-config.yaml" in files
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return "build/contracts"
+    def get_default_build_dir() -> Path:
+        return Path.cwd().joinpath("build/contracts")
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return "contracts"
+    def get_default_sources_dir() -> Path:
+        return Path.cwd().joinpath("contracts")
 
     @property
     def contracts(self) -> List[Contract]:
@@ -98,7 +98,9 @@ class BrownieArtifacts(IDEArtifacts):
                             "sourceMap": contract["sourceMap"],
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
-                            "mainSourceFile": contract["sourcePath"],
+                            "mainSourceFile": self.normalize_path(
+                                contract["sourcePath"]
+                            ),
                             "ignoredSources": self.get_compiler_generated_source_ids(
                                 source_map=contract["deployedSourceMap"],
                                 sources=contract["allSourcePaths"],

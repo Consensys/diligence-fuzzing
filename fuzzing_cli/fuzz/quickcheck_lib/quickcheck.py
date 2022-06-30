@@ -4,6 +4,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import click
+
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import IDEArtifacts
@@ -64,6 +66,7 @@ def prepare_seed_state(
     contracts: List[Contract],
     number_of_cores: int,
     suggested_seed_seqs: List[List[SeedSequenceTransaction]],
+    lesson_description: Optional[str] = None,
     corpus_target: Optional[str] = None,
 ) -> Dict[str, any]:
     accounts = {}
@@ -80,6 +83,7 @@ def prepare_seed_state(
     if corpus_target:
         setup["target"] = corpus_target
     if len(suggested_seed_seqs) > 0:
+        click.secho(f'Fuzzing Lessons detected. Using lesson "{lesson_description}"')
         setup["suggested-seed-seqs"] = suggested_seed_seqs
 
     return {

@@ -43,12 +43,12 @@ class DapptoolsArtifacts(IDEArtifacts):
         return self.fetch_data()[1]
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return "out"
+    def get_default_build_dir() -> Path:
+        return Path.cwd().joinpath("out")
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return "src"
+    def get_default_sources_dir() -> Path:
+        return Path.cwd().joinpath("src")
 
     @staticmethod
     def _get_build_artifacts(build_dir) -> tuple:
@@ -137,7 +137,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                             "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
-                            "mainSourceFile": source_file,
+                            "mainSourceFile": self.normalize_path(source_file),
                             "ignoredSources": list(ignored_sources),
                         }
                     ]

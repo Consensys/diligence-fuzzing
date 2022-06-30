@@ -42,12 +42,12 @@ class HardhatArtifacts(IDEArtifacts):
         return "hardhat.config.ts" in files or "hardhat.config.js" in files
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return "artifacts"
+    def get_default_build_dir() -> Path:
+        return Path.cwd().joinpath("artifacts")
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return "contracts"
+    def get_default_sources_dir() -> Path:
+        return Path.cwd().joinpath("contracts")
 
     @property
     def contracts(self) -> List[Contract]:
@@ -128,7 +128,9 @@ class HardhatArtifacts(IDEArtifacts):
                         "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                         "bytecode": contract["evm"]["bytecode"]["object"],
                         "contractName": contract_artifact["contractName"],
-                        "mainSourceFile": contract_artifact["sourceName"],
+                        "mainSourceFile": self.normalize_path(
+                            contract_artifact["sourceName"]
+                        ),
                         "ignoredSources": list(ignored_sources),
                     }
                 ]

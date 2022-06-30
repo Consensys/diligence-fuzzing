@@ -164,6 +164,7 @@ def fuzz_run(
                     "truffle_executable_path": truffle_path,
                     "incremental": fuzz_config.get("incremental"),
                     "suggested_seed_seqs": fuzz_config.get("suggested_seed_seqs"),
+                    "lesson_description": fuzz_config.get("lesson_description"),
                 }
             ).items()
             if v is not None
@@ -193,6 +194,7 @@ def fuzz_run(
             artifacts.contracts,
             options.number_of_cores,
             options.suggested_seed_seqs,
+            options.lesson_description,
             _corpus_target,
         )
     else:
@@ -202,6 +204,7 @@ def fuzz_run(
             options.deployed_contract_address,
             options.additional_contracts_addresses,
             options.suggested_seed_seqs,
+            options.lesson_description,
             _corpus_target,
         )
 

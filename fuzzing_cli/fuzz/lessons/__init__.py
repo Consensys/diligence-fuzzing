@@ -41,12 +41,13 @@ class FuzzingLessons:
     @staticmethod
     def stop_lesson(
         rpc_client: RPCClient, temp_file_path: Path = Path(".fuzzing_lessons.json")
-    ):
+    ) -> str:
         if not FuzzingLessons.check_running_lessons(temp_file_path):
             raise FuzzingLessonsError("No fuzzing lesson is running")
         with temp_file_path.open("r") as f:
             lesson_data = json.load(f)
         number_of_blocks_at_start = lesson_data["numberOfBlocks"]
+        description = lesson_data["description"]
         config_path = Path(lesson_data["configFilePath"])
 
         number_of_blocks_at_stop = rpc_client.get_latest_block_number() + 1
@@ -65,8 +66,17 @@ class FuzzingLessons:
             lesson_blocks.append(block)
         seed_seqs = FuzzingLessons.prepare_suggested_seed_sequences(lesson_blocks)
         if len(seed_seqs[0]) > 0:
-            update_config(config_path, {"fuzz": {"suggested_seed_seqs": seed_seqs}})
+            update_config(
+                config_path,
+                {
+                    "fuzz": {
+                        "suggested_seed_seqs": seed_seqs,
+                        "lesson_description": description,
+                    }
+                },
+            )
         os.remove(temp_file_path)
+        return description
 
     @staticmethod
     def prepare_suggested_seed_sequences(
@@ -97,7 +107,11 @@ class FuzzingLessons:
         return [seed_seqs]
 
     @staticmethod
-    def abort_lesson(temp_file_path: Path = Path(".fuzzing_lessons.json")):
+    def abort_lesson(temp_file_path: Path = Path(".fuzzing_lessons.json")) -> str:
         if not FuzzingLessons.check_running_lessons(temp_file_path):
             raise FuzzingLessonsError("No fuzzing lesson is running")
+        with temp_file_path.open("r") as f:
+            lesson_data = json.load(f)
+        description = lesson_data["description"]
         os.remove(temp_file_path)
+        return description

@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
-from fuzzing_cli.util import sol_files_by_directory
+from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
 
 class IDEArtifacts(ABC):
@@ -75,12 +75,12 @@ class IDEArtifacts(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_default_build_dir() -> str:
+    def get_default_build_dir() -> Path:
         pass
 
     @staticmethod
     @abstractmethod
-    def get_default_sources_dir() -> str:
+    def get_default_sources_dir() -> Path:
         pass
 
     @staticmethod
@@ -158,3 +158,12 @@ class IDEArtifacts(ABC):
     @abstractmethod
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         pass
+
+    def normalize_path(self, path: str) -> str:
+        if Path(path).is_absolute():
+            return path
+        _path = str(self.sources_dir.parent.joinpath(path))
+        LOGGER.debug(
+            f'Normalizing path "{path}" relative to source_dir. Absolute path "{_path}"'
+        )
+        return _path

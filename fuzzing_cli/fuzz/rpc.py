@@ -155,6 +155,7 @@ class RPCClient:
         address: str,
         other_addresses: Optional[List[str]],
         suggested_seed_seqs: List[List[SeedSequenceTransaction]],
+        lesson_description: Optional[str] = None,
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         try:
@@ -179,6 +180,9 @@ class RPCClient:
             if corpus_target:
                 setup["target"] = corpus_target
             if len(suggested_seed_seqs) > 0:
+                click.secho(
+                    f'Fuzzing Lessons detected. Using lesson "{lesson_description}"'
+                )
                 setup["suggested-seed-seqs"] = suggested_seed_seqs
             return {
                 "discovery-probability-threshold": 0.0,

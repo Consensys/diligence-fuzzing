@@ -28,6 +28,7 @@ class FuzzingOptions:
         truffle_executable_path: Optional[str] = None,
         incremental: bool = False,
         suggested_seed_seqs: List[List[SeedSequenceTransaction]] = [],
+        lesson_description: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -46,6 +47,7 @@ class FuzzingOptions:
         self.project = project
         self.incremental = incremental
         self.suggested_seed_seqs = suggested_seed_seqs
+        self.lesson_description = lesson_description
 
         self.auth_endpoint = None
         self.refresh_token = None

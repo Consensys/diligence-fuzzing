@@ -79,7 +79,9 @@ class TruffleArtifacts(IDEArtifacts):
                             "sourceMap": contract["sourceMap"],
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
-                            "mainSourceFile": contract["sourcePath"],
+                            "mainSourceFile": self.normalize_path(
+                                contract["sourcePath"]
+                            ),
                             "ignoredSources": list(ignored_sources),
                         }
                     ]
@@ -230,9 +232,9 @@ class TruffleArtifacts(IDEArtifacts):
         return contracts
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return "build/contracts"
+    def get_default_build_dir() -> Path:
+        return Path.cwd().joinpath("build/contracts")
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return "contracts"
+    def get_default_sources_dir() -> Path:
+        return Path.cwd().joinpath("contracts")

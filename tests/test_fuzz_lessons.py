@@ -31,7 +31,7 @@ def test_start(tmp_path: Path, bootstrapped_hardhat_project, description: str):
         result = runner.invoke(
             cli,
             ["lesson", "start"]
-            + (["--description", description] if description else []),
+            + (["--description", description] if description is not None else []),
         )
 
     assert result.exit_code == 0
@@ -40,12 +40,13 @@ def test_start(tmp_path: Path, bootstrapped_hardhat_project, description: str):
         lesson_data = json.load(f)
     assert lesson_data == {
         "numberOfBlocks": 2,
-        "description": description or "",
+        "description": description or "my lesson",
         "configFilePath": str(tmp_path.joinpath(".fuzz.yml")),
     }
 
     config = parse_config(tmp_path.joinpath(".fuzz.yml"))
     assert config["fuzz"].get("suggested_seed_sequences", None) is None
+    assert config["fuzz"].get("lesson_description", None) is None
 
 
 def test_already_started(tmp_path: Path, bootstrapped_hardhat_project):
@@ -86,6 +87,7 @@ def test_stop(tmp_path, bootstrapped_hardhat_project):
     assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
 
     config = parse_config(tmp_path.joinpath(".fuzz.yml"))
+    assert config["fuzz"].get("lesson_description", None) == "my lesson"
     suggested_seed_seqs = [
         [dict(s) for s in _s] for _s in config["fuzz"].get("suggested_seed_seqs", [])
     ]
@@ -143,6 +145,7 @@ def test_stop_no_transactions_in_lesson(tmp_path, bootstrapped_hardhat_project):
 
     config = parse_config(tmp_path.joinpath(".fuzz.yml"))
     assert config["fuzz"].get("suggested_seed_seqs", None) is None
+    assert config["fuzz"].get("lesson_description", None) is None
 
 
 @pytest.mark.parametrize("command", ["stop", "abort"])
@@ -174,3 +177,4 @@ def test_abort(tmp_path, bootstrapped_hardhat_project):
 
     config = parse_config(tmp_path.joinpath(".fuzz.yml"))
     assert config["fuzz"].get("suggested_seed_sequences", None) is None
+    assert config["fuzz"].get("lesson_description", None) is None
