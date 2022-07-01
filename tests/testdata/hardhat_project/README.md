@@ -8,6 +8,3 @@ This sample project could be used as a standalone project to perform manual test
 3) Run `npx hardhat compile` to compile contracts
 4) Run `npx hardhat run scripts/deploy.js` to deploy contracts to a local ganache node
 5) Have fun 🥳
-
-## Few words on Fuzzing Lessons
-This project contains script (`scripts/run_lesson.js`) to submit transactions which lead to revert. You may not need it, but here's the explanation - These transactions are to help Harvey find an issue (that's why we name it Fuzzing Lessons)

@@ -21,7 +21,7 @@ def write_config(tmp_path: Path):
 
 
 @pytest.mark.parametrize("description", [None, "test description"])
-def test_start(tmp_path: Path, bootstrapped_hardhat_project, description: str):
+def test_start(tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project, description: str):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -49,7 +49,7 @@ def test_start(tmp_path: Path, bootstrapped_hardhat_project, description: str):
     assert config["fuzz"].get("lesson_description", None) is None
 
 
-def test_already_started(tmp_path: Path, bootstrapped_hardhat_project):
+def test_already_started(tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -65,7 +65,7 @@ def test_already_started(tmp_path: Path, bootstrapped_hardhat_project):
     assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is True
 
 
-def test_stop(tmp_path, bootstrapped_hardhat_project):
+def test_stop(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -123,7 +123,7 @@ def test_stop(tmp_path, bootstrapped_hardhat_project):
     ]
 
 
-def test_stop_no_transactions_in_lesson(tmp_path, bootstrapped_hardhat_project):
+def test_stop_no_transactions_in_lesson(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -149,7 +149,7 @@ def test_stop_no_transactions_in_lesson(tmp_path, bootstrapped_hardhat_project):
 
 
 @pytest.mark.parametrize("command", ["stop", "abort"])
-def test_not_started(tmp_path: Path, bootstrapped_hardhat_project, command: str):
+def test_not_started(tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project, command: str):
     write_config(tmp_path)
 
     runner = CliRunner()
@@ -159,7 +159,7 @@ def test_not_started(tmp_path: Path, bootstrapped_hardhat_project, command: str)
     assert result.output == "Error: No fuzzing lesson is running\n"
 
 
-def test_abort(tmp_path, bootstrapped_hardhat_project):
+def test_abort(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(

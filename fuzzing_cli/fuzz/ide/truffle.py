@@ -79,9 +79,7 @@ class TruffleArtifacts(IDEArtifacts):
                             "sourceMap": contract["sourceMap"],
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
-                            "mainSourceFile": self.normalize_path(
-                                contract["sourcePath"]
-                            ),
+                            "mainSourceFile": contract["sourcePath"],
                             "ignoredSources": list(ignored_sources),
                         }
                     ]

@@ -98,9 +98,7 @@ class BrownieArtifacts(IDEArtifacts):
                             "sourceMap": contract["sourceMap"],
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
-                            "mainSourceFile": self.normalize_path(
-                                contract["sourcePath"]
-                            ),
+                            "mainSourceFile": contract["sourcePath"],
                             "ignoredSources": self.get_compiler_generated_source_ids(
                                 source_map=contract["deployedSourceMap"],
                                 sources=contract["allSourcePaths"],

@@ -8,7 +8,7 @@ from fuzzing_cli.fuzz.faas import FaasClient
 from tests.common import get_test_case, mocked_rpc_client, write_config
 
 
-def test_fuzz_run_fuzzing_lessons(tmp_path, bootstrapped_hardhat_project):
+def test_fuzz_run_fuzzing_lessons(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -105,3 +105,7 @@ def test_fuzz_run_fuzzing_lessons(tmp_path, bootstrapped_hardhat_project):
         ],
         "suggested-seed-seqs": suggested_seed_seqs,
     }
+
+
+def test_fuzz(tmp_path):
+    pass

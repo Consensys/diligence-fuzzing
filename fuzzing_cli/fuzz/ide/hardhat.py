@@ -128,9 +128,7 @@ class HardhatArtifacts(IDEArtifacts):
                         "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                         "bytecode": contract["evm"]["bytecode"]["object"],
                         "contractName": contract_artifact["contractName"],
-                        "mainSourceFile": self.normalize_path(
-                            contract_artifact["sourceName"]
-                        ),
+                        "mainSourceFile": contract_artifact["sourceName"],
                         "ignoredSources": list(ignored_sources),
                     }
                 ]

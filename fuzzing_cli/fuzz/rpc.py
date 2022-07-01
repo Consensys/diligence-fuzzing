@@ -278,7 +278,8 @@ class RPCClient:
                 if (
                     not contract
                     or contract.get("mainSourceFile", None) is None
-                    or contract["mainSourceFile"] not in source_targets
+                    or artifacts.normalize_path(contract["mainSourceFile"])
+                    not in source_targets
                 ):
                     dangling_contract_targets.append(
                         (contract.get("mainSourceFile", None) if contract else None, t)

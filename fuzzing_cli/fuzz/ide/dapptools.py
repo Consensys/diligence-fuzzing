@@ -137,7 +137,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                             "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
-                            "mainSourceFile": self.normalize_path(source_file),
+                            "mainSourceFile": source_file,
                             "ignoredSources": list(ignored_sources),
                         }
                     ]
