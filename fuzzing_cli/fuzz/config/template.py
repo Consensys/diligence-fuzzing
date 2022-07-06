@@ -22,6 +22,9 @@ fuzz:
   # Tell the CLI where to find the compiled contracts and compilation artifacts
   build_directory: {{ build_directory }}
 
+  # Tell the CLI where to find the contracts source
+  sources_directory: {{ sources_directory }}
+
   # The following address is going to be the main target for the fuzzing campaign
   # deployed_contract_address: "0x48b8050b4174f7871ce53AaF76BEAcA765037BFf"
 

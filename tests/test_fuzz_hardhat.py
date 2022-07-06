@@ -120,7 +120,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
         },
         "contracts": [
             {
-                "sourcePaths": {0: "contracts/sample.sol"},
+                "sourcePaths": {"0": "contracts/sample.sol"},
                 "deployedSourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;;;;;;:::o",
                 "deployedBytecode": "6080604052348015600f576000",
                 "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;",
@@ -130,7 +130,7 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
                 "ignoredSources": [],
             },
             {
-                "sourcePaths": {0: "contracts/sample.sol"},
+                "sourcePaths": {"0": "contracts/sample.sol"},
                 "deployedSourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;41:31;:::o",
                 "deployedBytecode": "6080604052348015600f57600080f",
                 "sourceMap": "0:74:0:-:0;;;;;;;;;;;;;;;;;;;",
@@ -141,12 +141,12 @@ def test_fuzz_run(tmp_path, hardhat_project, absolute_target):
             },
             {
                 "sourcePaths": {
-                    0: "contracts/contract-1.sol",
-                    1: "contracts/contract-2.sol",
-                    2: "contracts/contract-3.sol",
-                    3: "contracts/contract-4.sol",
-                    4: "contracts/contract-5.sol",
-                    5: "contracts/MasterChefV2.sol",
+                    "0": "contracts/contract-1.sol",
+                    "1": "contracts/contract-2.sol",
+                    "2": "contracts/contract-3.sol",
+                    "3": "contracts/contract-4.sol",
+                    "4": "contracts/contract-5.sol",
+                    "5": "contracts/MasterChefV2.sol",
                 },
                 "deployedSourceMap": "1098:13971:5:-:0;774:472:1;-1:-1:-1",
                 "deployedBytecode": "6080604052600436106101d85760003560e01c806361621aaa",

@@ -1,4 +1,4 @@
-from os.path import relpath
+from os.path import commonpath, relpath
 from pathlib import Path
 from typing import List
 
@@ -189,6 +189,8 @@ def recreate_config(config_file: str):
 
     config_path = Path().cwd().joinpath(config_file)
 
+    sources_directory = commonpath(targets)
+
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
     )
@@ -199,6 +201,7 @@ def recreate_config(config_file: str):
                 {
                     "ide": ide,
                     "build_directory": build_dir,
+                    "sources_directory": sources_directory,
                     "targets": targets,
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,

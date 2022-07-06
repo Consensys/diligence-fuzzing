@@ -125,7 +125,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                     result_contracts[source_file] += [
                         {
                             "sourcePaths": {
-                                source_file["id"]: file_path
+                                str(source_file["id"]): file_path
                                 for file_path, source_file in source_files.items()
                             },
                             "deployedSourceMap": contract["evm"]["deployedBytecode"][
@@ -138,7 +138,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
                             "mainSourceFile": source_file,
-                            "ignoredSources": list(ignored_sources),
+                            "ignoredSources": list(sorted(ignored_sources)),
                         }
                     ]
                 except KeyError as e:

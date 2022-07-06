@@ -34,6 +34,7 @@ def create_config(
                 {
                     "ide": ide,
                     "build_directory": None,
+                    "sources_directory": None,
                     "targets": targets,
                     "rpc_url": None,
                     "number_of_cores": number_of_cores,

@@ -190,7 +190,7 @@ def test_missing_targets_detection(tmp_path, bootstrapped_truffle_project):
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
         build_directory="build",
-        targets="contracts/Foo.sol",
+        targets=["contracts/Foo.sol"],
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
     )
     blocks = get_test_case("testdata/truffle_project/blocks.json")
@@ -237,7 +237,7 @@ def test_mismatched_targets_detection(tmp_path, bootstrapped_truffle_project):
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
         build_directory="build",
-        targets="contracts/ABC.sol",
+        targets=["contracts/ABC.sol"],
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
     )
     blocks = get_test_case("testdata/truffle_project/blocks.json")

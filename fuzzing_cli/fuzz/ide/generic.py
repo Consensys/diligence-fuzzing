@@ -146,12 +146,17 @@ class IDEArtifacts(ABC):
 
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+        normalized_include = [self.normalize_path(p) for p in self._include]
         _result_contracts, _result_sources = self.process_artifacts()
         result_contracts = {
-            k: v for k, v in _result_contracts.items() if k in self._include
+            k: v
+            for k, v in _result_contracts.items()
+            if self.normalize_path(k) in normalized_include
         }
         result_sources = {
-            k: v for k, v in _result_sources.items() if k in self._include
+            k: v
+            for k, v in _result_sources.items()
+            if self.normalize_path(k) in normalized_include
         }
         return self.flatten_contracts(result_contracts), result_sources
 

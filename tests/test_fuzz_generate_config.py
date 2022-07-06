@@ -29,6 +29,7 @@ def test_generate_config(tmp_path, isolated_hardhat_project):
             "ide": "hardhat",
             "quick_check": False,
             "build_directory": str(Path(tmp_path).joinpath("artifacts")),
+            "sources_directory": str(Path(tmp_path).joinpath("contracts")),
             "targets": [str(Path(tmp_path).joinpath("contracts"))],
             "rpc_url": "http://localhost:1111/",
             "number_of_cores": 4,

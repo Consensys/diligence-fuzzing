@@ -45,6 +45,7 @@ def generate_fuzz_config(
     project: Optional[str] = None,
     incremental: Optional[bool] = None,
     corpus_target: Optional[str] = None,
+    additional_addresses: List[str] = [],
 ):
     config_file = ""
     if import_remaps:
@@ -74,7 +75,8 @@ def generate_fuzz_config(
     if "sources_directory" not in not_include:
         config_file += f"\n  sources_directory: {base_path}/{sources_directory}"
     if "targets" not in not_include:
-        config_file += f'\n  targets:\n    - "{base_path}/{targets}"'
+        _data = "\n".join([f'    - "{base_path}/{t}"' for t in targets])
+        config_file += f"\n  targets:\n{_data}"
 
     if project is not None:
         config_file += f"\n  project: {project}"
@@ -84,6 +86,10 @@ def generate_fuzz_config(
 
     if corpus_target is not None:
         config_file += f"\n  corpus_target: {corpus_target}"
+
+    if additional_addresses:
+        _data = "\n".join([f'    - "{a}"' for a in additional_addresses])
+        config_file += f"\n  additional_contracts_addresses:\n{_data}"
 
     if add_refresh_token:
         config_file += (

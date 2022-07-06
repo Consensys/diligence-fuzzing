@@ -65,7 +65,9 @@ class BrownieArtifacts(IDEArtifacts):
             if len(component) < 3 or component[2] == "":
                 continue
             allFileIds.add(component[2])
-        return [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
+        return sorted(
+            [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
+        )
 
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:

@@ -114,7 +114,7 @@ class HardhatArtifacts(IDEArtifacts):
                 result_contracts[relative_file_path] += [
                     {
                         "sourcePaths": {
-                            i: k
+                            str(i): k
                             for i, k in enumerate(
                                 build_info["output"]["contracts"].keys()
                             )
@@ -129,7 +129,7 @@ class HardhatArtifacts(IDEArtifacts):
                         "bytecode": contract["evm"]["bytecode"]["object"],
                         "contractName": contract_artifact["contractName"],
                         "mainSourceFile": contract_artifact["sourceName"],
-                        "ignoredSources": list(ignored_sources),
+                        "ignoredSources": list(sorted(ignored_sources)),
                     }
                 ]
 

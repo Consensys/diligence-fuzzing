@@ -69,7 +69,7 @@ class TruffleArtifacts(IDEArtifacts):
                     result_contracts[source_file] += [
                         {
                             "sourcePaths": {
-                                i: k
+                                str(i): k
                                 for i, k in enumerate(
                                     self.project_sources[contract["contractName"]]
                                 )
@@ -80,7 +80,7 @@ class TruffleArtifacts(IDEArtifacts):
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
                             "mainSourceFile": contract["sourcePath"],
-                            "ignoredSources": list(ignored_sources),
+                            "ignoredSources": list(sorted(ignored_sources)),
                         }
                     ]
                 except KeyError as e:
