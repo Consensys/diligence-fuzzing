@@ -231,7 +231,10 @@ def test_missing_targets_detection(tmp_path, bootstrapped_truffle_project):
     )
 
 
-def test_mismatched_targets_detection(tmp_path, bootstrapped_truffle_project):
+@pytest.mark.parametrize("absolute_targets", [True, False])
+def test_mismatched_targets_detection(
+    tmp_path, bootstrapped_truffle_project, absolute_targets: bool
+):
     # multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -239,6 +242,7 @@ def test_mismatched_targets_detection(tmp_path, bootstrapped_truffle_project):
         build_directory="build",
         targets=["contracts/ABC.sol"],
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+        absolute_targets=absolute_targets,
     )
     blocks = get_test_case("testdata/truffle_project/blocks.json")
     contracts = get_test_case("testdata/truffle_project/contracts.json")

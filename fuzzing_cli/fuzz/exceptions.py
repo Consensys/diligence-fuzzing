@@ -14,6 +14,10 @@ class FaaSError(Exception):
     pass
 
 
+class EmptyArtifactsError(Exception):
+    pass
+
+
 class AuthorizationError(FaaSError):
     pass
 

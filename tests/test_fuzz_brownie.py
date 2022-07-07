@@ -9,6 +9,7 @@ from requests import RequestException
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.exceptions import RequestError
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.fuzz.ide import IDEArtifacts
 from fuzzing_cli.fuzz.rpc import RPCClient
 
 from .common import get_test_case, write_config
@@ -112,6 +113,8 @@ def test_faas_target_config_file(tmp_path, brownie_project):
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         RPCClient, "check_contracts", Mock(return_value=True)
+    ), patch.object(
+        IDEArtifacts, "validate", new=Mock(return_value=None)
     ):
         get_all_blocks_mock.return_value = get_test_case(
             "testdata/ganache-all-blocks.json"

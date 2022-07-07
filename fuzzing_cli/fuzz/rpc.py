@@ -1,4 +1,6 @@
 import logging
+from os.path import commonpath
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import click
@@ -203,12 +205,36 @@ class RPCClient:
                 )
             ) from e
 
+    @staticmethod
+    def path_inclusion_checker(paths: List[str]):
+        directory_paths: List[str] = []
+        file_paths: List[str] = []
+        for _path in paths:
+            if Path(_path).is_dir():
+                directory_paths.append(_path)
+            else:
+                file_paths.append(_path)
+
+        def inner_checker(path: str):
+            if path in file_paths:
+                # we have found exact file match
+                return True
+            # try to find folder match
+            for dir_path in directory_paths:
+                if commonpath([dir_path, path]) == dir_path:
+                    # file is in the directory
+                    return True
+            return False
+
+        return inner_checker
+
     def check_contracts(
         self,
         seed_state: Dict[str, any],
         artifacts: IDEArtifacts,
         source_targets: List[str],
     ):
+        source_targets = [artifacts.normalize_path(s) for s in source_targets]
         try:
             missing_targets, unknown_targets = self.validate_seed_state(seed_state)
 
@@ -268,6 +294,7 @@ class RPCClient:
             )
             contract_targets = [t.lower() for t in contract_targets]
             dangling_contract_targets: List[Tuple[Optional[str], str]] = []
+            check_path = self.path_inclusion_checker(source_targets)
             for t in contract_targets:
                 # correlate to the source file
                 deployed_bytecode = self.get_code(t)
@@ -278,8 +305,9 @@ class RPCClient:
                 if (
                     not contract
                     or contract.get("mainSourceFile", None) is None
-                    or artifacts.normalize_path(contract["mainSourceFile"])
-                    not in source_targets
+                    or not check_path(
+                        artifacts.normalize_path(contract["mainSourceFile"])
+                    )
                 ):
                     dangling_contract_targets.append(
                         (contract.get("mainSourceFile", None) if contract else None, t)

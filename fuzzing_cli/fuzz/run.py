@@ -1,13 +1,12 @@
 import logging
 import traceback
-from pathlib import Path
 from typing import Optional
 
 import click
 from click import ClickException, UsageError
 
 from .config import FuzzingOptions
-from .exceptions import FaaSError
+from .exceptions import EmptyArtifactsError, FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
@@ -223,15 +222,20 @@ def fuzz_run(
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
             targets=options.target,
-            build_dir=Path(
-                options.build_directory or _IDEClass.get_default_build_dir()
-            ),
-            sources_dir=Path(
-                options.sources_directory or _IDEClass.get_default_sources_dir()
-            ),
+            build_dir=options.build_directory or _IDEClass.get_default_build_dir(),
+            sources_dir=options.sources_directory
+            or _IDEClass.get_default_sources_dir(),
             map_to_original_source=options.map_to_original_source,
         )
         project_type: str = _IDEClass.get_name()
+
+        try:
+            artifacts.validate()
+        except EmptyArtifactsError:
+            LOGGER.debug("Empty artifacts")
+            raise UsageError(
+                f"No contract being submitted. Please check your config (hint: build_directory path or targets paths)"
+            )
 
         rpc_client.check_contracts(seed_state, artifacts, options.target)
 

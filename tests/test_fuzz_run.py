@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 from unittest.mock import Mock, patch
 
@@ -123,8 +124,36 @@ def test_fuzz_run_fuzzing_lessons(
         lazy_fixture("bootstrapped_dapptools_project"),
     ],
 )
-def test_fuzz(tmp_path, ide: Dict[str, any]):
-    write_config(config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **ide)
+@pytest.mark.parametrize("absolute_targets", [True, False])
+@pytest.mark.parametrize("absolute_build_dir", [True, False])
+@pytest.mark.parametrize("absolute_sources_dir", [True, False])
+@pytest.mark.parametrize("folder_target", [True, False])
+def test_fuzz(
+    tmp_path,
+    ide: Dict[str, any],
+    absolute_targets: bool,
+    absolute_build_dir: bool,
+    absolute_sources_dir: bool,
+    folder_target: bool,
+):
+    if not folder_target:
+        write_config(
+            config_path=f"{tmp_path}/.fuzz.yml",
+            base_path=str(tmp_path),
+            absolute_targets=absolute_targets,
+            absolute_build_directory=absolute_build_dir,
+            absolute_sources_directory=absolute_sources_dir,
+            **ide,
+        )
+    else:
+        write_config(
+            config_path=f"{tmp_path}/.fuzz.yml",
+            base_path=str(tmp_path),
+            absolute_targets=absolute_targets,
+            absolute_build_directory=absolute_build_dir,
+            absolute_sources_directory=absolute_sources_dir,
+            **{**ide, "targets": [ide["sources_directory"]]},
+        )
 
     IDE_NAME = ide["ide"]
 
@@ -187,3 +216,53 @@ def test_fuzz(tmp_path, ide: Dict[str, any]):
     assert payload["contracts"] == processed_payload["contracts"]
     assert payload["sources"] == processed_payload["sources"]
     assert payload["name"] == "test-campaign-1"
+
+
+@pytest.mark.parametrize(
+    "ide",
+    [
+        lazy_fixture("bootstrapped_hardhat_project"),
+        lazy_fixture("bootstrapped_truffle_project"),
+        lazy_fixture("bootstrapped_brownie_project"),
+        lazy_fixture("bootstrapped_dapptools_project"),
+    ],
+)
+def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **{**ide, "build_directory": "wrong_directory"},
+    )
+    os.makedirs(tmp_path.joinpath("wrong_directory"))
+
+    IDE_NAME = ide["ide"]
+
+    blocks = get_test_case(f"testdata/{IDE_NAME}_project/blocks.json")
+    contracts = get_test_case(f"testdata/{IDE_NAME}_project/contracts.json")
+    codes = {
+        contract["address"].lower(): contract["deployedBytecode"]
+        for contract in contracts.values()
+    }
+
+    with mocked_rpc_client(blocks, codes), patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock, patch.object(
+        FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch.object(  # for truffle project only
+        TruffleArtifacts,
+        "query_truffle_db",
+        new=Mock(side_effect=db_calls_mock(contracts, str(tmp_path))),
+    ):
+        campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
+        start_faas_campaign_mock.return_value = campaign_id
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run"])
+
+    assert result.exit_code == 2
+    assert (
+        f"Error: No contract being submitted. "
+        f"Please check your config (hint: build_directory path or targets paths)\n"
+        in result.output
+    )
+
+    start_faas_campaign_mock.assert_not_called()

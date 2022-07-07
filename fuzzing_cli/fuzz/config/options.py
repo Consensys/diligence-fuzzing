@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import click
@@ -35,10 +36,10 @@ class FuzzingOptions:
         self.corpus_target = corpus_target
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
-        self.build_directory = build_directory
-        self.sources_directory = sources_directory
+        self.build_directory: Path = self.make_absolute_path(build_directory)
+        self.sources_directory: Path = self.make_absolute_path(sources_directory)
         self.deployed_contract_address = deployed_contract_address
-        self.target = targets
+        self.target: List[str] = targets
         self.rpc_url = rpc_url
         self.faas_url = faas_url
         self.number_of_cores = int(number_of_cores)
@@ -65,6 +66,14 @@ class FuzzingOptions:
         self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
             key
         )
+
+    @staticmethod
+    def make_absolute_path(path: Optional[str] = None) -> Optional[Path]:
+        if not path:
+            return None
+        if Path(path).is_absolute():
+            return Path(path)
+        return Path.cwd().joinpath(path)
 
     @classmethod
     def parse_obj(cls, obj):

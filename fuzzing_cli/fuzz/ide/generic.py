@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
-from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError, EmptyArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
@@ -172,3 +172,7 @@ class IDEArtifacts(ABC):
             f'Normalizing path "{path}" relative to source_dir. Absolute path "{_path}"'
         )
         return _path
+
+    def validate(self) -> None:
+        if len(self.sources.keys()) == 0 or len(self.contracts) == 0:
+            raise EmptyArtifactsError()

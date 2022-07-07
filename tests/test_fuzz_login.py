@@ -22,6 +22,9 @@ class ArtifactMock:
     def get_name(cls):
         return "hardhat"
 
+    def validate(self):
+        return None
+
 
 class TestArtifacts:
     def __init__(self, *args, **kwargs):
