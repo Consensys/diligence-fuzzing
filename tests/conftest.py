@@ -398,6 +398,29 @@ def bootstrapped_dapptools_project(tmp_path):
     }
 
 
+@pytest.fixture()
+def scribble_project(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "scribble_project", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "truffle",
+        "build_directory": "build/contracts",
+        "sources_directory": "contracts",
+        "targets": ["contracts/VulnerableToken.sol"],
+        "deployed_contract_address": "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+        "additional_addresses": [
+            "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9",
+            "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
+            "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
+        ],
+    }
+
+
 @pytest.fixture(autouse=True)
 def teardown():
     yield

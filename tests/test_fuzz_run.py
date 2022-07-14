@@ -1,17 +1,25 @@
+import json
 import os
-from typing import Dict
+from typing import Dict, Optional
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 from click.testing import CliRunner
 from pytest_lazyfixture import lazy_fixture
+from requests import RequestException
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config import update_config
+from fuzzing_cli.fuzz.exceptions import RequestError
 from fuzzing_cli.fuzz.faas import FaasClient
-from fuzzing_cli.fuzz.ide import TruffleArtifacts
+from fuzzing_cli.fuzz.ide import IDEArtifacts, TruffleArtifacts
+from fuzzing_cli.fuzz.rpc import RPCClient
 from tests.common import get_test_case, mocked_rpc_client, write_config
 from tests.testdata.truffle_project.mocks import db_calls_mock
+
+FAAS_URL = "http://localhost:9899"
+ORIGINAL_SOL_CODE = "original sol code here"
 
 
 def test_fuzz_run_fuzzing_lessons(
@@ -266,3 +274,95 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
     )
 
     start_faas_campaign_mock.assert_not_called()
+
+
+@pytest.mark.parametrize("ide", [lazy_fixture("bootstrapped_hardhat_project")])
+@pytest.mark.parametrize(
+    "corpus_target", [None, "cmp_9e931b147e7143a8b53041c708d5474e"]
+)
+def test_fuzz_corpus_target(
+    tmp_path, ide: Dict[str, any], corpus_target: Optional[str]
+):
+    write_config(config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **ide)
+
+    IDE_NAME = ide["ide"]
+    blocks = get_test_case(f"testdata/{IDE_NAME}_project/blocks.json")
+    codes = {
+        contract["address"].lower(): contract["deployedBytecode"]
+        for contract in get_test_case(
+            f"testdata/{IDE_NAME}_project/contracts.json"
+        ).values()
+    }
+
+    with mocked_rpc_client(blocks, codes), patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock, patch.object(
+        FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ):
+        campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
+        start_faas_campaign_mock.return_value = campaign_id
+        runner = CliRunner()
+        cmd = ["run"]
+        if corpus_target:
+            cmd.extend(["--corpus-target", corpus_target])
+        result = runner.invoke(cli, cmd)
+
+    assert result.exit_code == 0
+    assert (
+        f"You can view campaign here: http://localhost:9899/campaigns/{campaign_id}"
+        in result.output
+    )
+
+    start_faas_campaign_mock.assert_called_once()
+    payload = start_faas_campaign_mock.call_args[0][0]
+
+    assert payload["corpus"].get("target", None) == corpus_target
+
+
+def test_rpc_not_running(tmp_path):
+    write_config(base_path=str(tmp_path))
+
+    with patch.object(requests, "request") as requests_mock:
+        requests_mock.side_effect = RequestException()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
+
+    assert (
+        "HTTP error calling RPC method eth_getBlockByNumber with parameters"
+        in result.output
+    )
+    assert result.exit_code != 0
+
+
+def test_fuzz_no_build_dir(tmp_path):
+    runner = CliRunner()
+    write_config(not_include=["build_directory"])
+
+    result = runner.invoke(cli, ["run", "contracts"])
+    assert (
+        "Build directory not provided. You need to set the `build_directory`"
+        in result.output
+    )
+    assert result.exit_code != 0
+
+
+def test_fuzz_no_deployed_address(tmp_path):
+    runner = CliRunner()
+    write_config(not_include=["deployed_contract_address"])
+
+    result = runner.invoke(cli, ["run", "contracts"])
+    assert (
+        "Deployed contract address not provided. You need to provide an address"
+        in result.output
+    )
+    assert result.exit_code != 0
+
+
+def test_fuzz_no_target(tmp_path):
+    runner = CliRunner()
+    write_config(not_include=["targets"])
+
+    result = runner.invoke(cli, ["run"])
+    assert "Error: Target not provided." in result.output
+    assert result.exit_code != 0

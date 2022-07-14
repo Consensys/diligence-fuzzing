@@ -40,7 +40,6 @@ def generate_fuzz_config(
     targets: str = "contracts",
     not_include: List[str] = [],
     add_refresh_token: bool = False,
-    import_remaps: bool = False,
     deployed_contract_address="0x7277646075fa72737e1F6114654C5d9949a67dF2",
     project: Optional[str] = None,
     incremental: Optional[bool] = None,
@@ -49,12 +48,21 @@ def generate_fuzz_config(
     absolute_targets: bool = True,
     absolute_build_directory: bool = True,
     absolute_sources_directory: bool = True,
+    remappings: List[str] = [],
+    solc_version: Optional[str] = None,
+    no_assert: Optional[bool] = None,
+    scribble_path: Optional[str] = None,
 ):
-    config_file = ""
-    if import_remaps:
-        config_file += "analyze:"
-        config_file += "\n  remappings:"
-        config_file += '\n    - "@openzeppelin=lib/openzeppelin-contracts"'
+    config_file = "analyze:"
+    if remappings:
+        _data = "\n".join([f'    - "{r}"' for r in remappings])
+        config_file += f"\n  remappings:\n{_data}"
+    if solc_version:
+        config_file += f"\n  solc-version: {solc_version}"
+    if no_assert is not None:
+        config_file += f"\n  no-assert: {str(no_assert).lower()}"
+    if scribble_path is not None:
+        config_file += f"\n  scribble-path: {scribble_path}"
 
     config_file += "\nfuzz:"
     if ide:

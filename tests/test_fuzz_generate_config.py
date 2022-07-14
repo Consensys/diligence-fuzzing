@@ -22,7 +22,7 @@ def test_generate_config(tmp_path, isolated_hardhat_project):
     result = runner.invoke(cli, ["generate-config"], input="\n".join(actions))
     assert result.exit_code == 0
     with open(Path(tmp_path).joinpath(".fuzz.yml"), "r") as f:
-        config = yaml.load(f)
+        config = yaml.load(f, Loader=yaml.SafeLoader)
     assert config == {
         "analyze": None,
         "fuzz": {

@@ -126,8 +126,7 @@ class FuzzingOptions:
             )
         if not self.target:
             raise click.exceptions.UsageError(
-                "Target not provided. You need to provide a target as the last parameter of the fuzz run command or "
-                "`--no-target` option to fuzz run."
+                "Target not provided. You need to provide a target as the last parameter of the fuzz run command."
                 "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
             )
 

@@ -11,7 +11,7 @@ import solcx.exceptions
 
 from .scribble import ScribbleMixin
 
-LOGGER = logging.getLogger("mythx-cli")
+LOGGER = logging.getLogger("fuzzing-cli")
 PRAGMA_PATTERN = r"pragma solidity [\^<>=]*(\d+\.\d+\.\d+);"
 RGLOB_BLACKLIST = ["node_modules"]
 
@@ -277,54 +277,3 @@ class SolidityJob(ScribbleMixin):
         :return: The patched bytecode with the zero-address filled in
         """
         return re.sub(re.compile(r"__\$.{34}\$__"), "0" * 40, code)
-
-    @classmethod
-    def walk_solidity_files(
-        cls,
-        solc_version: str,
-        solc_path: Optional[str] = None,
-        base_path: Optional[str] = None,
-        remappings: Tuple[str] = None,
-        enable_scribble: bool = False,
-        scribble_path: str = "scribble",
-    ) -> List[Dict]:
-        """Aggregate all Solidity files in the given base path.
-
-        Given a base path, this function will recursively walk through the filesystem
-        and aggregate all Solidity files it comes across. The resulting job list will
-        contain all the Solidity payloads (optionally compiled), ready for submission.
-
-        :param solc_version: The solc version to use for Solidity compilation
-        :param solc_path: The path to a custom solc executable
-        :param base_path: The base path to walk through from
-        :param remappings: Import remappings to pass to solcx
-        :param enable_scribble: Enable instrumentation with scribble
-        :param scribble_path: Optional path to the scribble executable
-        :return:
-        """
-
-        jobs = []
-        remappings = remappings or []
-        LOGGER.debug(f"Received {len(remappings)} import remappings")
-        walk_path = Path(base_path) if base_path else Path.cwd()
-        LOGGER.debug(f"Walking for sol files under {walk_path}")
-
-        files = [str(x) for x in walk_path.rglob("*.sol")]
-        if not files:
-            LOGGER.debug(f"No Solidity files found in pattern {walk_path}")
-            return jobs
-        files = [af for af in files if all((b not in af for b in RGLOB_BLACKLIST))]
-
-        LOGGER.debug(f"Found Solidity files to submit: {', '.join(files)}")
-        for file in files:
-            job = cls(Path(file))
-            job.generate_payloads(
-                version=solc_version,
-                solc_path=solc_path,
-                remappings=remappings,
-                enable_scribble=enable_scribble,
-                scribble_path=scribble_path,
-            )
-            LOGGER.debug(f"Generating Solidity payload for {file}")
-            jobs.extend(job.payloads)
-        return jobs

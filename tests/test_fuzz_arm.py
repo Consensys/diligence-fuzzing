@@ -1,0 +1,248 @@
+from pathlib import Path
+from typing import List, Optional
+from unittest.mock import Mock, patch
+
+import pytest
+from click.testing import CliRunner
+
+from fuzzing_cli.cli import cli
+from tests.common import write_config
+
+
+@pytest.mark.parametrize(
+    "remappings, solc_version, no_assert",
+    [
+        (None, None, None),
+        (
+            ["@openzeppelin:node_modules/@openzeppelin", "@a:node_modules/b/a"],
+            "0.8.10",
+            True,
+        ),
+        (
+            ["@openzeppelin:node_modules/@openzeppelin", "@a:node_modules/b/a"],
+            "0.8.10",
+            False,
+        ),
+    ],
+)
+@pytest.mark.parametrize("params_in_config", [True, False])
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm(
+    tmp_path,
+    scribble_project,
+    fake_process,
+    remappings: Optional[List[str]],
+    solc_version: Optional[str],
+    no_assert: Optional[bool],
+    params_in_config: bool,
+):
+    cmd = [
+        "scribble",
+        "--arm",
+        "--output-mode=files",
+        "--instrumentation-metadata-file=.scribble-arming.meta.json",
+        fake_process.any(),
+        f"{tmp_path}/contracts/VulnerableToken.sol",
+    ]
+    if params_in_config:
+        write_config(
+            config_path=f"{tmp_path}/.fuzz.yml",
+            base_path=str(tmp_path),
+            **scribble_project,
+            remappings=remappings,
+            solc_version=solc_version,
+            no_assert=no_assert,
+        )
+    else:
+        write_config(
+            config_path=f"{tmp_path}/.fuzz.yml",
+            base_path=str(tmp_path),
+            **scribble_project,
+        )
+    out = (
+        "Found 4 annotations in 1 different files.\n"
+        "contracts/VulnerableToken.sol -> contracts/VulnerableToken.sol.instrumented\n"
+        "Copying contracts/VulnerableToken.sol to contracts/VulnerableToken.sol.original\n"
+        "Copying contracts/VulnerableToken.sol.instrumented to contracts/VulnerableToken.sol"
+    )
+    fake_process.register_subprocess(cmd, stdout=out)
+    runner = CliRunner()
+    command = ["arm"]
+    if remappings and not params_in_config:
+        for r in remappings:
+            command.extend(["--remap-import", r])
+    if solc_version and not params_in_config:
+        command.extend(["--solc-version", solc_version])
+    if no_assert and not params_in_config:
+        command.extend(["--no-assert"])
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 0
+    assert result.output == f"{out}\n\n"
+    assert len(fake_process.calls) == 1
+    process_command = fake_process.calls[0]
+    assert process_command[0:4] == cmd[0:4]
+
+    if remappings:
+        assert f"--path-remapping={';'.join(remappings)}" in process_command
+    else:
+        assert "--path-remapping" not in process_command
+
+    if solc_version:
+        assert f"--compiler-version={solc_version}" in process_command
+    else:
+        assert "--compiler-version" not in process_command
+
+    if no_assert:
+        assert "--no-assert" in process_command
+    else:
+        assert "--no-assert" not in process_command
+
+
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **scribble_project,
+        not_include=["targets"],
+    )
+
+    fake_process.register_subprocess([fake_process.any()], stdout="")
+    runner = CliRunner()
+    command = ["arm"]
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 2
+    assert (
+        "Target not provided. You need to provide a target as the last parameter of the `fuzz arm` command."
+        in result.output
+    )
+    assert len(fake_process.calls) == 0
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        "FileNotFoundError: [Errno 2] No such file or directory: 'scribble'",
+        "Compile errors encountered:\n"
+        "SolcJS 0.8.13:\n"
+        "ParserError: Source file requires different compiler version (current compiler is "
+        "0.8.13+commit.abaa5c0e.Darwin.appleclang) - note that nightly builds are considered "
+        "to be strictly less than the released version\n"
+        " --> contracts/__scribble_ReentrancyUtils.sol:3:1:\n  |\n"
+        "3 | pragma solidity 0.8.5;\n  | ^^^^^^^^^^^^^^^^^^^^^^",
+    ],
+)
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm_process_error(tmp_path, scribble_project, fake_process, error: str):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
+    )
+
+    fake_process.register_subprocess(
+        [fake_process.any()], stdout="", returncode=1, stderr=error
+    )
+    runner = CliRunner()
+    command = ["arm"]
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 1
+    assert (
+        f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{error}"
+        in result.output
+    )
+    assert len(fake_process.calls) == 1
+
+
+@patch("pathlib.Path.exists", new=Mock(return_value=False))
+@pytest.mark.parametrize(
+    "scribble_path, in_config",
+    [
+        (None, False),
+        ("scribble", False),
+        ("scribble_test", False),
+        ("scribble_test", True),
+    ],
+)
+def test_fuzz_arm_unknown_scribble_path(
+    tmp_path,
+    scribble_project,
+    fake_process,
+    scribble_path: Optional[str],
+    in_config: Optional[bool],
+):
+    if scribble_path and in_config:
+        write_config(
+            config_path=f"{tmp_path}/.fuzz.yml",
+            base_path=str(tmp_path),
+            **scribble_project,
+            scribble_path=scribble_path,
+        )
+    fake_process.register_subprocess([fake_process.any()])
+
+    runner = CliRunner()
+    command = ["arm"]
+    if scribble_path and not in_config:
+        command += ["--scribble-path", scribble_path]
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 2
+    assert (
+        f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
+        f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command"
+        f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
+        in result.output
+    )
+    assert len(fake_process.calls) == 0
+
+
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **{**scribble_project, "targets": ["contracts"]},
+    )
+
+    fake_process.register_subprocess([fake_process.any()], stdout="success")
+    runner = CliRunner()
+    command = ["arm"]
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 0
+    assert result.output == "success\n\n"
+    assert (
+        fake_process.call_count(
+            [
+                "scribble",
+                "--arm",
+                "--output-mode=files",
+                "--instrumentation-metadata-file=.scribble-arming.meta.json",
+                f"{tmp_path}/contracts/Migrations.sol",
+                f"{tmp_path}/contracts/VulnerableToken.sol",
+            ]
+        )
+        == 1
+    )
+
+
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm_empty_folder_targets(tmp_path, scribble_project, fake_process):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **{**scribble_project, "targets": ["contracts-123"]},
+    )
+
+    fake_process.register_subprocess([fake_process.any()], stdout="success")
+    runner = CliRunner()
+    command = ["arm"]
+    result = runner.invoke(cli, command)
+
+    assert result.exit_code == 1
+    assert (
+        f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
+        f"No files to instrument at provided targets"
+    )
+    assert len(fake_process.calls) == 0
