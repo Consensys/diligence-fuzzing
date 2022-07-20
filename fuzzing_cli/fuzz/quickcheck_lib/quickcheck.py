@@ -1,4 +1,5 @@
 import logging
+import re
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -132,11 +133,11 @@ class QuickCheck(IDEArtifacts):
 
     @property
     def contracts(self) -> List[Contract]:
-        return self.process()[0]
+        return self.fetch_data()[0]
 
     @property
     def sources(self) -> Dict[str, Source]:
-        return self.process()[1]
+        return self.fetch_data()[1]
 
     @staticmethod
     def get_default_build_dir() -> str:
@@ -167,17 +168,13 @@ class QuickCheck(IDEArtifacts):
 
         LOGGER.debug(f"Found Solidity files to process: {', '.join(files)}")
 
-        for file in files:
-            job = SolidityJob(Path(file))
-            job.generate_payloads(
-                version=self.solc_version,
-                solc_path=self.solc_path,
-                remappings=self.remappings,
-                scribble_path=self.scribble_path,
-            )
-            LOGGER.debug(f"Generating Solidity payload for {file}")
-            contracts.extend(job.payloads)
-        return contracts
+        job = SolidityJob([Path(t) for t in self.targets])
+
+        return job.compile(
+            version=self.solc_version,
+            solc_path=self.solc_path,
+            remappings=self.remappings,
+        )
 
     @staticmethod
     def get_compiler_generated_source_ids(
@@ -195,53 +192,57 @@ class QuickCheck(IDEArtifacts):
             allFileIds.add(component[2])
         return [int(fileId) for fileId in allFileIds if int(fileId) >= num_of_sources]
 
-    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        pass
-
     @lru_cache(maxsize=1)
-    def process(self) -> Tuple[List[Contract], Dict[str, Source]]:
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         self.arm_contracts()
-        artifacts: List[Dict[str, any]] = self.compile_contracts()
-        # self.restore_contracts(annotated_contracts)
-        artifacts_by_source_file: Dict[str, Dict[str, any]] = {}
-        for artifact in artifacts:
-            # ignore duplicated artifacts for the source file
-            artifacts_by_source_file[artifact.get("main_source")] = artifact
+        result: List[Dict[str, any]] = self.compile_contracts()
 
-        contracts: List[Contract] = []
-        sources: Dict[str, Source] = {}
+        result_contracts: Dict[str, List[Contract]] = {}
+        result_sources: Dict[str, Source] = {}
 
-        for source_file, sf_artifacts in artifacts_by_source_file.items():
-            contracts.append(
+        source_paths = {
+            str(data["id"]): source for source, data in result.get("sources", {}).items()
+        }
+
+        for contract_path, contract_data in result.get("contracts", {}).items():
+            contract_name, _ = sorted(
+                [
+                    (c, len(d["evm"]["bytecode"]["object"]), )
+                    for c, d in contract_data.items()
+                ],
+                key=lambda x: x[1],  # sort by length of bytecode
+            )[-1]  # here we select the contract in file with the longest bytecode
+
+            result_contracts[contract_path] = [
                 {
-                    "sourcePaths": {
-                        i: s for i, s in enumerate(sf_artifacts["source_list"])
-                    },
-                    "bytecode": sf_artifacts["bytecode"],
-                    "sourceMap": sf_artifacts["source_map"],
-                    "deployedBytecode": sf_artifacts["deployed_bytecode"],
-                    "deployedSourceMap": sf_artifacts["deployed_source_map"],
-                    "contractName": sf_artifacts["contract_name"],
-                    "mainSourceFile": sf_artifacts["main_source"],
+                    "sourcePaths": source_paths,
+                    "bytecode": contract_data[contract_name]["evm"]["bytecode"]["object"],
+                    "sourceMap": contract_data[contract_name]["evm"]["bytecode"]["sourceMap"],
+                    "deployedBytecode": contract_data[contract_name]["evm"]["deployedBytecode"]["object"],
+                    "deployedSourceMap": contract_data[contract_name]["evm"]["deployedBytecode"]["sourceMap"],
+                    "contractName": contract_name,
+                    "mainSourceFile": contract_path,
                     "ignoredSources": self.get_compiler_generated_source_ids(
-                        sf_artifacts["deployed_source_map"], sf_artifacts["sources"]
+                        contract_data[contract_name]["evm"]["deployedBytecode"]["sourceMap"],
+                        list(source_paths.values()),
                     ),
                 }
-            )
-            for idx, source_name in enumerate(sf_artifacts["source_list"]):
-                sources[source_name] = {
-                    "fileIndex": idx,
-                    "source": sf_artifacts["sources"][source_name]["source"],
-                    "ast": sf_artifacts["sources"][source_name]["ast"],
-                }
-                if (
-                    self.map_to_original_source
-                    and Path(source_name + ".original").is_file()
-                ):
-                    # we check if the current source file has a non instrumented version
-                    # if it does, we include that one as the source code
-                    sources[source_name]["source"] = get_content_from_file(
-                        source_name + ".original"
+            ]
+
+        for source_name, data in result.get("sources", {}).items():
+            result_sources[source_name] = {
+                "fileIndex": data["id"],
+                "source": data["source"],
+                "ast": data["ast"],
+            }
+            if (
+                self.map_to_original_source
+                and Path(source_name + ".original").is_file()
+            ):
+                # we check if the current source file has a non instrumented version
+                # if it does, we include that one as the source code
+                result_sources[source_name]["source"] = get_content_from_file(
+                    source_name + ".original"
                     )
 
-        return contracts, sources
+        return result_contracts, result_sources

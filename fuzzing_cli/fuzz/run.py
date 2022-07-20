@@ -117,8 +117,8 @@ def fuzz_run(
     truffle_path: Optional[str],
 ):
     """Submit contracts to the Diligence Fuzzing API"""
-    analyze_config = ctx.get("analyze")
-    fuzz_config = ctx.get("fuzz")
+    analyze_config = ctx.get("analyze", {}) or {}
+    fuzz_config = ctx.get("fuzz", {}) or {}
 
     if fuzz_config.get("api_key") or api_key:
         LOGGER.warning(
@@ -178,10 +178,10 @@ def fuzz_run(
         project_type: str = "QuickCheck"
         artifacts: IDEArtifacts = QuickCheck(
             options=options,
-            scribble_path=analyze_config.get("scribble-path"),
+            scribble_path=analyze_config.get("scribble-path") or "scribble",
             targets=options.target,
-            build_dir=None,
-            sources_dir=None,
+            build_dir=options.build_directory,
+            sources_dir=options.sources_directory,
             map_to_original_source=map_to_original_source
             or options.map_to_original_source,
             remappings=analyze_config.get("remappings", []),

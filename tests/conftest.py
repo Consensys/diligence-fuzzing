@@ -421,6 +421,41 @@ def scribble_project(tmp_path):
     }
 
 
+@pytest.fixture()
+def truffle_echidna_project(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "quickcheck_project", "echidna", "artifacts_annotated.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "truffle",
+        "build_directory": "build/contracts",
+        "sources_directory": "contracts",
+        "targets": ["contracts/VulnerableTokenTest.sol", "contracts/SecondVulnerableTokenTest.sol"],
+    }
+
+
+@pytest.fixture()
+def truffle_echidna_project_armed(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "quickcheck_project", "echidna", "artifacts_armed.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "truffle",
+        "build_directory": "build/contracts",
+        "sources_directory": "contracts",
+        "targets": ["contracts/VulnerableTokenTest.sol", "contracts/SecondVulnerableTokenTest.sol"],
+    }
+
+
+
 @pytest.fixture(autouse=True)
 def teardown():
     yield

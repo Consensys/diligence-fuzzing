@@ -153,12 +153,12 @@ class IDEArtifacts(ABC):
             for k, v in _result_contracts.items()
             if self.normalize_path(k) in normalized_include
         }
-        result_sources = {
-            k: v
-            for k, v in _result_sources.items()
-            if self.normalize_path(k) in normalized_include
-        }
-        return self.flatten_contracts(result_contracts), result_sources
+        # result_sources = {
+        #     k: v
+        #     for k, v in _result_sources.items()
+        #     if self.normalize_path(k) in normalized_include
+        # }
+        return self.flatten_contracts(result_contracts), _result_sources
 
     @abstractmethod
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:

@@ -52,6 +52,7 @@ def generate_fuzz_config(
     solc_version: Optional[str] = None,
     no_assert: Optional[bool] = None,
     scribble_path: Optional[str] = None,
+    quick_check: Optional[bool] = None,
 ):
     config_file = "analyze:"
     if remappings:
@@ -115,6 +116,9 @@ def generate_fuzz_config(
         config_file += (
             f'\n  refresh_token: "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
         )
+
+    if quick_check:
+        config_file += f"\n  quick_check: true"
 
     return config_file
 

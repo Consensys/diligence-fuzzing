@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-from click import style
+from click import style, UsageError
 
 from fuzzing_cli.fuzz.config import generate_yaml
 from fuzzing_cli.fuzz.generate_config import (
@@ -121,6 +121,9 @@ def fuzz_auto(
     campaign_name_prefix = determine_campaign_name()
 
     annotated_targets = annotate_contracts(targets, scribble_generator_path)
+
+    if not annotated_targets:
+        raise UsageError("No target contains `echidna` or `ds-test` test cases")
 
     targets_list_output = [
         f"  🛠  {style(target, fg='yellow', italic=True)}"
