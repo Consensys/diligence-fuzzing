@@ -4,8 +4,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from os.path import abspath
 from pathlib import Path
-from subprocess import Popen, TimeoutExpired
-from tempfile import TemporaryFile
+from subprocess import PIPE, CompletedProcess, TimeoutExpired, run
 from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
@@ -116,60 +115,58 @@ class TruffleArtifacts(IDEArtifacts):
             )
             executables.insert(0, self._options.truffle_executable_path)
         _executables = executables[::-1]
-        with TemporaryFile() as stdout_file, TemporaryFile() as stderr_file:
-            while _executables:
-                try:
-                    executable = _executables.pop()
-                    LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
-                    # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
-                    # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
-                    with Popen(
-                        [executable, "db", "query", f"{query}"],
-                        stdout=stdout_file,
-                        stderr=stderr_file,
-                        cwd=project_dir,
-                    ) as p:
-                        p.communicate(timeout=3 * 60)
-                    if stdout_file.tell() == 0:
-                        error = ""
-                        if stderr_file.tell() > 0:
-                            stderr_file.seek(0)
-                            error = str(stderr_file.read())
-                        LOGGER.debug(
-                            f'Empty response from the Truffle DB.\nQuery: "{query}" \nError: {error}'
-                        )
-                        return {}
+        while _executables:
+            try:
+                executable = _executables.pop()
+                LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
+                # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
+                # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
 
-                    stdout_file.seek(0)
-                    result = json.load(stdout_file)
-                    if not result.get("data"):
-                        LOGGER.debug(
-                            f'Empty response from the Truffle DB.\nQuery: "{query}" \nRaw response: {stdout_file.read()}'
-                        )
-                        return {}
-                    return result.get("data")
-                except FileNotFoundError:
-                    # try next executable path
-                    continue
-                except JSONDecodeError:
-                    stdout_file.seek(0)
-                    LOGGER.debug(
-                        f'JSONDecodeError. \nQuery: "{query}" \nRaw response: {stdout_file.read()}'
-                    )
-                except TimeoutExpired:
-                    LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
-                except Exception as e:
-                    stdout_file.seek(0)
-                    LOGGER.debug(
-                        f'Truffle DB query error.\nQuery: "{query}". \nRaw result: {stdout_file.read()}\nError: {e}'
-                    )
+                process: CompletedProcess = run(
+                    [executable, "db", "query", f"{query}"],
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    cwd=project_dir,
+                    timeout=3 * 60,
+                )
+            except FileNotFoundError:
+                # try next executable path
+                continue
+            except TimeoutExpired:
+                LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
                 return {}
 
-            raise BuildArtifactsError(
-                f"Truffle DB connection error. Tried executable at paths: {executables}. "
-                f"Please make sure truffle is installed properly or provide path "
-                f"to a truffle executable using `--truffle-path` option to `fuzz run`"
-            )
+            raw_response = process.stdout.decode()
+
+            if len(raw_response) == 0:
+                LOGGER.debug(
+                    f'Empty response from the Truffle DB.\nQuery: "{query}" \nError: "{process.stderr.decode()}"'
+                )
+                return {}
+
+            try:
+                result = json.loads(raw_response)
+                if not result.get("data"):
+                    LOGGER.debug(
+                        f'Empty response from the Truffle DB.\nQuery: "{query}" \nRaw response: "{raw_response}"'
+                    )
+                    return {}
+                return result.get("data")
+            except JSONDecodeError:
+                LOGGER.debug(
+                    f'JSONDecodeError. \nQuery: "{query}" \nRaw response: "{raw_response}"'
+                )
+            except Exception as e:
+                LOGGER.debug(
+                    f'Truffle DB query error.\nQuery: "{query}". \nRaw response: "{raw_response}"\nError: "{e}"'
+                )
+            return {}
+
+        raise BuildArtifactsError(
+            f"Truffle DB connection error. Tried executable at paths: {executables}. "
+            f"Please make sure truffle is installed properly or provide path "
+            f"to a truffle executable using `--truffle-path` option to `fuzz run`"
+        )
 
     def _get_project_sources(self, project_dir: str) -> Dict[str, List[str]]:
         result = self.query_truffle_db(

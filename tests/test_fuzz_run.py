@@ -22,9 +22,7 @@ FAAS_URL = "http://localhost:9899"
 ORIGINAL_SOL_CODE = "original sol code here"
 
 
-def test_fuzz_run_fuzzing_lessons(
-    tmp_path, hardhat_fuzzing_lessons_project
-):
+def test_fuzz_run_fuzzing_lessons(tmp_path, hardhat_fuzzing_lessons_project):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
