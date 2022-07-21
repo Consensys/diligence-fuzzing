@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-from click import style, UsageError
+from click import UsageError, style
 
 from fuzzing_cli.fuzz.config import generate_yaml
 from fuzzing_cli.fuzz.generate_config import (

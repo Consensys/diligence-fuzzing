@@ -15,7 +15,7 @@ LEFT = "\x1b\x5b\x44"
 RIGHT = "\x1b\x5b\x43"
 
 
-def test_generate_config(tmp_path, isolated_hardhat_project):
+def test_generate_config(tmp_path, hardhat_project):
     os.chdir(tmp_path)
     actions = ["y", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
     runner = CliRunner()

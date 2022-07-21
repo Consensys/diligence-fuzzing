@@ -80,7 +80,27 @@ def prepare_seed_state(
             "storage": {"0x0": "0x1"},
         }
 
-    setup = {"initial-state": {"accounts": accounts}}
+    setup = {
+        "steps": [
+            {
+                "blockHash": "0xf",
+                "blockNumber": hex(i + 1),
+                "input": c["bytecode"],
+                "from": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+                "gas": "0xffffff",
+                "gasPrice": "0x0",
+                "hash": "0xf",
+                "nonce": "0x0",
+                "r": "0xf",
+                "s": "0xf",
+                "to": None,
+                "transactionIndex": "0x0",
+                "v": "0xf",
+                "value": "0x0",
+            }
+            for i, c in enumerate(contracts)
+        ]
+    }
     if corpus_target:
         setup["target"] = corpus_target
     if len(suggested_seed_seqs) > 0:
@@ -201,29 +221,42 @@ class QuickCheck(IDEArtifacts):
         result_sources: Dict[str, Source] = {}
 
         source_paths = {
-            str(data["id"]): source for source, data in result.get("sources", {}).items()
+            str(data["id"]): source
+            for source, data in result.get("sources", {}).items()
         }
 
         for contract_path, contract_data in result.get("contracts", {}).items():
             contract_name, _ = sorted(
                 [
-                    (c, len(d["evm"]["bytecode"]["object"]), )
+                    (c, len(d["evm"]["bytecode"]["object"]))
                     for c, d in contract_data.items()
                 ],
                 key=lambda x: x[1],  # sort by length of bytecode
-            )[-1]  # here we select the contract in file with the longest bytecode
+            )[
+                -1
+            ]  # here we select the contract in file with the longest bytecode
 
             result_contracts[contract_path] = [
                 {
                     "sourcePaths": source_paths,
-                    "bytecode": contract_data[contract_name]["evm"]["bytecode"]["object"],
-                    "sourceMap": contract_data[contract_name]["evm"]["bytecode"]["sourceMap"],
-                    "deployedBytecode": contract_data[contract_name]["evm"]["deployedBytecode"]["object"],
-                    "deployedSourceMap": contract_data[contract_name]["evm"]["deployedBytecode"]["sourceMap"],
+                    "bytecode": contract_data[contract_name]["evm"]["bytecode"][
+                        "object"
+                    ],
+                    "sourceMap": contract_data[contract_name]["evm"]["bytecode"][
+                        "sourceMap"
+                    ],
+                    "deployedBytecode": contract_data[contract_name]["evm"][
+                        "deployedBytecode"
+                    ]["object"],
+                    "deployedSourceMap": contract_data[contract_name]["evm"][
+                        "deployedBytecode"
+                    ]["sourceMap"],
                     "contractName": contract_name,
                     "mainSourceFile": contract_path,
                     "ignoredSources": self.get_compiler_generated_source_ids(
-                        contract_data[contract_name]["evm"]["deployedBytecode"]["sourceMap"],
+                        contract_data[contract_name]["evm"]["deployedBytecode"][
+                            "sourceMap"
+                        ],
                         list(source_paths.values()),
                     ),
                 }
@@ -243,6 +276,6 @@ class QuickCheck(IDEArtifacts):
                 # if it does, we include that one as the source code
                 result_sources[source_name]["source"] = get_content_from_file(
                     source_name + ".original"
-                    )
+                )
 
         return result_contracts, result_sources

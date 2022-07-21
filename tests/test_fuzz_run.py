@@ -23,7 +23,7 @@ ORIGINAL_SOL_CODE = "original sol code here"
 
 
 def test_fuzz_run_fuzzing_lessons(
-    tmp_path, bootstrapped_hardhat_fuzzing_lessons_project
+    tmp_path, hardhat_fuzzing_lessons_project
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -126,10 +126,10 @@ def test_fuzz_run_fuzzing_lessons(
 @pytest.mark.parametrize(
     "ide",
     [
-        lazy_fixture("bootstrapped_hardhat_project"),
-        lazy_fixture("bootstrapped_truffle_project"),
-        lazy_fixture("bootstrapped_brownie_project"),
-        lazy_fixture("bootstrapped_dapptools_project"),
+        lazy_fixture("hardhat_project"),
+        lazy_fixture("truffle_project"),
+        lazy_fixture("brownie_project"),
+        lazy_fixture("dapptools_project"),
     ],
 )
 @pytest.mark.parametrize("absolute_targets", [True, False])
@@ -229,10 +229,10 @@ def test_fuzz(
 @pytest.mark.parametrize(
     "ide",
     [
-        lazy_fixture("bootstrapped_hardhat_project"),
-        lazy_fixture("bootstrapped_truffle_project"),
-        lazy_fixture("bootstrapped_brownie_project"),
-        lazy_fixture("bootstrapped_dapptools_project"),
+        lazy_fixture("hardhat_project"),
+        lazy_fixture("truffle_project"),
+        lazy_fixture("brownie_project"),
+        lazy_fixture("dapptools_project"),
     ],
 )
 def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
@@ -276,7 +276,7 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
     start_faas_campaign_mock.assert_not_called()
 
 
-@pytest.mark.parametrize("ide", [lazy_fixture("bootstrapped_hardhat_project")])
+@pytest.mark.parametrize("ide", [lazy_fixture("hardhat_project")])
 @pytest.mark.parametrize(
     "corpus_target", [None, "cmp_9e931b147e7143a8b53041c708d5474e"]
 )

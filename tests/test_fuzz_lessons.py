@@ -22,7 +22,7 @@ def write_config(tmp_path: Path):
 
 @pytest.mark.parametrize("description", [None, "test description"])
 def test_start(
-    tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project, description: str
+    tmp_path: Path, hardhat_fuzzing_lessons_project, description: str
 ):
     write_config(tmp_path)
 
@@ -51,7 +51,7 @@ def test_start(
     assert config["fuzz"].get("lesson_description", None) is None
 
 
-def test_already_started(tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project):
+def test_already_started(tmp_path: Path, hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -67,7 +67,7 @@ def test_already_started(tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_pr
     assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is True
 
 
-def test_stop(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
+def test_stop(tmp_path, hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(
@@ -126,7 +126,7 @@ def test_stop(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
 
 
 def test_stop_no_transactions_in_lesson(
-    tmp_path, bootstrapped_hardhat_fuzzing_lessons_project
+    tmp_path, hardhat_fuzzing_lessons_project
 ):
     write_config(tmp_path)
 
@@ -154,7 +154,7 @@ def test_stop_no_transactions_in_lesson(
 
 @pytest.mark.parametrize("command", ["stop", "abort"])
 def test_not_started(
-    tmp_path: Path, bootstrapped_hardhat_fuzzing_lessons_project, command: str
+    tmp_path: Path, hardhat_fuzzing_lessons_project, command: str
 ):
     write_config(tmp_path)
 
@@ -165,7 +165,7 @@ def test_not_started(
     assert result.output == "Error: No fuzzing lesson is running\n"
 
 
-def test_abort(tmp_path, bootstrapped_hardhat_fuzzing_lessons_project):
+def test_abort(tmp_path, hardhat_fuzzing_lessons_project):
     write_config(tmp_path)
 
     with mocked_rpc_client(

@@ -59,7 +59,9 @@ def test_no_keys(tmp_path, truffle_project):
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize("in_config,", [False, True])
 @mark.parametrize("key_type,", ["api_key", "refresh_token"])
-def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_project):
+def test_provide_api_key(
+    in_config: bool, key_type: str, tmp_path, truffle_project
+):
     runner = CliRunner()
     if not in_config:
         write_config(not_include=["api_key"])

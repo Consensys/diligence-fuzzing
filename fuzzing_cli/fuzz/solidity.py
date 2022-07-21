@@ -4,9 +4,10 @@ import logging
 import re
 from functools import cmp_to_key
 from pathlib import Path
-from typing import Dict, Optional, Tuple, List, Set
-import semantic_version
+from typing import Dict, List, Optional, Set, Tuple
+
 import click
+import semantic_version
 import solcx
 import solcx.exceptions
 
@@ -46,18 +47,14 @@ class SolidityJob:
         solcx.set_solc_version(solc_version, silent=True)
 
     def solcx_compile(
-        self,
-        path: str,
-        remappings: Tuple[str],
-        solc_path: str = None,
+        self, path: str, remappings: Tuple[str], solc_path: str = None
     ) -> Dict:
         result = solcx.compile_standard(
             solc_binary=solc_path,
             input_data={
                 "language": "Solidity",
                 "sources": {
-                    str(target): {"urls": [str(target)]}
-                    for target in self.targets
+                    str(target): {"urls": [str(target)]} for target in self.targets
                 },
                 "settings": {
                     "remappings": [r.format(pwd=path) for r in remappings]
@@ -84,7 +81,9 @@ class SolidityJob:
         )
         base_path = Path()
         for source_name, data in result.get("sources", {}).items():
-            data["source"] = get_content_from_file(str(base_path.cwd().joinpath(source_name)))
+            data["source"] = get_content_from_file(
+                str(base_path.cwd().joinpath(source_name))
+            )
 
         for contract_path, data in result.get("contracts", {}).items():
             for contract, contract_data in data.items():
@@ -117,16 +116,23 @@ class SolidityJob:
             for t in self.targets:
                 with open(t, "r") as f:
                     source = f.read()
-                    solc_versions_in_use.add(self.solc_version_from_source(
-                        source=source, default_version=version
-                    ))
+                    solc_versions_in_use.add(
+                        self.solc_version_from_source(
+                            source=source, default_version=version
+                        )
+                    )
             if len(solc_versions_in_use) > 1:
-                LOGGER.debug(f"Found multiple versions of solidity: {', '.join(list(solc_versions_in_use))}."
-                             f" Selecting the most recent one")
-                solc_version = "v" + sorted(
-                    [v[1:] for v in solc_versions_in_use],
-                    key=cmp_to_key(semantic_version.compare),
-                )[-1]
+                LOGGER.debug(
+                    f"Found multiple versions of solidity: {', '.join(list(solc_versions_in_use))}."
+                    f" Selecting the most recent one"
+                )
+                solc_version = (
+                    "v"
+                    + sorted(
+                        [v[1:] for v in solc_versions_in_use],
+                        key=cmp_to_key(semantic_version.compare),
+                    )[-1]
+                )
             else:
                 solc_version = solc_versions_in_use.pop()
 
@@ -136,15 +142,9 @@ class SolidityJob:
             cwd = str(Path.cwd().absolute())
             LOGGER.debug(f"Compiling {self.targets} under allowed path {cwd}")
         except solcx.exceptions.SolcError as e:
-            raise click.exceptions.UsageError(
-                f"Error compiling source with solc: {e}"
-            )
+            raise click.exceptions.UsageError(f"Error compiling source with solc: {e}")
 
-        return self.solcx_compile(
-            path=cwd,
-            remappings=remappings,
-            solc_path=solc_path,
-        )
+        return self.solcx_compile(path=cwd, remappings=remappings, solc_path=solc_path)
 
     @staticmethod
     def patch_solc_bytecode(code: str) -> str:
@@ -158,4 +158,3 @@ class SolidityJob:
         :return: The patched bytecode with the zero-address filled in
         """
         return re.sub(re.compile(r"__\$.{34}\$__"), "0" * 40, code)
-

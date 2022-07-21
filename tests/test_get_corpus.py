@@ -43,9 +43,9 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
             cli,
             [
                 "run",
-                f"{tmp_path}/contracts/MasterChefV2.sol",
+                f"{tmp_path}/contracts/Foo.sol",
                 "-a",
-                "0xa7f2264164B49C866857f34aC4d7371c8e85e435",
+                "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
             ],
         )
 
@@ -72,7 +72,7 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
         },
         "name": "test",
         "corpus": {
-            "address-under-test": "0xa7f2264164B49C866857f34aC4d7371c8e85e435",
+            "address-under-test": "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
             "steps": [{"hash": "0xtest"}],
             "other-addresses-under-test": None,
         },
@@ -184,7 +184,7 @@ def test_no_latest_block(tmp_path, block):
     )
 
 
-def test_missing_targets_detection(tmp_path, bootstrapped_truffle_project):
+def test_missing_targets_detection(tmp_path, truffle_project):
     # multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -233,7 +233,7 @@ def test_missing_targets_detection(tmp_path, bootstrapped_truffle_project):
 
 @pytest.mark.parametrize("absolute_targets", [True, False])
 def test_mismatched_targets_detection(
-    tmp_path, bootstrapped_truffle_project, absolute_targets: bool
+    tmp_path, truffle_project, absolute_targets: bool
 ):
     # multiple deployments
     write_config(
@@ -273,7 +273,7 @@ def test_mismatched_targets_detection(
     )
 
 
-def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
+def test_dangling_targets_detection(tmp_path, truffle_project):
     # multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -323,7 +323,7 @@ def test_dangling_targets_detection(tmp_path, bootstrapped_truffle_project):
     )
 
 
-def test_unknown_addresses_detection(tmp_path, bootstrapped_truffle_project):
+def test_unknown_addresses_detection(tmp_path, truffle_project):
     # TODO: multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
