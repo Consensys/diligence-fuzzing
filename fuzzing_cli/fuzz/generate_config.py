@@ -53,7 +53,7 @@ def __select_targets(targets: List[str]) -> List[str]:
     files_in_dirs = []
     for target in targets:
         if Path(target).is_dir():
-            files_in_dirs.extend(sol_files_by_directory(target))
+            files_in_dirs.extend(sorted(sol_files_by_directory(target)))
         else:
             files.append(target)
 
@@ -142,7 +142,7 @@ def determine_build_dir(ide: str) -> str:
     if not Path(build_dir).is_absolute():
         build_dir = str(Path.cwd().absolute().joinpath(build_dir))
 
-    return build_dir
+    return str(build_dir)
 
 
 def determine_rpc_url() -> str:
@@ -216,18 +216,14 @@ def recreate_config(config_file: str):
     click.echo("Done 🎉")
 
 
-def sync_config(config_file: str):
-    config_path = Path().cwd().joinpath(config_file)
-    if not config_path.exists() or not config_path.is_file():
-        raise UsageError(f"Could not find config file to re-sync. Create one first.")
-
+def sync_config(config_file: Path):
     ide = determine_ide(confirm=True)
     targets = determine_targets(ide)
 
     click.echo(
-        f"⚡️ Alright! Syncing config at {style(config_path, fg='yellow', italic=True)}"
+        f"⚡️ Alright! Syncing config at {style(str(config_file), fg='yellow', italic=True)}"
     )
-    update_config(config_path, {"fuzz": {"targets": targets}})
+    update_config(config_file, {"fuzz": {"targets": targets}})
     click.echo("Done 🎉")
 
 
@@ -242,7 +238,8 @@ def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
     """
     cfs = style(config_file, fg="yellow")
     if sync:
-        if not Path.cwd().joinpath(config_file).exists():
+        config_file = Path.cwd().joinpath(config_file)
+        if not config_file.exists() or not config_file.is_file():
             command = style(
                 f"fuzz generate-config {config_file}", italic=True, fg="green"
             )
