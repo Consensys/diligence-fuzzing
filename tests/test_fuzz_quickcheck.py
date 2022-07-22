@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from typing import List
 from unittest.mock import Mock, patch
@@ -16,7 +17,17 @@ from tests.testdata.quickcheck_project.echidna.utils import (
 )
 
 
-def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process):
+@pytest.mark.parametrize(
+    "targets",
+    [
+        ["contracts"],
+        [
+            "contracts/SecondVulnerableTokenTest.sol",
+            "contracts/VulnerableTokenTest.sol",
+        ],
+    ],
+)
+def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process, targets):
     fake_process.register_subprocess([fake_process.any()])
 
     with patch(
@@ -29,7 +40,7 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process):
         "fuzzing_cli.fuzz.quickcheck.determine_campaign_name"
     ) as determine_campaign_name_mock:
         determine_ide_mock.return_value = truffle_echidna_project["ide"]
-        determine_targets_mock.return_value = [f"{tmp_path}/contracts"]
+        determine_targets_mock.return_value = [f"{tmp_path}/{t}" for t in targets]
         determine_cpu_cores_mock.return_value = 1
         determine_campaign_name_mock.return_value = "test-campaign"
 
@@ -39,10 +50,8 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process):
     assert result.exit_code == 0
 
     assert len(fake_process.calls) == 1
-    assert fake_process.calls[0] == [
-        "scribble-generate",
-        "--targets",
-        f"{tmp_path}/contracts",
+    assert fake_process.calls[0] == ["scribble-generate", "--targets"] + [
+        f"{tmp_path}/{t}" for t in targets
     ]
 
     config = parse_config(
@@ -62,6 +71,99 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process):
     assert config["analyze"].get("no-assert") is None
 
 
+def test_no_annotated_contracts(tmp_path, truffle_echidna_project, fake_process):
+    fake_process.register_subprocess([fake_process.any()])
+
+    with patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_ide",
+        new=Mock(return_value=truffle_echidna_project["ide"]),
+    ), patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_targets"
+    ) as determine_targets_mock, patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_cpu_cores", new=Mock(return_value=1)
+    ), patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_campaign_name",
+        new=Mock(return_value="test-campaign"),
+    ):
+        determine_targets_mock.return_value = [
+            f"{tmp_path}/contracts/VulnerableToken.sol"
+        ]
+        runner = CliRunner()
+        result = runner.invoke(cli, ["auto"])
+
+    assert result.exit_code == 2
+    assert "No target contains `echidna` or `ds-test` test cases" in result.output
+
+    assert len(fake_process.calls) == 1
+    assert fake_process.calls[0] == [
+        "scribble-generate",
+        "--targets",
+        f"{tmp_path}/contracts/VulnerableToken.sol",
+    ]
+
+
+@pytest.mark.parametrize(
+    "retcode, stderr, exc, output",
+    [
+        (
+            127,
+            "Annotation Error",
+            None,
+            "Error: QuickCheckError: Annotating failed\nDetail: \nAnnotation Error\n\n",
+        ),
+        (
+            0,
+            "",
+            FileNotFoundError(),
+            f"Error: QuickCheckError: scribble-generator invocation error. Tried executable at scribble-generate. "
+            f"Please make sure `scribble-generator` is installed properly or provide path "
+            f"to the executable using `--scribble-generator-path` option to `fuzz auto`\n",
+        ),
+        (
+            0,
+            "",
+            OSError(),
+            f"Error: QuickCheckError: Unhandled Exception\nDetail: OSError()\n",
+        ),
+    ],
+)
+def test_annotation_errors(
+    tmp_path, truffle_echidna_project, fake_process, retcode, stderr, exc, output
+):
+    fake_process.register_subprocess(
+        [fake_process.any()], returncode=retcode, stderr=stderr
+    )
+
+    with patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_ide",
+        new=Mock(return_value=truffle_echidna_project["ide"]),
+    ), patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_targets"
+    ) as determine_targets_mock, patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_cpu_cores", new=Mock(return_value=1)
+    ), patch(
+        "fuzzing_cli.fuzz.quickcheck.determine_campaign_name",
+        new=Mock(return_value="test-campaign"),
+    ):
+        determine_targets_mock.return_value = [f"{tmp_path}/contracts"]
+        if exc:
+            with patch.object(subprocess, "run", new=Mock(side_effect=exc)):
+                runner = CliRunner()
+                result = runner.invoke(cli, ["auto"])
+        else:
+            runner = CliRunner()
+            result = runner.invoke(cli, ["auto"])
+            assert len(fake_process.calls) == 1
+            assert fake_process.calls[0] == [
+                "scribble-generate",
+                "--targets",
+                f"{tmp_path}/contracts",
+            ]
+
+    assert result.exit_code == 1
+    assert result.output == output
+
+
 @pytest.mark.parametrize(
     "targets",
     [
@@ -74,13 +176,24 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process):
     ],
 )
 @pytest.mark.parametrize("truffle_echidna_project", ("armed",), indirect=True)
+@pytest.mark.parametrize(
+    "corpus_target", ["crp_30f45fac74c04182b023ead4f0ddb709", None]
+)
+@pytest.mark.parametrize("seed_seqs", [[{"test": "ok", "key": "val"}], None])
 def test_fuzz_run(
-    tmp_path: Path, truffle_echidna_project, fake_process, targets: List[str]
+    tmp_path: Path,
+    truffle_echidna_project,
+    fake_process,
+    targets: List[str],
+    corpus_target,
+    seed_seqs,
 ):
     write_config(
         base_path=str(tmp_path),
         **{**truffle_echidna_project, "targets": targets},
         quick_check=True,
+        suggested_seed_seqs=seed_seqs,
+        corpus_target=corpus_target,
     )
 
     fake_process.register_subprocess([fake_process.any()])
@@ -155,8 +268,13 @@ def test_fuzz_run(
     start_faas_campaign_mock.assert_called_once()
     payload = start_faas_campaign_mock.call_args[0][0]
     processed_payload = get_processed_payload(targets)
+    corpus = processed_payload["corpus"]
+    if corpus_target:
+        corpus = {**corpus, "target": corpus_target}
+    if seed_seqs:
+        corpus = {**corpus, "suggested-seed-seqs": seed_seqs}
     assert payload["parameters"] == processed_payload["parameters"]
-    assert payload["corpus"] == processed_payload["corpus"]
+    assert payload["corpus"] == corpus
     assert payload["contracts"] == processed_payload["contracts"]
     assert payload["sources"] == processed_payload["sources"]
     assert payload["name"] == "test-campaign-1"

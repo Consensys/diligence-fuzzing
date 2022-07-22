@@ -38,7 +38,9 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
         )
         if process.returncode != 0:
             reason = f"{process.stdout.decode()}\n{process.stderr.decode()}"
-            raise Exception(f"Annotating failed. Captured output: {reason}")
+            raise QuickCheckError(
+                f"QuickCheckError: Annotating failed\nDetail: {reason}"
+            )
 
         for target in _targets:
             if target.is_dir():  # find all annotated contracts
@@ -53,12 +55,17 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
             annotated_files.extend(_files)
     except FileNotFoundError:
         raise QuickCheckError(
-            f"scribble-generator invocation error. Tried executable at {scribble_generator_path}. "
+            f"QuickCheckError: scribble-generator invocation error. Tried executable at {scribble_generator_path}. "
             f"Please make sure `scribble-generator` is installed properly or provide path "
             f"to the executable using `--scribble-generator-path` option to `fuzz auto`"
         )
+    except QuickCheckError as e:
+        raise e
     except Exception as e:
         LOGGER.error(e)
+        raise QuickCheckError(
+            f"QuickCheckError: Unhandled Exception\nDetail: {repr(e)}"
+        )
 
     return annotated_files
 
@@ -144,11 +151,11 @@ class QuickCheck(IDEArtifacts):
         self.no_assert = no_assert
 
     @classmethod
-    def get_name(cls) -> str:
+    def get_name(cls) -> str:  # pragma: no cover
         return "QuickCheck"
 
     @classmethod
-    def validate_project(cls) -> bool:
+    def validate_project(cls) -> bool:  # pragma: no cover
         return True
 
     @property
@@ -160,12 +167,12 @@ class QuickCheck(IDEArtifacts):
         return self.fetch_data()[1]
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return ""
+    def get_default_build_dir() -> Path:  # pragma: no cover
+        return Path().cwd()
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return ""
+    def get_default_sources_dir() -> Path:  # pragma: no cover
+        return Path().cwd()
 
     def arm_contracts(self):
         ScribbleMixin.instrument_solc_in_place(

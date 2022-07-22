@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Mapping, Optional
 from unittest.mock import patch
 
 import requests
@@ -53,6 +53,8 @@ def generate_fuzz_config(
     no_assert: Optional[bool] = None,
     scribble_path: Optional[str] = None,
     quick_check: Optional[bool] = None,
+    faas_url: Optional[str] = None,
+    suggested_seed_seqs: Optional[List[Mapping[str, any]]] = None,
 ):
     config_file = "analyze:"
     if remappings:
@@ -108,6 +110,15 @@ def generate_fuzz_config(
     if corpus_target is not None:
         config_file += f"\n  corpus_target: {corpus_target}"
 
+    if suggested_seed_seqs is not None:
+        mapping_str = ""
+        for s in suggested_seed_seqs:
+            mapping = [f"\n    {key}: {val}" for key, val in s.items()]
+            mapping[0] = "\n  - " + mapping[0][5:]  # first entry of the list
+            mapping_str += "".join(mapping)
+
+        config_file += f"\n  suggested_seed_seqs:{mapping_str}"
+
     if additional_addresses:
         _data = "\n".join([f'    - "{a}"' for a in additional_addresses])
         config_file += f"\n  additional_contracts_addresses:\n{_data}"
@@ -119,6 +130,9 @@ def generate_fuzz_config(
 
     if quick_check:
         config_file += f"\n  quick_check: true"
+
+    if faas_url:
+        config_file += f"\n  faas_url: {faas_url}"
 
     return config_file
 

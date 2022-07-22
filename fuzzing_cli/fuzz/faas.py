@@ -3,6 +3,7 @@ import logging
 import random
 import string
 from typing import Dict
+from urllib.parse import urljoin
 
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -78,15 +79,14 @@ class FaasClient:
     def generate_campaign_name(self):
         """Return a random name with the provided prefix self.campaign_name_prefix."""
         letters = string.ascii_lowercase
-        random_string = "".join(random.choice(letters) for i in range(5))
+        random_string = "".join(random.choice(letters) for _ in range(5))
         return str(self.campaign_name_prefix + "_" + random_string)
 
     def start_faas_campaign(self, payload):
         """Make HTTP request to the faas"""
         try:
-            req_url = f"{self.faas_url}/api/campaigns/?start_immediately=true"
-            h = self.headers
-            response = requests.post(req_url, json=payload, headers=h)
+            req_url = urljoin(self.faas_url, "api/campaigns/?start_immediately=true")
+            response = requests.post(req_url, json=payload, headers=self.headers)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
                 if (
@@ -105,7 +105,7 @@ class FaasClient:
         except Exception as e:
             if isinstance(e, BadStatusCode):
                 raise e
-            raise RequestError("Error starting FaaS campaign", detail=str(e))
+            raise RequestError("Error starting FaaS campaign", detail=repr(e))
 
     def create_faas_campaign(
         self,
@@ -130,27 +130,21 @@ class FaasClient:
 
         :return: Campaign ID
         """
-        try:
-            api_payload_params = {
+        api_payload = {
+            "parameters": {
                 "discovery-probability-threshold": seed_state[
                     "discovery-probability-threshold"
                 ],
                 "num-cores": seed_state["num-cores"],
                 "assertion-checking-mode": seed_state["assertion-checking-mode"],
-            }
-            api_payload = {
-                "parameters": api_payload_params,
-                "name": self.generate_campaign_name(),
-                "corpus": seed_state["analysis-setup"],
-                "sources": campaign_data.sources,
-                "contracts": campaign_data.contracts,
-                "project": self.project,
-                "quickCheck": self.quick_check,
-            }
-        except KeyError as e:
-            raise PayloadError(
-                "Error extracting data from payload", detail=f"Key {str(e)} not found"
-            )
+            },
+            "name": self.generate_campaign_name(),
+            "corpus": seed_state["analysis-setup"],
+            "sources": campaign_data.sources,
+            "contracts": campaign_data.contracts,
+            "project": self.project,
+            "quickCheck": self.quick_check,
+        }
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
@@ -158,7 +152,7 @@ class FaasClient:
                 api_payload["instrumentationMetadata"] = instr_meta
         except Exception as e:
             raise ScribbleMetaError(
-                "Error getting Scribble arming metadata.", detail=str(e)
+                "Error getting Scribble arming metadata", detail=repr(e)
             )
 
         if dry_run:

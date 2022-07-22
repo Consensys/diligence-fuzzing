@@ -1,10 +1,11 @@
 import json
 import os
-from typing import Dict, Optional
+from typing import Dict, Mapping, Optional, Union
 from unittest.mock import Mock, patch
 
 import pytest
 import requests
+import requests_mock
 from click.testing import CliRunner
 from pytest_lazyfixture import lazy_fixture
 from requests import RequestException
@@ -15,6 +16,7 @@ from fuzzing_cli.fuzz.exceptions import RequestError
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide import IDEArtifacts, TruffleArtifacts
 from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.scribble import SCRIBBLE_ARMING_META_FILE
 from tests.common import get_test_case, mocked_rpc_client, write_config
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
@@ -364,3 +366,159 @@ def test_fuzz_no_target(tmp_path):
     result = runner.invoke(cli, ["run"])
     assert "Error: Target not provided." in result.output
     assert result.exit_code != 0
+
+
+@pytest.mark.parametrize(
+    "status_code, text, _json, exc, error_output",
+    [
+        (
+            500,
+            "Internal Server Error",
+            None,
+            None,
+            "Error: RequestError: Error starting FaaS campaign\nDetail: "
+            "JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n",
+        ),
+        (
+            403,
+            None,
+            {"detail": "No subscription", "error": "SubscriptionError"},
+            None,
+            "Error: BadStatusCode: Subscription Error\nDetail: No subscription\n",
+        ),
+        (
+            403,
+            None,
+            {"detail": "Access denied", "error": "AccessDenied"},
+            None,
+            "Error: BadStatusCode: Got http status code 403 for request https://fuzzing-test.diligence.tools/api/"
+            "campaigns/?start_immediately=true\nDetail: Access denied\n",
+        ),
+        (
+            500,
+            None,
+            {"detail": "Server error", "error": "InternalServerError"},
+            None,
+            "Error: BadStatusCode: Got http status code 500 for request https://fuzzing-test.diligence.tools/api/"
+            "campaigns/?start_immediately=true\nDetail: Server error\n",
+        ),
+        (
+            500,
+            None,
+            None,
+            RequestException(),
+            "Error: RequestError: Error starting FaaS campaign\nDetail: RequestException()\n",
+        ),
+    ],
+)
+def test_fuzz_submission_error(
+    tmp_path,
+    brownie_project,
+    status_code: int,
+    text: Optional[str],
+    _json: Optional[Mapping[str, any]],
+    exc: Optional[Exception],
+    error_output: str,
+):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **brownie_project,
+        faas_url="https://fuzzing-test.diligence.tools/",
+    )
+
+    codes = {
+        contract["address"].lower(): contract["deployedBytecode"]
+        for contract in get_test_case(
+            "testdata/brownie_project/contracts.json"
+        ).values()
+    }
+
+    with mocked_rpc_client(
+        get_test_case("testdata/brownie_project/blocks.json"), codes
+    ), patch.object(
+        FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), requests_mock.Mocker() as m:
+        m.register_uri(
+            "POST", "http://localhost:9898", real_http=True
+        )  # will be passed to mocker from the `mocked_rpc_client`
+        m.register_uri(
+            "POST",
+            "https://example-us.com/oauth/token",
+            json={"access_token": "test-token"},
+        )
+        if exc:
+            m.register_uri(
+                "POST",
+                "https://fuzzing-test.diligence.tools/api/campaigns/?start_immediately=true",
+                exc=exc,
+            )
+        else:
+            m.register_uri(
+                "POST",
+                "https://fuzzing-test.diligence.tools/api/campaigns/?start_immediately=true",
+                status_code=status_code,
+                text=text,
+                json=_json,
+            )
+        runner = CliRunner()
+        cmd = ["run"]
+        result = runner.invoke(cli, cmd)
+
+    assert result.exit_code == 1
+    assert result.output == error_output
+
+
+@pytest.mark.parametrize("scribble_meta", [True, False, "exc"])
+def test_fuzz_add_scribble_meta(
+    tmp_path, hardhat_project, scribble_meta: Union[bool, str]
+):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **hardhat_project
+    )
+    if scribble_meta is True:
+        with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
+            json.dump({"some_property": "some_value"}, f)
+
+    if scribble_meta is "exc":
+        with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
+            f.write("wrong_json")
+
+    blocks = get_test_case("testdata/hardhat_project/blocks.json")
+    codes = {
+        contract["address"].lower(): contract["deployedBytecode"]
+        for contract in get_test_case(
+            "testdata/hardhat_project/contracts.json"
+        ).values()
+    }
+
+    with mocked_rpc_client(blocks, codes), patch.object(
+        FaasClient, "start_faas_campaign"
+    ) as start_faas_campaign_mock, patch.object(
+        FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ):
+        campaign_id = "cmp_517b504e67474ab6b26a92a58e0adbf9"
+        start_faas_campaign_mock.return_value = campaign_id
+        runner = CliRunner()
+        cmd = ["run"]
+        result = runner.invoke(cli, cmd)
+
+    if type(scribble_meta) == bool:
+        start_faas_campaign_mock.assert_called_once()
+        payload = start_faas_campaign_mock.call_args[0][0]
+        assert result.exit_code == 0
+        assert (
+            f"You can view campaign here: http://localhost:9899/campaigns/{campaign_id}"
+            in result.output
+        )
+        assert payload.get("instrumentationMetadata", None) == (
+            {"some_property": "some_value"} if scribble_meta else None
+        )
+    else:
+        start_faas_campaign_mock.assert_not_called()
+        assert result.exit_code == 1
+        assert (
+            result.output
+            == "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
+            "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
+        )
