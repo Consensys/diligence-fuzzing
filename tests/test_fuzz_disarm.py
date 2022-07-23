@@ -148,18 +148,14 @@ def test_fuzz_disarm_folder_targets(tmp_path, scribble_project, fake_process):
 
     assert result.exit_code == 0
     assert result.output == "success\n\n"
-    assert (
-        fake_process.call_count(
-            [
-                "scribble",
-                "--disarm",
-                "--instrumentation-metadata-file=.scribble-arming.meta.json",
-                f"{tmp_path}/contracts/Migrations.sol",
-                f"{tmp_path}/contracts/VulnerableToken.sol",
-            ]
-        )
-        == 1
-    )
+    assert len(fake_process.calls) == 1
+    assert fake_process.calls[0] == [
+        "scribble",
+        "--disarm",
+        "--instrumentation-metadata-file=.scribble-arming.meta.json",
+        f"{tmp_path}/contracts/Migrations.sol",
+        f"{tmp_path}/contracts/VulnerableToken.sol",
+    ]
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))

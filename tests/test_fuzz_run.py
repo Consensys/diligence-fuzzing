@@ -17,7 +17,7 @@ from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide import IDEArtifacts, TruffleArtifacts
 from fuzzing_cli.fuzz.rpc import RPCClient
 from fuzzing_cli.fuzz.scribble import SCRIBBLE_ARMING_META_FILE
-from tests.common import get_test_case, mocked_rpc_client, write_config
+from tests.common import assert_is_equal, get_test_case, mocked_rpc_client, write_config
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
 FAAS_URL = "http://localhost:9899"
@@ -221,7 +221,7 @@ def test_fuzz(
 
     assert payload["parameters"] == processed_payload["parameters"]
     assert payload["corpus"] == processed_payload["corpus"]
-    assert payload["contracts"] == processed_payload["contracts"]
+    assert_is_equal(payload["contracts"], processed_payload["contracts"])
     assert payload["sources"] == processed_payload["sources"]
     assert payload["name"] == "test-campaign-1"
 

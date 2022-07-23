@@ -10,7 +10,7 @@ from click.testing import CliRunner
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config.utils import parse_config
 from fuzzing_cli.fuzz.faas import FaasClient
-from tests.common import write_config
+from tests.common import assert_is_equal, write_config
 from tests.testdata.quickcheck_project.echidna.utils import (
     get_compilation_artifacts,
     get_processed_payload,
@@ -58,10 +58,13 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process, target
         tmp_path.joinpath(f".fuzz_{tmp_path.name.lower().replace('-', '_')}.yml")
     )
     assert config["fuzz"].get("ide") == "truffle"
-    assert list(config["fuzz"].get("targets")) == [
-        f"{tmp_path}/contracts/SecondVulnerableTokenTest.sol",
-        f"{tmp_path}/contracts/VulnerableTokenTest.sol",
-    ]
+    assert_is_equal(
+        list(config["fuzz"].get("targets")),
+        [
+            f"{tmp_path}/contracts/SecondVulnerableTokenTest.sol",
+            f"{tmp_path}/contracts/VulnerableTokenTest.sol",
+        ],
+    )
     assert config["fuzz"].get("quick_check") == True
     assert config["fuzz"].get("number_of_cores") == 1
     assert config["fuzz"].get("campaign_name_prefix") == "test-campaign"
@@ -275,7 +278,7 @@ def test_fuzz_run(
         corpus = {**corpus, "suggested-seed-seqs": seed_seqs}
     assert payload["parameters"] == processed_payload["parameters"]
     assert payload["corpus"] == corpus
-    assert payload["contracts"] == processed_payload["contracts"]
+    assert_is_equal(payload["contracts"], processed_payload["contracts"])
     assert payload["sources"] == processed_payload["sources"]
     assert payload["name"] == "test-campaign-1"
     assert payload["quickCheck"] is True

@@ -1,11 +1,12 @@
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Union
 from unittest.mock import patch
 
 import requests
 import requests_mock
+from deepdiff import DeepDiff
 
 from fuzzing_cli.fuzz.types import EVMBlock
 
@@ -174,3 +175,10 @@ def mocked_rpc_client(blocks: List[EVMBlock], codes: Dict[str, str] = {}):
     with requests_mock.Mocker() as m:
         m.register_uri("POST", "http://localhost:9898", json=request_handler)
         yield
+
+
+def assert_is_equal(
+    a: Union[List[any], Dict[str, any]], b: Union[List[any], Dict[str, any]]
+):
+    res = DeepDiff(a, b, ignore_order=True, report_repetition=True)
+    assert res == {}, f"{res}"
