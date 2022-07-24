@@ -386,9 +386,14 @@ def test_fuzz_no_target(tmp_path):
                 "Error: RequestError: Error starting FaaS campaign\n"
                 "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
                 if get_python_version()
-                == "3.6"  # COMPAT: adding comma to JSONDecodeError repr
-                else "Error: RequestError: Error starting FaaS campaign\n"
-                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
+                == ("CPython", "3.6")  # COMPAT: adding comma to JSONDecodeError repr
+                else (
+                    "Error: RequestError: Error starting FaaS campaign\n"
+                    "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
+                    if get_python_version()[0] == "CPython"  # else is PyPy
+                    else "Error: RequestError: Error starting FaaS campaign\n"
+                    "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)')\n"
+                )
             ),
         ),
         (
@@ -533,11 +538,17 @@ def test_fuzz_add_scribble_meta(
             "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
             "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
         )
-        if (
-            get_python_version() == "3.6"
+        if get_python_version() == (
+            "CPython",
+            "3.6",
         ):  # COMPAT: adding comma to JSONDecodeError repr
             output = (
                 "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
                 "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
+            )
+        elif get_python_version()[0] == "PyPy":
+            output = (
+                "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
+                "Detail: JSONDecodeError(\"Unexpected 'w': line 1 column 1 (char 0)\")\n"
             )
         assert result.output == output

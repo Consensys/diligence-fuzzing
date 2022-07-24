@@ -1,8 +1,9 @@
 import json
+import platform
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Dict, List, Mapping, Optional, Tuple, Union
 from unittest.mock import patch
 
 import requests
@@ -185,5 +186,8 @@ def assert_is_equal(
     assert res == {}, f"{res}"
 
 
-def get_python_version() -> str:
-    return f"{sys.version_info.major}.{sys.version_info.minor}"
+def get_python_version() -> Tuple[str, str]:
+    return (
+        platform.python_implementation(),
+        f"{sys.version_info.major}.{sys.version_info.minor}",
+    )
