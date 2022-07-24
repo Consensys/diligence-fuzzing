@@ -1,4 +1,5 @@
 import json
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Union
@@ -182,3 +183,7 @@ def assert_is_equal(
 ):
     res = DeepDiff(a, b, ignore_order=True, report_repetition=True)
     assert res == {}, f"{res}"
+
+
+def get_python_version() -> str:
+    return f"{sys.version_info.major}.{sys.version_info.minor}"

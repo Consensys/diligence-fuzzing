@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
-from tests.common import write_config
+from tests.common import assert_is_equal, write_config
 
 
 @pytest.mark.parametrize(
@@ -213,14 +213,17 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
     assert result.exit_code == 0
     assert result.output == "success\n\n"
     assert len(fake_process.calls) == 1
-    assert fake_process.calls[0] == [
-        "scribble",
-        "--arm",
-        "--output-mode=files",
-        "--instrumentation-metadata-file=.scribble-arming.meta.json",
-        f"{tmp_path}/contracts/Migrations.sol",
-        f"{tmp_path}/contracts/VulnerableToken.sol",
-    ]
+    assert_is_equal(
+        fake_process.calls[0],
+        [
+            "scribble",
+            "--arm",
+            "--output-mode=files",
+            "--instrumentation-metadata-file=.scribble-arming.meta.json",
+            f"{tmp_path}/contracts/Migrations.sol",
+            f"{tmp_path}/contracts/VulnerableToken.sol",
+        ],
+    )
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))

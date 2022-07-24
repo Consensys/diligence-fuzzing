@@ -17,7 +17,13 @@ from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide import IDEArtifacts, TruffleArtifacts
 from fuzzing_cli.fuzz.rpc import RPCClient
 from fuzzing_cli.fuzz.scribble import SCRIBBLE_ARMING_META_FILE
-from tests.common import assert_is_equal, get_test_case, mocked_rpc_client, write_config
+from tests.common import (
+    assert_is_equal,
+    get_python_version,
+    get_test_case,
+    mocked_rpc_client,
+    write_config,
+)
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
 FAAS_URL = "http://localhost:9899"
@@ -376,8 +382,14 @@ def test_fuzz_no_target(tmp_path):
             "Internal Server Error",
             None,
             None,
-            "Error: RequestError: Error starting FaaS campaign\nDetail: "
-            "JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n",
+            (
+                "Error: RequestError: Error starting FaaS campaign\n"
+                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
+                if get_python_version()
+                == "3.6"  # COMPAT: adding comma to JSONDecodeError repr
+                else "Error: RequestError: Error starting FaaS campaign\n"
+                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
+            ),
         ),
         (
             403,
@@ -517,8 +529,15 @@ def test_fuzz_add_scribble_meta(
     else:
         start_faas_campaign_mock.assert_not_called()
         assert result.exit_code == 1
-        assert (
-            result.output
-            == "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
+        output = (
+            "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
             "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
         )
+        if (
+            get_python_version() == "3.6"
+        ):  # COMPAT: adding comma to JSONDecodeError repr
+            output = (
+                "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
+                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
+            )
+        assert result.output == output
