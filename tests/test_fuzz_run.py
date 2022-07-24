@@ -377,25 +377,7 @@ def test_fuzz_no_target(tmp_path):
 @pytest.mark.parametrize(
     "status_code, text, _json, exc, error_output",
     [
-        (
-            500,
-            "Internal Server Error",
-            None,
-            None,
-            (
-                "Error: RequestError: Error starting FaaS campaign\n"
-                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
-                if get_python_version()
-                == ("CPython", "3.6")  # COMPAT: adding comma to JSONDecodeError repr
-                else (
-                    "Error: RequestError: Error starting FaaS campaign\n"
-                    "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
-                    if get_python_version()[0] == "CPython"  # else is PyPy
-                    else "Error: RequestError: Error starting FaaS campaign\n"
-                    "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)')\n"
-                )
-            ),
-        ),
+        (500, "Internal Server Error", None, None, "<JSONDecodeError>"),
         (
             403,
             None,
@@ -437,6 +419,28 @@ def test_fuzz_submission_error(
     exc: Optional[Exception],
     error_output: str,
 ):
+    if error_output == "<JSONDecodeError>":
+        error_output = (
+            "Error: RequestError: Error starting FaaS campaign\n"
+            "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
+        )
+        _platform, py_version = get_python_version()
+        if _platform == "CPython" and py_version == "3.6":
+            error_output = (
+                "Error: RequestError: Error starting FaaS campaign\n"
+                "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
+            )
+        elif _platform == "PyPy":
+            error_output = (
+                "Error: RequestError: Error starting FaaS campaign\n"
+                "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)')\n"
+            )
+            if py_version == "3.6":
+                error_output = (
+                    "Error: RequestError: Error starting FaaS campaign\n"
+                    "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)',)\n"
+                )
+
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -534,21 +538,26 @@ def test_fuzz_add_scribble_meta(
     else:
         start_faas_campaign_mock.assert_not_called()
         assert result.exit_code == 1
+
         output = (
             "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
             "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
         )
-        if get_python_version() == (
-            "CPython",
-            "3.6",
-        ):  # COMPAT: adding comma to JSONDecodeError repr
+        _platform, py_version = get_python_version()
+        if _platform == "CPython" and py_version == "3.6":
             output = (
                 "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
                 "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
             )
-        elif get_python_version()[0] == "PyPy":
+        elif _platform == "PyPy":
             output = (
                 "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
                 "Detail: JSONDecodeError(\"Unexpected 'w': line 1 column 1 (char 0)\")\n"
             )
+            if py_version == "3.6":
+                output = (
+                    "Error: ScribbleMetaError: Error getting Scribble arming metadata\n"
+                    "Detail: JSONDecodeError(\"Unexpected 'w': line 1 column 1 (char 0)\",)\n"
+                )
+
         assert result.output == output
