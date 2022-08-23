@@ -1,9 +1,11 @@
 import base64
+import math
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import click
 
+from fuzzing_cli.fuzz.config.pytimer import str_to_sec
 from fuzzing_cli.fuzz.types import SeedSequenceTransaction
 
 
@@ -30,6 +32,7 @@ class FuzzingOptions:
         incremental: bool = False,
         suggested_seed_seqs: List[List[SeedSequenceTransaction]] = [],
         lesson_description: Optional[str] = None,
+        time_limit: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -49,6 +52,7 @@ class FuzzingOptions:
         self.incremental = incremental
         self.suggested_seed_seqs = suggested_seed_seqs
         self.lesson_description = lesson_description
+        self.time_limit = self._parse_time_limit(time_limit)
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -66,6 +70,18 @@ class FuzzingOptions:
         self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
             key
         )
+
+    @staticmethod
+    def _parse_time_limit(time_limit: Optional[str]) -> Optional[int]:
+        if not time_limit:
+            return None
+        try:
+            return math.floor(str_to_sec(time_limit))
+        except Exception as e:
+            raise click.exceptions.UsageError(
+                "Error parsing `time_limit` config parameter. Make sure the string in the correct format "
+                '(e.g. "5d 3h 50m 15s 20ms 6us" or "24hrs,30mins")'
+            ) from e
 
     @staticmethod
     def make_absolute_path(path: Optional[str] = None) -> Optional[Path]:

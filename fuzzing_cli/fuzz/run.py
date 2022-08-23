@@ -16,8 +16,6 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 headers = {"Content-Type": "application/json"}
 
-time_limit_seconds = 3000
-
 
 @click.command("run")
 @click.argument("target", default=None, nargs=-1)
@@ -164,6 +162,7 @@ def fuzz_run(
                     "incremental": fuzz_config.get("incremental"),
                     "suggested_seed_seqs": fuzz_config.get("suggested_seed_seqs"),
                     "lesson_description": fuzz_config.get("lesson_description"),
+                    "time_limit": fuzz_config.get("time_limit"),
                 }
             ).items()
             if v is not None
@@ -248,6 +247,7 @@ def fuzz_run(
         auth_endpoint=options.auth_endpoint,
         project=options.project,
         quick_check=options.quick_check,
+        time_limit=options.time_limit,
     )
 
     try:

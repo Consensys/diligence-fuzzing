@@ -2,7 +2,7 @@ import json
 import logging
 import random
 import string
-from typing import Dict
+from typing import Dict, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -31,20 +31,22 @@ class FaasClient:
 
     def __init__(
         self,
-        faas_url,
-        campaign_name_prefix,
-        project_type,
-        client_id,
-        refresh_token,
-        auth_endpoint,
-        project,
-        quick_check=False,
+        faas_url: str,
+        campaign_name_prefix: str,
+        project_type: str,
+        client_id: str,
+        refresh_token: str,
+        auth_endpoint: str,
+        project: Optional[str] = None,
+        quick_check: bool = False,
+        time_limit: Optional[int] = None,
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
         self.project = project
         self.quick_check = quick_check
+        self.time_limit = time_limit
 
         self._client_id = client_id
         self._refresh_token = refresh_token
@@ -142,9 +144,14 @@ class FaasClient:
             "corpus": seed_state["analysis-setup"],
             "sources": campaign_data.sources,
             "contracts": campaign_data.contracts,
-            "project": self.project,
             "quickCheck": self.quick_check,
         }
+
+        if self.project is not None:
+            api_payload["project"] = (self.project,)
+
+        if self.time_limit is not None:
+            api_payload["timeLimit"] = self.time_limit
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()

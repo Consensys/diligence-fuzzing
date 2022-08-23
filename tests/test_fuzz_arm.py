@@ -220,6 +220,7 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
             "--arm",
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
+            "--debug-events",
             f"{tmp_path}/contracts/Migrations.sol",
             f"{tmp_path}/contracts/VulnerableToken.sol",
         ],

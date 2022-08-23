@@ -58,6 +58,7 @@ def generate_fuzz_config(
     quick_check: Optional[bool] = None,
     faas_url: Optional[str] = None,
     suggested_seed_seqs: Optional[List[Mapping[str, any]]] = None,
+    time_limit: Optional[str] = None,
 ):
     config_file = "analyze:"
     if remappings:
@@ -136,6 +137,9 @@ def generate_fuzz_config(
 
     if faas_url:
         config_file += f"\n  faas_url: {faas_url}"
+
+    if time_limit:
+        config_file += f"\n  time_limit: {time_limit}"
 
     return config_file
 

@@ -74,6 +74,7 @@ class ScribbleMixin:
             "--arm",
             "--output-mode=files",
             f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
+            "--debug-events",
         ]
 
         if remappings:

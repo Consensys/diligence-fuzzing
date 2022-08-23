@@ -12,10 +12,8 @@ from requests import RequestException
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config import update_config
-from fuzzing_cli.fuzz.exceptions import RequestError
 from fuzzing_cli.fuzz.faas import FaasClient
-from fuzzing_cli.fuzz.ide import IDEArtifacts, TruffleArtifacts
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.ide import TruffleArtifacts
 from fuzzing_cli.fuzz.scribble import SCRIBBLE_ARMING_META_FILE
 from tests.common import (
     assert_is_equal,
@@ -284,12 +282,21 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
 
 @pytest.mark.parametrize("ide", [lazy_fixture("hardhat_project")])
 @pytest.mark.parametrize(
-    "corpus_target", [None, "cmp_9e931b147e7143a8b53041c708d5474e"]
+    "corpus_target, time_limit",
+    [(None, None), ("cmp_9e931b147e7143a8b53041c708d5474e", "15mins")],
 )
-def test_fuzz_corpus_target(
-    tmp_path, ide: Dict[str, any], corpus_target: Optional[str]
+def test_fuzz_parameters(
+    tmp_path,
+    ide: Dict[str, any],
+    corpus_target: Optional[str],
+    time_limit: Optional[str],
 ):
-    write_config(config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **ide)
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        **ide,
+        time_limit=time_limit,
+    )
 
     IDE_NAME = ide["ide"]
     blocks = get_test_case(f"testdata/{IDE_NAME}_project/blocks.json")
@@ -323,13 +330,14 @@ def test_fuzz_corpus_target(
     payload = start_faas_campaign_mock.call_args[0][0]
 
     assert payload["corpus"].get("target", None) == corpus_target
+    assert payload.get("timeLimit", None) == (900 if time_limit else None)
 
 
 def test_rpc_not_running(tmp_path):
     write_config(base_path=str(tmp_path))
 
-    with patch.object(requests, "request") as requests_mock:
-        requests_mock.side_effect = RequestException()
+    with patch.object(requests, "request") as mocker:
+        mocker.side_effect = RequestException()
 
         runner = CliRunner()
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
