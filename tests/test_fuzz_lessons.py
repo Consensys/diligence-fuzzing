@@ -39,14 +39,12 @@ def test_start(tmp_path: Path, hardhat_fuzzing_lessons_project, description: str
     with tmp_path.joinpath(".fuzzing_lessons.json").open("r") as f:
         lesson_data = json.load(f)
     assert lesson_data == {
-        "numberOfBlocks": 2,
-        "description": description or "my lesson",
-        "configFilePath": str(tmp_path.joinpath(".fuzz.yml")),
+        "runningLesson": {
+            "numberOfBlocks": 2,
+            "description": description or "my lesson",
+        },
+        "lessons": [],
     }
-
-    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
-    assert config["fuzz"].get("suggested_seed_sequences", None) is None
-    assert config["fuzz"].get("lesson_description", None) is None
 
 
 def test_already_started(tmp_path: Path, hardhat_fuzzing_lessons_project):
@@ -84,43 +82,46 @@ def test_stop(tmp_path, hardhat_fuzzing_lessons_project):
 
     assert result.exit_code == 0
 
-    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
-
-    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
-    assert config["fuzz"].get("lesson_description", None) == "my lesson"
-    suggested_seed_seqs = [
-        [dict(s) for s in _s] for _s in config["fuzz"].get("suggested_seed_seqs", [])
-    ]
-    assert suggested_seed_seqs == [
-        [
+    with tmp_path.joinpath(".fuzzing_lessons.json").open("r") as f:
+        lesson_data = json.load(f)
+    assert lesson_data == {
+        "runningLesson": None,
+        "lessons": [
             {
-                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
-                "blockCoinbase": "0x0000000000000000000000000000000000000000",
-                "blockDifficulty": "0x0",
-                "blockGasLimit": "0x6691b7",
-                "blockNumber": "0x2",
-                "blockTime": "0x62bd7444",
-                "gasLimit": "0x3381a",
-                "gasPrice": "0x4a817c800",
-                "input": "0x3f81a2c0000000000000000000000000000000000000000000000000000000000000002a",
-                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
-                "value": "0x0",
-            },
-            {
-                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
-                "blockCoinbase": "0x0000000000000000000000000000000000000000",
-                "blockDifficulty": "0x0",
-                "blockGasLimit": "0x6691b7",
-                "blockNumber": "0x3",
-                "blockTime": "0x62bd7444",
-                "gasLimit": "0x6691b7",
-                "gasPrice": "0x9184e72a000",
-                "input": "0x9507d39abeced09521047d05b8960b7e7bcc1d1292cf3e4b2a6b63f48335cbde5f7545d2",
-                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
-                "value": "0x0",
-            },
-        ]
-    ]
+                "description": "my lesson",
+                "transactions": [
+                    [
+                        {
+                            "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                            "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                            "blockDifficulty": "0x0",
+                            "blockGasLimit": "0x6691b7",
+                            "blockNumber": "0x2",
+                            "blockTime": "0x62bd7444",
+                            "gasLimit": "0x3381a",
+                            "gasPrice": "0x4a817c800",
+                            "input": "0x3f81a2c0000000000000000000000000000000000000000000000000000000000000002a",
+                            "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                            "value": "0x0",
+                        },
+                        {
+                            "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                            "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                            "blockDifficulty": "0x0",
+                            "blockGasLimit": "0x6691b7",
+                            "blockNumber": "0x3",
+                            "blockTime": "0x62bd7444",
+                            "gasLimit": "0x6691b7",
+                            "gasPrice": "0x9184e72a000",
+                            "input": "0x9507d39abeced09521047d05b8960b7e7bcc1d1292cf3e4b2a6b63f48335cbde5f7545d2",
+                            "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                            "value": "0x0",
+                        },
+                    ]
+                ],
+            }
+        ],
+    }
 
 
 def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_project):
@@ -130,7 +131,7 @@ def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_projec
         get_test_case("testdata/hardhat_fuzzing_lessons_project/blocks.json")
     ):
         runner = CliRunner()
-        runner.invoke(cli, ["lesson", "start"])
+        runner.invoke(cli, ["lesson", "start", "--description", "test-lesson"])
 
     blocks_after_lesson = get_test_case(
         "testdata/hardhat_fuzzing_lessons_project/blocks.json"
@@ -141,11 +142,12 @@ def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_projec
         result = runner.invoke(cli, ["lesson", "stop"])
 
     assert result.exit_code == 0
-    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
-
-    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
-    assert config["fuzz"].get("suggested_seed_seqs", None) is None
-    assert config["fuzz"].get("lesson_description", None) is None
+    with tmp_path.joinpath(".fuzzing_lessons.json").open("r") as f:
+        lesson_data = json.load(f)
+    assert lesson_data == {
+        "runningLesson": None,
+        "lessons": [{"description": "test-lesson", "transactions": [[]]}],
+    }
 
 
 @pytest.mark.parametrize("command", ["stop", "abort"])

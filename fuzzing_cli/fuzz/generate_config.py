@@ -179,6 +179,17 @@ def determine_campaign_name() -> str:
     return name
 
 
+def determine_sources_dir(targets: List[str]) -> str:
+    if len(targets) == 1:
+        if Path(targets[0]).is_dir():
+            # looks like contracts directory
+            return targets[0]
+        # return parent folder of the contract file
+        return str(Path(targets[0]).parent)
+    # return common parent of target files
+    return commonpath(targets)
+
+
 def recreate_config(config_file: str):
     ide = determine_ide()
     targets = determine_targets(ide)
@@ -189,7 +200,7 @@ def recreate_config(config_file: str):
 
     config_path = Path().cwd().joinpath(config_file)
 
-    sources_directory = commonpath(targets)
+    sources_directory = determine_sources_dir(targets)
 
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"

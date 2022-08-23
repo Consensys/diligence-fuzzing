@@ -1,7 +1,7 @@
 import logging
 from os.path import commonpath
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import click
 import requests
@@ -10,6 +10,7 @@ from requests import RequestException
 
 from .exceptions import FaaSError, RPCCallError
 from .ide import IDEArtifacts
+from .lessons import FuzzingLessons
 from .quickcheck_lib.utils import mk_contract_address
 from .types import EVMBlock, EVMTransaction, SeedSequenceTransaction
 
@@ -32,23 +33,17 @@ class RPCClient:
         self.rpc_url = rpc_url
         self.number_of_cores = number_of_cores
 
-    def call(self, method: str, params: str):
+    def call(self, method: str, params: List[Union[str, bool, int, float]]):
         """Make an rpc call to the RPC endpoint
 
         :return: Result property of the RPC response
         """
         try:
-            payload = (
-                '{"jsonrpc":"2.0","method":"'
-                + method
-                + '","params":'
-                + params
-                + ',"id":1}'
-            )
+            payload = {"jsonrpc": "2.0", "method": method, "params": params, "id": 1}
             response = (
-                requests.request("POST", self.rpc_url, headers=headers, data=payload)
+                requests.request("POST", self.rpc_url, headers=headers, json=payload)
             ).json()
-            return response["result"]
+            return response.get("result", None)
         except RequestException as e:
             raise RPCCallError(
                 f"HTTP error calling RPC method {method} with parameters: {params}"
@@ -62,13 +57,15 @@ class RPCClient:
         if not latest:
             block_value = hex(block_number)
 
-        block = self.call("eth_getBlockByNumber", '["' + block_value + '", true]')
+        block = self.call("eth_getBlockByNumber", [block_value, True])
+        return block
+
+    def get_block_by_hash(self, hash: str) -> Optional[EVMBlock]:
+        block = self.call("eth_getBlockByHash", [hash, True])
         return block
 
     def get_code(self, contract_address: str) -> Optional[str]:
-        deployed_bytecode = self.call(
-            "eth_getCode", f'["{contract_address}", "latest"]'
-        )
+        deployed_bytecode = self.call("eth_getCode", [contract_address, "latest"])
         if deployed_bytecode == "0x":
             return None
         return deployed_bytecode
@@ -156,15 +153,38 @@ class RPCClient:
         self,
         address: str,
         other_addresses: Optional[List[str]],
-        suggested_seed_seqs: List[List[SeedSequenceTransaction]],
-        lesson_description: Optional[str] = None,
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         try:
-            processed_transactions = self.get_transactions(
-                block_numbers_to_skip=list(
-                    {b["blockNumber"] for s in suggested_seed_seqs for b in s}
+
+            processed_transactions: List[EVMTransaction] = []
+            blocks_to_skip: Set[str] = set({})
+            suggested_seed_seqs: List[List[SeedSequenceTransaction]] = []
+
+            for lesson in FuzzingLessons.get_lessons():
+                block = self.get_block_by_hash(lesson["lastBlockHash"])
+                if not block:
+                    click.secho(
+                        f"Lesson \"{lesson['description']}\" will not be added to campaign "
+                        f"because it's parent block hash is not found in Ethereum RPC node"
+                    )
+                    continue
+                click.secho(
+                    f"Lesson \"{lesson['description']}\" will be added to the campaign's seed state"
                 )
+                LOGGER.debug(
+                    f"Adding lesson \"{lesson['description']}\" to the campaign's seed state"
+                )
+                blocks_to_skip.update(
+                    {b["blockNumber"] for s in lesson["transactions"] for b in s}
+                )
+                suggested_seed_seqs.extend(lesson["transactions"])
+
+            LOGGER.debug(
+                f"Skipping blocks {list(blocks_to_skip)} because they are part of the lessons"
+            )
+            processed_transactions.extend(
+                self.get_transactions(block_numbers_to_skip=list(blocks_to_skip))
             )
 
             if len(processed_transactions) == 0:
@@ -182,9 +202,6 @@ class RPCClient:
             if corpus_target:
                 setup["target"] = corpus_target
             if len(suggested_seed_seqs) > 0:
-                click.secho(
-                    f'Fuzzing Lessons detected. Using lesson "{lesson_description}"'
-                )
                 setup["suggested-seed-seqs"] = suggested_seed_seqs
             return {
                 "discovery-probability-threshold": 0.0,

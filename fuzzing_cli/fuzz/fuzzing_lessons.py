@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Dict
 
 import click
@@ -32,10 +31,8 @@ def cli(ctx):
 @click.pass_obj
 def start(ctx, description: str):
     """Start recording fuzzing lesson"""
-    config_path = Path(ctx.get("config"))
-    if not config_path.absolute():
-        config_path = Path.cwd().joinpath(Path(ctx.get("config")))
-    FuzzingLessons.start_lesson(description, config_path, prepare_rpc_client(ctx))
+    fl = FuzzingLessons()
+    fl.start_lesson(description, prepare_rpc_client(ctx))
     click.secho(f'Started recording fuzzing lesson "{description}"')
 
 
@@ -44,7 +41,8 @@ def start(ctx, description: str):
 @click.pass_obj
 def stop(ctx):
     """Stop recording fuzzing lesson and save results"""
-    description = FuzzingLessons.stop_lesson(prepare_rpc_client(ctx))
+    fl = FuzzingLessons()
+    description = fl.stop_lesson(prepare_rpc_client(ctx))
     click.secho(
         f'Fuzzing lesson "{description}" recording '
         f"was stopped and results were saved to be used at a next campaign run"
@@ -54,5 +52,6 @@ def stop(ctx):
 @cli.command("abort")
 def abort():
     """Abort recording fuzzing lesson"""
-    description = FuzzingLessons.abort_lesson()
+    fl = FuzzingLessons()
+    description = fl.abort_lesson()
     click.secho(f'Fuzzing lesson "{description}" recording was aborted')

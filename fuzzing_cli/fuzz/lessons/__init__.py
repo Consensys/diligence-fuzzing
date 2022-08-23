@@ -1,54 +1,67 @@
 import json
 import logging
-import os
 from pathlib import Path
 from typing import List
 
-from fuzzing_cli.fuzz.config import update_config
 from fuzzing_cli.fuzz.exceptions import FuzzingLessonsError
 from fuzzing_cli.fuzz.rpc import RPCClient
-from fuzzing_cli.fuzz.types import EVMBlock, SeedSequenceTransaction
+from fuzzing_cli.fuzz.types import EVMBlock
+from fuzzing_cli.fuzz.types import FuzzingLessons as FuzzingLessonsStorage
+from fuzzing_cli.fuzz.types import RunningLesson, SeedSequenceTransaction
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FuzzingLessons:
-    @staticmethod
-    def check_running_lessons(temp_file_path: Path) -> bool:
-        return temp_file_path.exists() and temp_file_path.is_file()
+    def __init__(self):
+        self.temp_file_path: Path = Path(".fuzzing_lessons.json")
+
+    def get_lessons_storage(self) -> FuzzingLessonsStorage:
+        if self.temp_file_path.exists() and self.temp_file_path.is_file():
+            with self.temp_file_path.open() as f:
+                storage = json.load(f)
+        else:  # no file
+            storage: FuzzingLessonsStorage = {"runningLesson": None, "lessons": []}
+        return storage
+
+    def __update_storage(self, storage: FuzzingLessonsStorage):
+        with self.temp_file_path.open("w") as f:
+            json.dump(storage, f)
 
     @staticmethod
-    def start_lesson(
-        description: str,
-        config_path: Path,
-        rpc_client: RPCClient,
-        temp_file_path: Path = Path(".fuzzing_lessons.json"),
-    ):
-        if FuzzingLessons.check_running_lessons(temp_file_path):
+    def get_lessons():
+        cls = FuzzingLessons()
+        storage = cls.get_lessons_storage()
+        return storage["lessons"]
+
+    @staticmethod
+    def check_running_lessons(storage: FuzzingLessonsStorage) -> bool:
+        return storage.get("runningLesson", None) is not None
+
+    def start_lesson(self, description: str, rpc_client: RPCClient):
+        storage = self.get_lessons_storage()
+        if FuzzingLessons.check_running_lessons(storage):
             raise FuzzingLessonsError("Another fuzzing lesson is running")
 
         number_of_blocks = rpc_client.get_latest_block_number() + 1
-        with temp_file_path.open("w") as f:
-            json.dump(
-                {
-                    "numberOfBlocks": number_of_blocks,
-                    "description": description,
-                    "configFilePath": str(config_path),
-                },
-                f,
-            )
+        latest_block = rpc_client.get_block(latest=True)
 
-    @staticmethod
-    def stop_lesson(
-        rpc_client: RPCClient, temp_file_path: Path = Path(".fuzzing_lessons.json")
-    ) -> str:
-        if not FuzzingLessons.check_running_lessons(temp_file_path):
+        running_lesson: RunningLesson = {
+            "description": description,
+            "numberOfBlocks": number_of_blocks,
+            "lastBlockHash": latest_block["hash"] if latest_block else None,
+        }
+
+        storage["runningLesson"] = running_lesson
+        self.__update_storage(storage)
+
+    def stop_lesson(self, rpc_client: RPCClient) -> str:
+        storage = self.get_lessons_storage()
+        if not FuzzingLessons.check_running_lessons(storage):
             raise FuzzingLessonsError("No fuzzing lesson is running")
-        with temp_file_path.open("r") as f:
-            lesson_data = json.load(f)
+        lesson_data: RunningLesson = storage["runningLesson"]
         number_of_blocks_at_start = lesson_data["numberOfBlocks"]
         description = lesson_data["description"]
-        config_path = Path(lesson_data["configFilePath"])
 
         number_of_blocks_at_stop = rpc_client.get_latest_block_number() + 1
         if number_of_blocks_at_stop == number_of_blocks_at_start:
@@ -64,18 +77,19 @@ class FuzzingLessons:
             if not block:
                 continue
             lesson_blocks.append(block)
-        seed_seqs = FuzzingLessons.prepare_suggested_seed_sequences(lesson_blocks)
-        if len(seed_seqs[0]) > 0:
-            update_config(
-                config_path,
-                {
-                    "fuzz": {
-                        "suggested_seed_seqs": seed_seqs,
-                        "lesson_description": description,
-                    }
-                },
-            )
-        os.remove(temp_file_path)
+
+        storage["runningLesson"] = None
+        storage["lessons"].append(
+            {
+                "description": description,
+                "transactions": FuzzingLessons.prepare_suggested_seed_sequences(
+                    lesson_blocks
+                ),
+                "lastBlockHash": lesson_data["lastBlockHash"],
+            }
+        )
+        self.__update_storage(storage)
+
         return description
 
     @staticmethod
@@ -106,12 +120,11 @@ class FuzzingLessons:
 
         return [seed_seqs]
 
-    @staticmethod
-    def abort_lesson(temp_file_path: Path = Path(".fuzzing_lessons.json")) -> str:
-        if not FuzzingLessons.check_running_lessons(temp_file_path):
+    def abort_lesson(self) -> str:
+        storage = self.get_lessons_storage()
+        if not FuzzingLessons.check_running_lessons(storage):
             raise FuzzingLessonsError("No fuzzing lesson is running")
-        with temp_file_path.open("r") as f:
-            lesson_data = json.load(f)
+
+        lesson_data: RunningLesson = storage["runningLesson"]
         description = lesson_data["description"]
-        os.remove(temp_file_path)
         return description
