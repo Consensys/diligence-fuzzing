@@ -6,7 +6,6 @@ from typing import List, Optional, Tuple, Union
 import click
 
 from fuzzing_cli.fuzz.config.pytimer import str_to_sec
-from fuzzing_cli.fuzz.types import SeedSequenceTransaction
 
 
 class FuzzingOptions:
@@ -48,8 +47,6 @@ class FuzzingOptions:
         self.truffle_executable_path = truffle_executable_path
         self.project = project
         self.incremental = incremental
-        self.suggested_seed_seqs = suggested_seed_seqs
-        self.lesson_description = lesson_description
         self.time_limit = self._parse_time_limit(time_limit)
 
         self.auth_endpoint = None
