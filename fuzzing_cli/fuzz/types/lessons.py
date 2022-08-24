@@ -1,4 +1,6 @@
-from typing import List, Optional, TypedDict
+from typing import List, Optional
+
+from typing_extensions import TypedDict
 
 from .rpc import SeedSequenceTransaction
 

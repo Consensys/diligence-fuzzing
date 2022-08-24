@@ -132,9 +132,7 @@ def generate_fuzz_config(
             f'\n  refresh_token: "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
         )
     if time_limit:
-        config_file += (
-            f'\n  time_limit: 15min'
-        )
+        config_file += f"\n  time_limit: 15min"
 
     if quick_check:
         config_file += f"\n  quick_check: true"

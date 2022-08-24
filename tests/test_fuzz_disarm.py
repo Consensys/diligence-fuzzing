@@ -126,13 +126,14 @@ def test_fuzz_disarm_unknown_scribble_path(
     command += ["contracts/VulnerableToken.sol"]
     result = runner.invoke(cli, command)
 
-    assert result.exit_code == 2
     assert (
         f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
         f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command"
         f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
         in result.output
     )
+    assert result.exit_code == 2
+
     assert len(fake_process.calls) == 1
 
 
