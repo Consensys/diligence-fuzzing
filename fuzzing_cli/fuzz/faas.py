@@ -50,6 +50,7 @@ class FaasClient:
         self._client_id = client_id
         self._refresh_token = refresh_token
         self._auth_endpoint = auth_endpoint
+        self.time_limit = time_limit
 
     @property
     def headers(self):
