@@ -30,8 +30,6 @@ class FuzzingOptions:
         project: Optional[str] = None,
         truffle_executable_path: Optional[str] = None,
         incremental: bool = False,
-        suggested_seed_seqs: List[List[SeedSequenceTransaction]] = [],
-        lesson_description: Optional[str] = None,
         time_limit: Optional[str] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
