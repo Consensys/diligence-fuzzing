@@ -5,13 +5,25 @@ CONFIG_TEMPLATE = """analyze:
   # remappings:
     #   - "@openzeppelin=./node_modules/@openzeppelin"
     #   - "@ozUpgradesV3=OpenZeppelin/openzeppelin-contracts-upgradeable@3.3.0"
+  {% if remappings %}remappings: {% for rm in remappings %}
+    - "{{ rm }}"{% endfor %}{% endif %}
 
-    # Sometimes you want to enforce a specific solidity version
-    # solc_version: "0.6.12"
+  # Sometimes you want to enforce a specific solidity version
+  # solc-version: "0.6.12"
+  {% if solc_version %}solc-version: "{{ solc_version }}"{% endif %}
+  {% if scribble_path %}scribble-path: {{ scribble_path }}{% endif %}
+  {% if no_assert %}no-assert: {{ no_assert }}{% endif %}
 
 fuzz:
+  ide: {{ ide }}
+
+  quick_check: {{ quick_check }}
+
   # Tell the CLI where to find the compiled contracts and compilation artifacts
   build_directory: {{ build_directory }}
+
+  # Tell the CLI where to find the contracts source
+  sources_directory: {{ sources_directory }}
 
   # The following address is going to be the main target for the fuzzing campaign
   # deployed_contract_address: "0x48b8050b4174f7871ce53AaF76BEAcA765037BFf"

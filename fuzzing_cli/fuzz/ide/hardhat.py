@@ -5,26 +5,31 @@ from os.path import abspath, commonpath, relpath
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.ide.generic import Contract, IDEArtifacts, Source
-from fuzzing_cli.fuzz.options import FuzzingOptions
-from fuzzing_cli.util import files_by_directory, get_content_from_file
+from fuzzing_cli.util import (
+    files_by_directory,
+    get_content_from_file,
+    sol_files_by_directory,
+)
 
 
 class HardhatArtifacts(IDEArtifacts):
     def __init__(
         self,
         options: FuzzingOptions,
+        build_dir: Path,
+        sources_dir: Path,
         targets: Optional[List[str]] = None,
-        build_dir: Optional[Path] = None,
         map_to_original_source: bool = False,
     ):
         super(HardhatArtifacts, self).__init__(
-            options,
-            targets,
-            Path(build_dir).absolute() or Path("./artifacts").absolute(),
-            map_to_original_source,
+            options, targets, build_dir, sources_dir, map_to_original_source
         )
-        self._include = [abspath(fp) for fp in self._include]
+        self._include = [
+            relpath(fp, commonpath([self.build_dir, abspath(fp)]))
+            for fp in self._include
+        ]
 
     @classmethod
     def get_name(cls) -> str:
@@ -37,12 +42,12 @@ class HardhatArtifacts(IDEArtifacts):
         return "hardhat.config.ts" in files or "hardhat.config.js" in files
 
     @staticmethod
-    def get_default_build_dir() -> str:
-        return "artifacts"
+    def get_default_build_dir() -> Path:
+        return Path.cwd().joinpath("artifacts")
 
     @staticmethod
-    def get_default_sources_dir() -> str:
-        return "contracts"
+    def get_default_sources_dir() -> Path:
+        return Path.cwd().joinpath("contracts")
 
     @property
     def contracts(self) -> List[Contract]:
@@ -53,11 +58,12 @@ class HardhatArtifacts(IDEArtifacts):
         return self.fetch_data()[1]
 
     @lru_cache(maxsize=1)
-    def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
+    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
+        _include = sol_files_by_directory(str(self.sources_dir.absolute()))
         result_contracts = {}
         result_sources = {}
 
-        for file_path in self._include:
+        for file_path in _include:
             cp = commonpath([self.build_dir, file_path])
             relative_file_path = relpath(file_path, cp)
 
@@ -108,7 +114,7 @@ class HardhatArtifacts(IDEArtifacts):
                 result_contracts[relative_file_path] += [
                     {
                         "sourcePaths": {
-                            i: k
+                            str(i): k
                             for i, k in enumerate(
                                 build_info["output"]["contracts"].keys()
                             )
@@ -123,7 +129,7 @@ class HardhatArtifacts(IDEArtifacts):
                         "bytecode": contract["evm"]["bytecode"]["object"],
                         "contractName": contract_artifact["contractName"],
                         "mainSourceFile": contract_artifact["sourceName"],
-                        "ignoredSources": list(ignored_sources),
+                        "ignoredSources": list(sorted(ignored_sources)),
                     }
                 ]
 
@@ -149,4 +155,4 @@ class HardhatArtifacts(IDEArtifacts):
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
 
-        return self.flatten_contracts(result_contracts), result_sources
+        return result_contracts, result_sources

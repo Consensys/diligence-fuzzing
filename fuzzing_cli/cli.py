@@ -10,7 +10,9 @@ import yaml
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
+from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
+from fuzzing_cli.fuzz.quickcheck import fuzz_auto
 from fuzzing_cli.fuzz.run import fuzz_run
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -30,12 +32,12 @@ logging.basicConfig(level=LOGLEVEL)
 @click.option(
     "-c",
     "--config",
-    type=click.Path(exists=True),
+    type=click.Path(),
     help="YAML config file for default parameters",
+    default=".fuzz.yml",
 )
-@click.option("--stdout", is_flag=True, default=False, help="Force printing to stdout")
 @click.pass_context
-def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
+def cli(ctx, debug: bool, config: str) -> None:
     """Your CLI for interacting with https://fuzzing.diligence.tools
 
     \f
@@ -51,21 +53,20 @@ def cli(ctx, debug: bool, config: str, stdout: bool) -> None:
         for name in logging.root.manager.loggerDict:
             logging.getLogger(name).setLevel(logging.DEBUG)
 
-    ctx.obj = {"debug": debug, "config": config}
-
     LOGGER.debug("Initializing configuration context")
-    config_file = config or ".fuzz.yml"
-    if Path(config_file).is_file():
-        LOGGER.debug(f"Parsing config at {config_file}")
-        with open(config_file) as config_f:
+    if Path(config).is_file():
+        LOGGER.debug(f"Parsing config at {config}")
+        with open(config) as config_f:
             parsed_config = yaml.safe_load(config_f.read())
     else:
         parsed_config = {"fuzz": {}, "analyze": {}}
 
-    # The analyze/fuzz context is updated separately in the command
-    # implementation
-    ctx.obj["analyze"] = parsed_config.get("analyze", {})
-    ctx.obj["fuzz"] = parsed_config.get("fuzz", {})
+    ctx.obj = {
+        "debug": debug,
+        "config": str(Path(config).absolute()),
+        "analyze": parsed_config.get("analyze", {}),
+        "fuzz": parsed_config.get("fuzz", {}),
+    }
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
 
@@ -78,6 +79,8 @@ cli.add_command(fuzz_run)
 cli.add_command(fuzz_arm)
 cli.add_command(fuzz_disarm)
 cli.add_command(fuzz_generate_config)
+cli.add_command(fuzz_auto)
+cli.add_command(fuzz_lesson)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

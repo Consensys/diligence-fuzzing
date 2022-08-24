@@ -14,6 +14,10 @@ class FaaSError(Exception):
     pass
 
 
+class EmptyArtifactsError(Exception):
+    pass
+
+
 class AuthorizationError(FaaSError):
     pass
 
@@ -80,6 +84,14 @@ class BrownieError(FaaSError):
 class BuildArtifactsError(click.exceptions.ClickException):
     """Exception raised for errors fetching the build artifacts"""
 
+    pass
+
+
+class QuickCheckError(click.exceptions.ClickException):
+    pass
+
+
+class FuzzingLessonsError(click.exceptions.ClickException):
     pass
 
 

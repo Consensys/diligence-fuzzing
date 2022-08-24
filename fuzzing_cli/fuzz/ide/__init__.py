@@ -1,6 +1,6 @@
 from .brownie import BrownieArtifacts
 from .dapptools import DapptoolsArtifacts
-from .generic import Contract, IDEArtifacts, IDEPayload, Source
+from .generic import IDEArtifacts
 from .hardhat import HardhatArtifacts
 from .repository import IDERepository
 from .truffle import TruffleArtifacts

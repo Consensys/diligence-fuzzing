@@ -2,9 +2,8 @@ import json
 import logging
 import random
 import string
-import sys
-import traceback
-from typing import Dict
+from typing import Dict, Optional
+from urllib.parse import urljoin
 
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -14,7 +13,6 @@ from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from .exceptions import (
     AuthorizationError,
     BadStatusCode,
-    PayloadError,
     RequestError,
     ScribbleMetaError,
 )
@@ -32,22 +30,23 @@ class FaasClient:
 
     def __init__(
         self,
-        faas_url,
-        campaign_name_prefix,
-        project_type,
-        api_key,
-        client_id,
-        refresh_token,
-        auth_endpoint,
-        project,
-        time_limit,
+        faas_url: str,
+        campaign_name_prefix: str,
+        project_type: str,
+        client_id: str,
+        refresh_token: str,
+        auth_endpoint: str,
+        project: Optional[str] = None,
+        quick_check: bool = False,
+        time_limit: Optional[int] = None,
     ):
         self.faas_url = faas_url
         self.campaign_name_prefix = campaign_name_prefix
         self.project_type = project_type
         self.project = project
+        self.quick_check = quick_check
+        self.time_limit = time_limit
 
-        self._api_key = api_key
         self._client_id = client_id
         self._refresh_token = refresh_token
         self._auth_endpoint = auth_endpoint
@@ -62,9 +61,6 @@ class FaasClient:
 
     @property
     def api_key(self):
-        if self._api_key:
-            return self._api_key
-
         response = requests.post(
             f"https://{self._auth_endpoint}/oauth/token",
             data={
@@ -85,15 +81,14 @@ class FaasClient:
     def generate_campaign_name(self):
         """Return a random name with the provided prefix self.campaign_name_prefix."""
         letters = string.ascii_lowercase
-        random_string = "".join(random.choice(letters) for i in range(5))
+        random_string = "".join(random.choice(letters) for _ in range(5))
         return str(self.campaign_name_prefix + "_" + random_string)
 
     def start_faas_campaign(self, payload):
         """Make HTTP request to the faas"""
         try:
-            req_url = f"{self.faas_url}/api/campaigns/?start_immediately=true"
-            h = self.headers
-            response = requests.post(req_url, json=payload, headers=h)
+            req_url = urljoin(self.faas_url, "api/campaigns/?start_immediately=true")
+            response = requests.post(req_url, json=payload, headers=self.headers)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
                 if (
@@ -112,7 +107,7 @@ class FaasClient:
         except Exception as e:
             if isinstance(e, BadStatusCode):
                 raise e
-            raise RequestError("Error starting FaaS campaign", detail=str(e))
+            raise RequestError("Error starting FaaS campaign", detail=repr(e))
 
     def create_faas_campaign(
         self,
@@ -137,29 +132,26 @@ class FaasClient:
 
         :return: Campaign ID
         """
-        try:
-            api_payload_params = {
+        api_payload = {
+            "parameters": {
                 "discovery-probability-threshold": seed_state[
                     "discovery-probability-threshold"
                 ],
                 "num-cores": seed_state["num-cores"],
                 "assertion-checking-mode": seed_state["assertion-checking-mode"],
-            }
-            api_payload = {
-                "parameters": api_payload_params,
-                "name": self.generate_campaign_name(),
-                "corpus": seed_state["analysis-setup"],
-                "sources": campaign_data.sources,
-                "contracts": campaign_data.contracts,
-                "project": self.project
-            }
-            if self.time_limit:
-                api_payload["timeLimit"] = self.time_limit
+            },
+            "name": self.generate_campaign_name(),
+            "corpus": seed_state["analysis-setup"],
+            "sources": campaign_data.sources,
+            "contracts": campaign_data.contracts,
+            "quickCheck": self.quick_check,
+        }
 
-        except KeyError as e:
-            raise PayloadError(
-                "Error extracting data from payload", detail=f"Key {str(e)} not found"
-            )
+        if self.project is not None:
+            api_payload["project"] = (self.project,)
+
+        if self.time_limit is not None:
+            api_payload["timeLimit"] = self.time_limit
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
@@ -167,7 +159,7 @@ class FaasClient:
                 api_payload["instrumentationMetadata"] = instr_meta
         except Exception as e:
             raise ScribbleMetaError(
-                "Error getting Scribble arming metadata.", detail=str(e)
+                "Error getting Scribble arming metadata", detail=repr(e)
             )
 
         if dry_run:

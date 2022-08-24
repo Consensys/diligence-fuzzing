@@ -45,7 +45,9 @@ def files_by_directory(target_path: AnyStr, extension: AnyStr) -> List:
         if len(sub_dir[2]) > 0:
             # sub directory with target extension files
             file_prefix = sub_dir[0]
-            for file in sub_dir[2]:
+            for file in sub_dir[2]:  # type: str
+                if file.startswith("."):  # hidden file
+                    continue
                 if "__scribble_" in file:
                     LOGGER.debug(f"Skipped for being a scribble file {file}")
                     continue
@@ -53,6 +55,7 @@ def files_by_directory(target_path: AnyStr, extension: AnyStr) -> List:
                 if not file.endswith(extension):
                     LOGGER.debug(f"Skipped for not being a solidity file: {file}")
                     continue
+
                 file_name = file_prefix + "/" + file
                 LOGGER.debug(f"Found target extension file: {file_name}")
                 # We remove the .original extension, added by Scribble

@@ -1,4 +1,4 @@
-from os.path import relpath
+from os.path import commonpath, relpath
 from pathlib import Path
 from typing import List
 
@@ -7,6 +7,7 @@ import inquirer
 from click import BadParameter, UsageError, style
 from ruamel.yaml import YAML
 
+from fuzzing_cli.fuzz.config import update_config
 from fuzzing_cli.fuzz.config.template import generate_yaml
 from fuzzing_cli.fuzz.ide import IDERepository
 from fuzzing_cli.util import sol_files_by_directory
@@ -52,7 +53,7 @@ def __select_targets(targets: List[str]) -> List[str]:
     files_in_dirs = []
     for target in targets:
         if Path(target).is_dir():
-            files_in_dirs.extend(sol_files_by_directory(target))
+            files_in_dirs.extend(sorted(sol_files_by_directory(target)))
         else:
             files.append(target)
 
@@ -96,9 +97,7 @@ def __prompt_targets() -> List[str]:
 def determine_targets(ide: str) -> List[str]:
     repo = IDERepository.get_instance()
     _IDEArtifactsClass = repo.get_ide(ide)
-    target = (
-        Path.cwd().absolute().joinpath(_IDEArtifactsClass.get_default_sources_dir())
-    )
+    target = _IDEArtifactsClass.get_default_sources_dir()
     ts = style(target, fg="yellow")
 
     targets = [str(target)]
@@ -143,7 +142,7 @@ def determine_build_dir(ide: str) -> str:
     if not Path(build_dir).is_absolute():
         build_dir = str(Path.cwd().absolute().joinpath(build_dir))
 
-    return build_dir
+    return str(build_dir)
 
 
 def determine_rpc_url() -> str:
@@ -180,6 +179,17 @@ def determine_campaign_name() -> str:
     return name
 
 
+def determine_sources_dir(targets: List[str]) -> str:
+    if len(targets) == 1:
+        if Path(targets[0]).is_dir():
+            # looks like contracts directory
+            return targets[0]
+        # return parent folder of the contract file
+        return str(Path(targets[0]).parent)
+    # return common parent of target files
+    return commonpath(targets)
+
+
 def recreate_config(config_file: str):
     ide = determine_ide()
     targets = determine_targets(ide)
@@ -190,6 +200,8 @@ def recreate_config(config_file: str):
 
     config_path = Path().cwd().joinpath(config_file)
 
+    sources_directory = determine_sources_dir(targets)
+
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
     )
@@ -198,12 +210,15 @@ def recreate_config(config_file: str):
         f.write(
             generate_yaml(
                 {
+                    "ide": ide,
                     "build_directory": build_dir,
+                    "sources_directory": sources_directory,
                     "targets": targets,
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,
                     "campaign_name_prefix": campaign_name_prefix,
                     "no-assert": True,
+                    "quick_check": False,
                 }
             )
         )
@@ -212,24 +227,14 @@ def recreate_config(config_file: str):
     click.echo("Done 🎉")
 
 
-def sync_config(config_file: str):
-    config_path = Path().cwd().joinpath(config_file)
-    if not config_path.exists() or not config_path.is_file():
-        raise UsageError(f"Could not find config file to re-sync. Create one first.")
-
+def sync_config(config_file: Path):
     ide = determine_ide(confirm=True)
     targets = determine_targets(ide)
 
     click.echo(
-        f"⚡️ Alright! Syncing config at {style(config_path, fg='yellow', italic=True)}"
+        f"⚡️ Alright! Syncing config at {style(str(config_file), fg='yellow', italic=True)}"
     )
-    with config_path.open("r") as f:
-        config = yaml.load(f)
-        config["fuzz"]["targets"] = targets
-
-    with config_path.open("w") as f:
-        yaml.dump(config, f)
-
+    update_config(config_file, {"fuzz": {"targets": targets}})
     click.echo("Done 🎉")
 
 
@@ -244,7 +249,8 @@ def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
     """
     cfs = style(config_file, fg="yellow")
     if sync:
-        if not Path.cwd().joinpath(config_file).exists():
+        config_file = Path.cwd().joinpath(config_file)
+        if not config_file.exists() or not config_file.is_file():
             command = style(
                 f"fuzz generate-config {config_file}", italic=True, fg="green"
             )
