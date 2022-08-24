@@ -18,20 +18,22 @@ Usage
 
 .. code-block:: console
 
-    $ fuzz [OPTIONS] COMMAND [ARGS]...
+    $ Usage: fuzz [OPTIONS] COMMAND [ARGS]...
 
     Your CLI for interacting with https://fuzzing.diligence.tools
 
     Options:
       --debug            Provide additional debug output
       -c, --config PATH  YAML config file for default parameters
-      --stdout           Force printing to stdout
       --help             Show this message and exit.
 
     Commands:
-      arm     Prepare the target files for FaaS submission.
-      disarm  Revert the target files to their original, un-instrumented state.
-      run
+      arm              Prepare the target files for Diligence Fuzzing API...
+      auto             Automatically annotate test contracts
+      disarm           Revert the target files to their original,...
+      generate-config  Generate config file for fuzzing
+      lesson           Manage fuzzing lessons
+      run              Submit contracts to the Diligence Fuzzing API
 
 
 
