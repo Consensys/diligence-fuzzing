@@ -182,20 +182,17 @@ def test_annotation_errors(
 @pytest.mark.parametrize(
     "corpus_target", ["crp_30f45fac74c04182b023ead4f0ddb709", None]
 )
-@pytest.mark.parametrize("seed_seqs", [[{"test": "ok", "key": "val"}], None])
 def test_fuzz_run(
     tmp_path: Path,
     truffle_echidna_project,
     fake_process,
     targets: List[str],
     corpus_target,
-    seed_seqs,
 ):
     write_config(
         base_path=str(tmp_path),
         **{**truffle_echidna_project, "targets": targets},
         quick_check=True,
-        suggested_seed_seqs=seed_seqs,
         corpus_target=corpus_target,
     )
 
@@ -275,8 +272,6 @@ def test_fuzz_run(
     corpus = processed_payload["corpus"]
     if corpus_target:
         corpus = {**corpus, "target": corpus_target}
-    if seed_seqs:
-        corpus = {**corpus, "suggested-seed-seqs": seed_seqs}
     assert payload["parameters"] == processed_payload["parameters"]
     assert payload["corpus"] == corpus
     assert_is_equal(payload["contracts"], processed_payload["contracts"])

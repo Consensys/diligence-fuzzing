@@ -1,6 +1,5 @@
 import logging
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import click
 from click import ClickException
@@ -41,25 +40,27 @@ def fuzz_disarm(ctx, targets, scribble_path: Optional[str]) -> None:
     fuzz_config = ctx.get("fuzz", {}) or {}
     targets = targets or fuzz_config.get("targets") or None
 
-    if not Path(scribble_path).exists():
-        raise click.exceptions.UsageError(
-            f'Scribble not found at path "{scribble_path}". '
-            f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command"
-            f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
-        )
-
     if not targets:
         raise click.exceptions.UsageError(
             "Target not provided. You need to provide a target as the last parameter of the `fuzz disarm` command."
             "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
         )
 
-    return_code, out, err = ScribbleMixin.disarm_solc_in_place(
-        file_list=targets, scribble_path=scribble_path
-    )
-    if return_code == 0:
-        click.secho(out)
-    else:
-        raise ClickException(
-            f"ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{err}"
+    try:
+        return_code, out, err = ScribbleMixin.disarm_solc_in_place(
+            file_list=targets, scribble_path=scribble_path
         )
+        if return_code == 0:
+            click.secho(out)
+        else:
+            raise ClickException(
+                f"ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{err}"
+            )
+    except FileNotFoundError:
+        raise click.exceptions.UsageError(
+            f'Scribble not found at path "{scribble_path}". '
+            f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command"
+            f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
+        )
+    except:
+        raise

@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -7,7 +6,7 @@ from pytest import mark
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 from tests.common import get_test_case, write_config
 
 

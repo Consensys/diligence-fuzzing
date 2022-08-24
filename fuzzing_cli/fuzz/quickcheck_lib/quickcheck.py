@@ -1,20 +1,18 @@
 import logging
-import re
 import subprocess
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import click
-
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
 from fuzzing_cli.fuzz.ide import IDEArtifacts
-from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
-from fuzzing_cli.fuzz.types import Contract, SeedSequenceTransaction, Source
+from fuzzing_cli.fuzz.types import Contract, Source
 from fuzzing_cli.util import get_content_from_file
+
+from .utils import mk_contract_address
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -71,11 +69,7 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 
 
 def prepare_seed_state(
-    contracts: List[Contract],
-    number_of_cores: int,
-    suggested_seed_seqs: List[List[SeedSequenceTransaction]],
-    lesson_description: Optional[str] = None,
-    corpus_target: Optional[str] = None,
+    contracts: List[Contract], number_of_cores: int, corpus_target: Optional[str] = None
 ) -> Dict[str, any]:
     accounts = {}
     for idx, contract in enumerate(contracts):
@@ -110,9 +104,6 @@ def prepare_seed_state(
     }
     if corpus_target:
         setup["target"] = corpus_target
-    if len(suggested_seed_seqs) > 0:
-        click.secho(f'Fuzzing Lessons detected. Using lesson "{lesson_description}"')
-        setup["suggested-seed-seqs"] = suggested_seed_seqs
 
     return {
         "discovery-probability-threshold": 0.0,

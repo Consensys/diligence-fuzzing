@@ -9,7 +9,7 @@ from requests import RequestException
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide.truffle import TruffleArtifacts
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 from tests.common import get_code_mocker, get_test_case, write_config
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
@@ -144,7 +144,7 @@ def test_call_error(tmp_path):
 
     assert result.exit_code == 1
     assert (
-        f'HTTP error calling RPC method eth_getBlockByNumber with parameters: ["latest", true]'
+        f"HTTP error calling RPC method eth_getBlockByNumber with parameters: ['latest', True]"
         f"\nAre you sure the RPC is running at http://localhost:9898?" in result.output
     )
 

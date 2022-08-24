@@ -5,7 +5,7 @@ from pytest import mark
 from requests_mock import Mocker
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 from tests.common import write_config
 
 KEY_MALFORMED_ERROR = (

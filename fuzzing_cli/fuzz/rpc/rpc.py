@@ -1,18 +1,20 @@
 import logging
 from os.path import commonpath
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
 import requests
 from click import ClickException, UsageError
 from requests import RequestException
 
-from .exceptions import FaaSError, RPCCallError
-from .ide import IDEArtifacts
-from .lessons import FuzzingLessons
-from .quickcheck_lib.utils import mk_contract_address
-from .types import EVMBlock, EVMTransaction, SeedSequenceTransaction
+from fuzzing_cli.fuzz.exceptions import FaaSError, RPCCallError
+from fuzzing_cli.fuzz.ide import IDEArtifacts
+from fuzzing_cli.fuzz.lessons import FuzzingLessons
+from fuzzing_cli.fuzz.quickcheck_lib.utils import mk_contract_address
+from fuzzing_cli.fuzz.types import EVMBlock, EVMTransaction, SeedSequenceTransaction
+
+from .generic import RPCClientBase
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -28,7 +30,7 @@ class TargetsNotFoundError(FaaSError):
     pass
 
 
-class RPCClient:
+class RPCClient(RPCClientBase):
     def __init__(self, rpc_url: str, number_of_cores: int = 1):
         self.rpc_url = rpc_url
         self.number_of_cores = number_of_cores
@@ -156,7 +158,6 @@ class RPCClient:
         corpus_target: Optional[str] = None,
     ) -> Dict[str, any]:
         try:
-
             processed_transactions: List[EVMTransaction] = []
             blocks_to_skip: Set[str] = set({})
             suggested_seed_seqs: List[List[SeedSequenceTransaction]] = []

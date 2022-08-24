@@ -4,7 +4,7 @@ import click
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.lessons import FuzzingLessons
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 
 
 def prepare_rpc_client(ctx: Dict[str, any]) -> RPCClient:

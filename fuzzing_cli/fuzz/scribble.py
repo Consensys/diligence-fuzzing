@@ -1,11 +1,7 @@
 import json
 import os
 import subprocess
-import sys
-from collections import defaultdict
 from typing import List, Optional, Tuple
-
-import click
 
 from fuzzing_cli.util import sol_files_by_directory
 
@@ -86,7 +82,7 @@ class ScribbleMixin:
         if no_assert:
             command.append(f"--no-assert")
 
-        # Scribble doesnt currently support directories as inputs
+        # Scribble doesn't currently support directories as inputs
         # so we create a list of all solidity files inside each of the targets
         # and submit that to Scribble.
 

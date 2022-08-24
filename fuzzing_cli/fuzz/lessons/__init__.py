@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 from fuzzing_cli.fuzz.exceptions import FuzzingLessonsError
-from fuzzing_cli.fuzz.rpc import RPCClient
+from fuzzing_cli.fuzz.rpc.generic import RPCClientBase
 from fuzzing_cli.fuzz.types import EVMBlock
 from fuzzing_cli.fuzz.types import FuzzingLessons as FuzzingLessonsStorage
 from fuzzing_cli.fuzz.types import RunningLesson, SeedSequenceTransaction
@@ -38,7 +38,7 @@ class FuzzingLessons:
     def check_running_lessons(storage: FuzzingLessonsStorage) -> bool:
         return storage.get("runningLesson", None) is not None
 
-    def start_lesson(self, description: str, rpc_client: RPCClient):
+    def start_lesson(self, description: str, rpc_client: RPCClientBase):
         storage = self.get_lessons_storage()
         if FuzzingLessons.check_running_lessons(storage):
             raise FuzzingLessonsError("Another fuzzing lesson is running")
@@ -55,7 +55,7 @@ class FuzzingLessons:
         storage["runningLesson"] = running_lesson
         self.__update_storage(storage)
 
-    def stop_lesson(self, rpc_client: RPCClient) -> str:
+    def stop_lesson(self, rpc_client: RPCClientBase) -> str:
         storage = self.get_lessons_storage()
         if not FuzzingLessons.check_running_lessons(storage):
             raise FuzzingLessonsError("No fuzzing lesson is running")
@@ -126,5 +126,7 @@ class FuzzingLessons:
             raise FuzzingLessonsError("No fuzzing lesson is running")
 
         lesson_data: RunningLesson = storage["runningLesson"]
+        storage["runningLesson"] = None
+        self.__update_storage(storage)
         description = lesson_data["description"]
         return description

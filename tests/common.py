@@ -176,6 +176,12 @@ def mocked_rpc_client(blocks: List[EVMBlock], codes: Dict[str, str] = {}):
         elif method == "eth_getCode":
             contract_address = params[0]
             return {**response_body, "result": codes.get(contract_address, None)}
+        elif method == "eth_getBlockByHash":
+            block_hash = params[0]
+            for b in blocks:
+                if b["hash"] == block_hash:
+                    return {**response_body, "result": b}
+            return {**response_body, "result": None}
         return response_body
 
     with requests_mock.Mocker() as m:

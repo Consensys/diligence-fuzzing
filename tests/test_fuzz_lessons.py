@@ -5,7 +5,6 @@ import pytest
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.config.utils import parse_config
 from tests.common import get_test_case, mocked_rpc_client
 from tests.common import write_config as __write_config
 
@@ -41,6 +40,7 @@ def test_start(tmp_path: Path, hardhat_fuzzing_lessons_project, description: str
     assert lesson_data == {
         "runningLesson": {
             "numberOfBlocks": 2,
+            "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
             "description": description or "my lesson",
         },
         "lessons": [],
@@ -89,6 +89,7 @@ def test_stop(tmp_path, hardhat_fuzzing_lessons_project):
         "lessons": [
             {
                 "description": "my lesson",
+                "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
                 "transactions": [
                     [
                         {
@@ -146,7 +147,13 @@ def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_projec
         lesson_data = json.load(f)
     assert lesson_data == {
         "runningLesson": None,
-        "lessons": [{"description": "test-lesson", "transactions": [[]]}],
+        "lessons": [
+            {
+                "description": "test-lesson",
+                "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
+                "transactions": [[]],
+            }
+        ],
     }
 
 
@@ -175,8 +182,6 @@ def test_abort(tmp_path, hardhat_fuzzing_lessons_project):
 
     assert result.exit_code == 0
 
-    assert tmp_path.joinpath(".fuzzing_lessons.json").exists() is False
-
-    config = parse_config(tmp_path.joinpath(".fuzz.yml"))
-    assert config["fuzz"].get("suggested_seed_sequences", None) is None
-    assert config["fuzz"].get("lesson_description", None) is None
+    with tmp_path.joinpath(".fuzzing_lessons.json").open("r") as f:
+        lesson_data = json.load(f)
+    assert lesson_data == {"runningLesson": None, "lessons": []}

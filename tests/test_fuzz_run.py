@@ -11,7 +11,6 @@ from pytest_lazyfixture import lazy_fixture
 from requests import RequestException
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.config import update_config
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide import TruffleArtifacts
 from fuzzing_cli.fuzz.scribble import SCRIBBLE_ARMING_META_FILE
@@ -28,16 +27,8 @@ FAAS_URL = "http://localhost:9899"
 ORIGINAL_SOL_CODE = "original sol code here"
 
 
-def test_fuzz_run_fuzzing_lessons(tmp_path, hardhat_fuzzing_lessons_project):
-    write_config(
-        config_path=f"{tmp_path}/.fuzz.yml",
-        base_path=str(tmp_path),
-        build_directory="artifacts",
-        targets=["contracts/LessonTestContract.sol"],
-        deployed_contract_address="0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
-    )
-
-    suggested_seed_seqs = [
+suggested_seed_seqs = [
+    [
         [
             {
                 "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
@@ -66,17 +57,100 @@ def test_fuzz_run_fuzzing_lessons(tmp_path, hardhat_fuzzing_lessons_project):
                 "value": "0x0",
             },
         ]
-    ]
-
-    update_config(
-        tmp_path.joinpath(".fuzz.yml"),
-        {
-            "fuzz": {
-                "suggested_seed_seqs": suggested_seed_seqs,
-                "lesson_description": "my lesson 1",
+    ],
+    [
+        [
+            {
+                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockNumber": "0x4",
+                "blockTime": "0x62bd7444",
+                "gasLimit": "0x3381a",
+                "gasPrice": "0x4a817c800",
+                "input": "0x3f81a2c0000000000000000000000000000000000000000000000000000000000000002a",
+                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                "value": "0x0",
             }
-        },
+        ],
+        [
+            {
+                "address": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockNumber": "0x5",
+                "blockTime": "0x62bd7444",
+                "gasLimit": "0x6691b7",
+                "gasPrice": "0x9184e72a000",
+                "input": "0x9507d39abeced09521047d05b8960b7e7bcc1d1292cf3e4b2a6b63f48335cbde5f7545d2",
+                "origin": "0xc68b3325948b2c31f9224b71e5233cc071ca39cb",
+                "value": "0x0",
+            }
+        ],
+    ],
+]
+
+
+@pytest.mark.parametrize(
+    "lessons, seed_seqs",
+    [
+        (
+            [
+                {
+                    "description": "my lesson 1",
+                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
+                    "transactions": suggested_seed_seqs[0],
+                }
+            ],
+            suggested_seed_seqs[0],
+        ),
+        (
+            [
+                {
+                    "description": "my lesson 1",
+                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
+                    "transactions": suggested_seed_seqs[0],
+                },
+                {
+                    "description": "my lesson 2",
+                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
+                    "transactions": suggested_seed_seqs[1],
+                },
+            ],
+            suggested_seed_seqs[0] + suggested_seed_seqs[1],
+        ),
+        (
+            [
+                {
+                    "description": "my lesson 1",
+                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
+                    "transactions": suggested_seed_seqs[0],
+                },
+                {
+                    "description": "my lesson 3",
+                    "lastBlockHash": "0xfffffff6f81111111111900000000382351aaaaaabbbbbb758d51f0000000000",
+                    "transactions": suggested_seed_seqs[1],
+                },
+            ],
+            suggested_seed_seqs[0],
+        ),
+    ],
+)
+def test_fuzz_run_fuzzing_lessons(
+    tmp_path, hardhat_fuzzing_lessons_project, lessons, seed_seqs
+):
+    write_config(
+        config_path=f"{tmp_path}/.fuzz.yml",
+        base_path=str(tmp_path),
+        build_directory="artifacts",
+        targets=["contracts/LessonTestContract.sol"],
+        deployed_contract_address="0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
     )
+
+    with open(".fuzzing_lessons.json", "w") as f:
+        json.dump({"lessons": lessons}, f)
 
     blocks = get_test_case("testdata/hardhat_fuzzing_lessons_project/lessons.json")
     codes = {
@@ -123,7 +197,7 @@ def test_fuzz_run_fuzzing_lessons(tmp_path, hardhat_fuzzing_lessons_project):
                 "s": "0x2f864625e045fc0e11c188eeec22a050e650be538c540a7ba100b2c00302289c",
             }
         ],
-        "suggested-seed-seqs": suggested_seed_seqs,
+        "suggested-seed-seqs": seed_seqs,
     }
 
 

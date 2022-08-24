@@ -13,7 +13,6 @@ from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from .exceptions import (
     AuthorizationError,
     BadStatusCode,
-    PayloadError,
     RequestError,
     ScribbleMetaError,
 )

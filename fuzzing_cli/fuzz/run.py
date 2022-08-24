@@ -10,7 +10,7 @@ from .exceptions import EmptyArtifactsError, FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
-from .rpc import RPCClient
+from .rpc.rpc import RPCClient
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -189,11 +189,7 @@ def fuzz_run(
             no_assert=analyze_config.get("no-assert", False),
         )
         seed_state = prepare_seed_state(
-            artifacts.contracts,
-            options.number_of_cores,
-            options.suggested_seed_seqs,
-            options.lesson_description,
-            _corpus_target,
+            artifacts.contracts, options.number_of_cores, _corpus_target
         )
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
@@ -201,8 +197,6 @@ def fuzz_run(
         seed_state = rpc_client.get_seed_state(
             options.deployed_contract_address,
             options.additional_contracts_addresses,
-            options.suggested_seed_seqs,
-            options.lesson_description,
             _corpus_target,
         )
 

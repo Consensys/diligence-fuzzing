@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Tuple
 
 import click
@@ -79,29 +78,31 @@ def fuzz_arm(
     fuzz_config = ctx.get("fuzz", {}) or {}
     targets = targets or fuzz_config.get("targets") or None
 
-    if not Path(scribble_path).exists():
-        raise click.exceptions.UsageError(
-            f'Scribble not found at path "{scribble_path}". '
-            f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command"
-            f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
-        )
-
     if not targets:
         raise click.exceptions.UsageError(
             "Target not provided. You need to provide a target as the last parameter of the `fuzz arm` command."
             "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
         )
 
-    return_code, out, err = ScribbleMixin.instrument_solc_in_place(
-        file_list=targets,
-        scribble_path=scribble_path,
-        remappings=remap_import,
-        solc_version=solc_version,
-        no_assert=no_assert,
-    )
-    if return_code == 0:
-        click.secho(out)
-    else:
-        raise ClickException(
-            f"ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{err}"
+    try:
+        return_code, out, err = ScribbleMixin.instrument_solc_in_place(
+            file_list=targets,
+            scribble_path=scribble_path,
+            remappings=remap_import,
+            solc_version=solc_version,
+            no_assert=no_assert,
         )
+        if return_code == 0:
+            click.secho(out)
+        else:
+            raise ClickException(
+                f"ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{err}"
+            )
+    except FileNotFoundError:
+        raise click.exceptions.UsageError(
+            f'Scribble not found at path "{scribble_path}". '
+            f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command"
+            f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
+        )
+    except:
+        raise

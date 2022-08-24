@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -91,7 +90,6 @@ def test_fuzz_disarm_process_error(
     assert len(fake_process.calls) == 1
 
 
-@patch("pathlib.Path.exists", new=Mock(return_value=False))
 @pytest.mark.parametrize(
     "scribble_path, in_config",
     [
@@ -112,15 +110,20 @@ def test_fuzz_disarm_unknown_scribble_path(
         write_config(
             config_path=f"{tmp_path}/.fuzz.yml",
             base_path=str(tmp_path),
-            **scribble_project,
+            **{**scribble_project, "targets": ["contracts/VulnerableToken.sol"]},
             scribble_path=scribble_path,
         )
-    fake_process.register_subprocess([fake_process.any()])
+
+    def cb(*args, **kwargs):
+        raise FileNotFoundError("executable not found")
+
+    fake_process.register_subprocess([fake_process.any()], callback=cb)
 
     runner = CliRunner()
     command = ["disarm"]
     if scribble_path and not in_config:
         command += ["--scribble-path", scribble_path]
+    command += ["contracts/VulnerableToken.sol"]
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 2
@@ -130,7 +133,7 @@ def test_fuzz_disarm_unknown_scribble_path(
         f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
         in result.output
     )
-    assert len(fake_process.calls) == 0
+    assert len(fake_process.calls) == 1
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
