@@ -327,20 +327,25 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
 
 @pytest.mark.parametrize("ide", [lazy_fixture("hardhat_project")])
 @pytest.mark.parametrize(
-    "corpus_target, time_limit",
-    [(None, None), ("cmp_9e931b147e7143a8b53041c708d5474e", "15mins")],
+    "corpus_target, time_limit, project",
+    [
+        (None, None, None),
+        ("cmp_9e931b147e7143a8b53041c708d5474e", "15mins", "Test Project 1"),
+    ],
 )
 def test_fuzz_parameters(
     tmp_path,
     ide: Dict[str, any],
     corpus_target: Optional[str],
     time_limit: Optional[str],
+    project: Optional[str],
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
         **ide,
         time_limit=time_limit,
+        project=project,
     )
 
     IDE_NAME = ide["ide"]
@@ -376,6 +381,7 @@ def test_fuzz_parameters(
 
     assert payload["corpus"].get("target", None) == corpus_target
     assert payload.get("timeLimit", None) == (900 if time_limit else None)
+    assert payload.get("project", None) == project or None
 
 
 def test_rpc_not_running(tmp_path):
