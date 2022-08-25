@@ -148,7 +148,7 @@ class FaasClient:
         }
 
         if self.project is not None:
-            api_payload["project"] = (self.project,)
+            api_payload["project"] = self.project
 
         if self.time_limit is not None:
             api_payload["timeLimit"] = self.time_limit
