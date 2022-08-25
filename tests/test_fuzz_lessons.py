@@ -40,7 +40,6 @@ def test_start(tmp_path: Path, hardhat_fuzzing_lessons_project, description: str
     assert lesson_data == {
         "runningLesson": {
             "numberOfBlocks": 2,
-            "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
             "description": description or "my lesson",
         },
         "lessons": [],
@@ -89,7 +88,6 @@ def test_stop(tmp_path, hardhat_fuzzing_lessons_project):
         "lessons": [
             {
                 "description": "my lesson",
-                "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
                 "transactions": [
                     [
                         {
@@ -150,7 +148,6 @@ def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_projec
         "lessons": [
             {
                 "description": "test-lesson",
-                "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
                 "transactions": [[]],
             }
         ],

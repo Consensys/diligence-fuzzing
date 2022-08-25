@@ -97,44 +97,15 @@ suggested_seed_seqs = [
     "lessons, seed_seqs",
     [
         (
-            [
-                {
-                    "description": "my lesson 1",
-                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
-                    "transactions": suggested_seed_seqs[0],
-                }
-            ],
+            [{"description": "my lesson 1", "transactions": suggested_seed_seqs[0]}],
             suggested_seed_seqs[0],
         ),
         (
             [
-                {
-                    "description": "my lesson 1",
-                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
-                    "transactions": suggested_seed_seqs[0],
-                },
-                {
-                    "description": "my lesson 2",
-                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
-                    "transactions": suggested_seed_seqs[1],
-                },
+                {"description": "my lesson 1", "transactions": suggested_seed_seqs[0]},
+                {"description": "my lesson 2", "transactions": suggested_seed_seqs[1]},
             ],
             suggested_seed_seqs[0] + suggested_seed_seqs[1],
-        ),
-        (
-            [
-                {
-                    "description": "my lesson 1",
-                    "lastBlockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
-                    "transactions": suggested_seed_seqs[0],
-                },
-                {
-                    "description": "my lesson 3",
-                    "lastBlockHash": "0xfffffff6f81111111111900000000382351aaaaaabbbbbb758d51f0000000000",
-                    "transactions": suggested_seed_seqs[1],
-                },
-            ],
-            suggested_seed_seqs[0],
         ),
     ],
 )

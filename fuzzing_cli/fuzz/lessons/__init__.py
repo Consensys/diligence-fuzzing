@@ -44,12 +44,10 @@ class FuzzingLessons:
             raise FuzzingLessonsError("Another fuzzing lesson is running")
 
         number_of_blocks = rpc_client.get_latest_block_number() + 1
-        latest_block = rpc_client.get_block(latest=True)
 
         running_lesson: RunningLesson = {
             "description": description,
             "numberOfBlocks": number_of_blocks,
-            "lastBlockHash": latest_block["hash"] if latest_block else None,
         }
 
         storage["runningLesson"] = running_lesson
@@ -85,7 +83,6 @@ class FuzzingLessons:
                 "transactions": FuzzingLessons.prepare_suggested_seed_sequences(
                     lesson_blocks
                 ),
-                "lastBlockHash": lesson_data["lastBlockHash"],
             }
         )
         self.__update_storage(storage)

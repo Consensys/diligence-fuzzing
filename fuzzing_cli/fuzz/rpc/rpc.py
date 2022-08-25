@@ -163,13 +163,6 @@ class RPCClient(RPCClientBase):
             suggested_seed_seqs: List[List[SeedSequenceTransaction]] = []
 
             for lesson in FuzzingLessons.get_lessons():
-                block = self.get_block_by_hash(lesson["lastBlockHash"])
-                if not block:
-                    click.secho(
-                        f"Lesson \"{lesson['description']}\" will not be added to campaign "
-                        f"because it's parent block hash is not found in Ethereum RPC node"
-                    )
-                    continue
                 click.secho(
                     f"Lesson \"{lesson['description']}\" will be added to the campaign's seed state"
                 )
