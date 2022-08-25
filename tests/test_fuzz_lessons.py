@@ -145,12 +145,7 @@ def test_stop_no_transactions_in_lesson(tmp_path, hardhat_fuzzing_lessons_projec
         lesson_data = json.load(f)
     assert lesson_data == {
         "runningLesson": None,
-        "lessons": [
-            {
-                "description": "test-lesson",
-                "transactions": [[]],
-            }
-        ],
+        "lessons": [{"description": "test-lesson", "transactions": [[]]}],
     }
 
 

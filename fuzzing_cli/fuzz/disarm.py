@@ -53,7 +53,7 @@ def fuzz_disarm(ctx, targets, scribble_path: Optional[str]) -> None:
         if return_code == 0:
             click.secho(out)
         else:
-            LOGGER.info(f"out={out}")
+            LOGGER.debug(f"code={return_code}, out={out}")
             raise ClickException(
                 f"ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{err}"
             )

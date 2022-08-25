@@ -95,7 +95,7 @@ def fuzz_arm(
         if return_code == 0:
             click.secho(out)
         else:
-            LOGGER.info(f"out={out}")
+            LOGGER.debug(f"code={return_code}, out={out}")
             raise ClickException(
                 f"ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{err}"
             )

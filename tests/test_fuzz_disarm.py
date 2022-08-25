@@ -1,3 +1,4 @@
+import subprocess
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -100,11 +101,7 @@ def test_fuzz_disarm_process_error(
     ],
 )
 def test_fuzz_disarm_unknown_scribble_path(
-    tmp_path,
-    scribble_project,
-    fake_process,
-    scribble_path: Optional[str],
-    in_config: Optional[bool],
+    tmp_path, scribble_project, scribble_path: Optional[str], in_config: Optional[bool]
 ):
     if scribble_path and in_config:
         write_config(
@@ -117,14 +114,15 @@ def test_fuzz_disarm_unknown_scribble_path(
     def cb(*args, **kwargs):
         raise FileNotFoundError("executable not found")
 
-    fake_process.register_subprocess([fake_process.any()], callback=cb)
-
     runner = CliRunner()
     command = ["disarm"]
     if scribble_path and not in_config:
         command += ["--scribble-path", scribble_path]
     command += ["contracts/VulnerableToken.sol"]
-    result = runner.invoke(cli, command)
+
+    with patch.object(subprocess, "run") as run_mock:
+        run_mock.side_effect = cb
+        result = runner.invoke(cli, command)
 
     assert (
         f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
@@ -133,8 +131,6 @@ def test_fuzz_disarm_unknown_scribble_path(
         in result.output
     )
     assert result.exit_code == 2
-
-    assert len(fake_process.calls) == 1
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
