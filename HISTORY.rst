@@ -2,6 +2,18 @@
 History
 =======
 
+0.9.10 (2022-09-07)
+--------------------
+- Add support for fuzzing limits related response codes
+
+0.9.9 (2022-08-25)
+--------------------
+- Fix project parameter passing
+
+0.9.8 (2022-08-25)
+--------------------
+- Fix fuzzing lessons logic
+
 0.9.7 (2022-08-24)
 --------------------
 - Add :code:`quickcheck` campaigns support
