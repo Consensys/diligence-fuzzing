@@ -447,6 +447,16 @@ def test_fuzz_no_target(tmp_path):
         (
             403,
             None,
+            {
+                "detail": "Monthly fuzzing limit is reached. Review your limits in the dashboard at https://fuzzing.diligence.tools/",
+                "error": "FuzzingLimitReachedError",
+            },
+            None,
+            "Error: BadStatusCode: Fuzzing Limit Reached Error\nDetail: Monthly fuzzing limit is reached. Review your limits in the dashboard at https://fuzzing.diligence.tools/\n",
+        ),
+        (
+            403,
+            None,
             {"detail": "Access denied", "error": "AccessDenied"},
             None,
             "Error: BadStatusCode: Got http status code 403 for request https://fuzzing-test.diligence.tools/api/"

@@ -94,15 +94,20 @@ class FaasClient:
                 if (
                     response.status_code == 403
                     and response_data["detail"]
-                    and response_data["error"] == "SubscriptionError"
+                    and response_data["error"]
+                    in ("SubscriptionError", "FuzzingLimitReachedError")
                 ):
-                    raise BadStatusCode("Subscription Error", response_data["detail"])
+                    msg = response_data["error"]
+                    if response_data["error"] == "SubscriptionError":
+                        msg = "Subscription Error"
+                    elif response_data["error"] == "FuzzingLimitReachedError":
+                        msg = "Fuzzing Limit Reached Error"
+                    raise BadStatusCode(msg, response_data["detail"])
 
-                else:
-                    raise BadStatusCode(
-                        f"Got http status code {response.status_code} for request {req_url}",
-                        detail=response_data["detail"],
-                    )
+                raise BadStatusCode(
+                    f"Got http status code {response.status_code} for request {req_url}",
+                    detail=response_data["detail"],
+                )
             return response_data["id"]
         except Exception as e:
             if isinstance(e, BadStatusCode):
