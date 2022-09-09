@@ -5,6 +5,8 @@ from json import JSONDecodeError
 from os.path import abspath
 from pathlib import Path
 from subprocess import PIPE, CompletedProcess, TimeoutExpired, run
+from tempfile import TemporaryFile
+import tempfile
 from typing import Any, Dict, List, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
@@ -116,15 +118,16 @@ class TruffleArtifacts(IDEArtifacts):
             executables.insert(0, self._options.truffle_executable_path)
         _executables = executables[::-1]
         while _executables:
+            temp_file = TemporaryFile()
             try:
                 executable = _executables.pop()
                 LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
                 # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
                 # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
-
+                
                 process: CompletedProcess = run(
                     [executable, "db", "query", f"{query}"],
-                    stdout=PIPE,
+                    stdout=temp_file,
                     stderr=PIPE,
                     cwd=project_dir,
                     timeout=3 * 60,
@@ -136,7 +139,8 @@ class TruffleArtifacts(IDEArtifacts):
                 LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
                 return {}
 
-            raw_response = process.stdout.decode()
+            temp_file.seek(0)
+            raw_response = temp_file.read()
 
             if len(raw_response) == 0:
                 LOGGER.debug(
