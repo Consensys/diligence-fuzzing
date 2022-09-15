@@ -1,3 +1,4 @@
+import json
 import logging
 from os.path import commonpath
 from pathlib import Path
@@ -310,6 +311,9 @@ class RPCClient(RPCClientBase):
                 # correlate to the source file
                 deployed_bytecode = self.get_code(t)
                 if deployed_bytecode is None:  # it's unknown contract
+                    LOGGER.debug(
+                        f'No deployed bytecode is found in an RPC node for contract: "{t}"'
+                    )
                     dangling_contract_targets.append((None, t))
                     continue
                 contract = artifacts.get_contract(deployed_bytecode)
@@ -320,6 +324,9 @@ class RPCClient(RPCClientBase):
                         artifacts.normalize_path(contract["mainSourceFile"])
                     )
                 ):
+                    LOGGER.debug(
+                        f"Adding contract to dangling contracts list. Contract: {json.dumps(contract)}"
+                    )
                     dangling_contract_targets.append(
                         (contract.get("mainSourceFile", None) if contract else None, t)
                     )
