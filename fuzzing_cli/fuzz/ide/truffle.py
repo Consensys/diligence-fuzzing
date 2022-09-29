@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from functools import lru_cache
 from json import JSONDecodeError
 from os.path import abspath
@@ -115,52 +116,55 @@ class TruffleArtifacts(IDEArtifacts):
             )
             executables.insert(0, self._options.truffle_executable_path)
         _executables = executables[::-1]
-        while _executables:
-            try:
-                executable = _executables.pop()
-                LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
-                # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
-                # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
+        with tempfile.TemporaryFile() as f:
+            while _executables:
+                try:
+                    f.seek(0)
+                    executable = _executables.pop()
+                    LOGGER.debug(f'Invoking truffle executable at path "{executable}"')
+                    # here we're using the tempfile to overcome the subprocess.PIPE's buffer size limit (65536 bytes).
+                    # This limit becomes a problem on a large sized output which will be truncated, resulting to an invalid json
 
-                process: CompletedProcess = run(
-                    [executable, "db", "query", f"{query}"],
-                    stdout=PIPE,
-                    stderr=PIPE,
-                    cwd=project_dir,
-                    timeout=3 * 60,
-                )
-            except FileNotFoundError:
-                # try next executable path
-                continue
-            except TimeoutExpired:
-                LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
-                return {}
+                    process: CompletedProcess = run(
+                        [executable, "db", "query", f"{query}"],
+                        stdout=f,
+                        stderr=PIPE,
+                        cwd=project_dir,
+                        timeout=3 * 60,
+                    )
+                except FileNotFoundError:
+                    # try next executable path
+                    continue
+                except TimeoutExpired:
+                    LOGGER.debug(f'Truffle DB query timeout.\nQuery: "{query}"')
+                    return {}
 
-            raw_response = process.stdout.decode()
+                f.seek(0)
+                raw_response = f.read().decode()
 
-            if len(raw_response) == 0:
-                LOGGER.debug(
-                    f'Empty response from the Truffle DB.\nQuery: "{query}" \nError: "{process.stderr.decode()}"'
-                )
-                return {}
-
-            try:
-                result = json.loads(raw_response)
-                if not result.get("data"):
+                if len(raw_response) == 0:
                     LOGGER.debug(
-                        f'Empty response from the Truffle DB.\nQuery: "{query}" \nRaw response: "{raw_response}"'
+                        f'Empty response from the Truffle DB.\nQuery: "{query}" \nError: "{process.stderr.decode()}"'
                     )
                     return {}
-                return result.get("data")
-            except JSONDecodeError:
-                LOGGER.debug(
-                    f'JSONDecodeError. \nQuery: "{query}" \nRaw response: "{raw_response}"'
-                )
-            except Exception as e:
-                LOGGER.debug(
-                    f'Truffle DB query error.\nQuery: "{query}". \nRaw response: "{raw_response}"\nError: "{e}"'
-                )
-            return {}
+
+                try:
+                    result = json.loads(raw_response)
+                    if not result.get("data"):
+                        LOGGER.debug(
+                            f'Empty response from the Truffle DB.\nQuery: "{query}" \nRaw response: "{raw_response}"'
+                        )
+                        return {}
+                    return result.get("data")
+                except JSONDecodeError:
+                    LOGGER.debug(
+                        f'JSONDecodeError. \nQuery: "{query}" \nRaw response: "{raw_response}"'
+                    )
+                except Exception as e:
+                    LOGGER.debug(
+                        f'Truffle DB query error.\nQuery: "{query}". \nRaw response: "{raw_response}"\nError: "{e}"'
+                    )
+                return {}
 
         raise BuildArtifactsError(
             f"Truffle DB connection error. Tried executable at paths: {executables}. "

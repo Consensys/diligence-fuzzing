@@ -2,6 +2,10 @@
 History
 =======
 
+0.9.11 (2022-09-29)
+--------------------
+- Fix large stdout handling for truffle db queries
+
 0.9.10 (2022-09-07)
 --------------------
 - Add support for fuzzing limits related response codes

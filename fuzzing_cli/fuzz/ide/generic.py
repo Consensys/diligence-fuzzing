@@ -137,7 +137,9 @@ class IDEArtifacts(ABC):
         return x == y
 
     @staticmethod
-    def get_metadata_hash(deployed_bytecode) -> str:
+    def get_metadata_hash(deployed_bytecode) -> Optional[str]:
+        if not deployed_bytecode or deployed_bytecode == "0x":
+            return None
         metadata_length = int(deployed_bytecode[-4:], 16) * 2
         encoded_metadata = deployed_bytecode[-(metadata_length + 4) : -4]
         metadata = cbor2.loads(bytes.fromhex(encoded_metadata))
@@ -145,6 +147,11 @@ class IDEArtifacts(ABC):
 
     def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
         metadata_hash = self.get_metadata_hash(deployed_bytecode)
+        if metadata_hash is None:
+            LOGGER.debug(
+                f"Could not get metadata hash from the deployed bytecode: {deployed_bytecode}. Terminating search"
+            )
+            return None
         result_contracts, _ = self.process_artifacts()
         LOGGER.debug(
             f"Searching a contract with the deployed bytecode metadata hash: {metadata_hash}"
@@ -154,6 +161,11 @@ class IDEArtifacts(ABC):
                 contract_metadata_hash = self.get_metadata_hash(
                     contract["deployedBytecode"]
                 )
+                if contract_metadata_hash is None:
+                    LOGGER.debug(
+                        f"Skipping the contract \"{contract['contractName']}\" because of metadata hash absence"
+                    )
+                    continue
                 LOGGER.debug(
                     f"Comparing with the contract \"{contract['contractName']}\" with metadata hash: {contract_metadata_hash}"
                 )

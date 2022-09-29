@@ -1,6 +1,8 @@
 import os
+from collections import namedtuple
 from pathlib import Path
 from subprocess import TimeoutExpired
+from typing import IO
 from unittest.mock import Mock, patch
 
 import pytest
@@ -40,43 +42,57 @@ def construct_artifacts() -> TruffleArtifacts:
         )
 
 
-def test_query_db(tmp_path, fake_process, truffle_project):
+def test_query_db(tmp_path, truffle_project):
     os.chdir(tmp_path)
 
     artifacts = construct_artifacts()
-    fake_process.register_subprocess(
-        [fake_process.any()], stdout='{"data": {"result": "ok"}}'
-    )
-    result = artifacts.query_truffle_db('"{test_query: 123}"', f"{tmp_path}/contracts")
-    assert result == {"result": "ok"}
-    assert len(fake_process.calls) == 1
-    assert fake_process.call_count(
-        ["/test/truffle", "db", "query", '"{test_query: 123}"']
-    )
+    with patch("fuzzing_cli.fuzz.ide.truffle.run") as subprocess_run_mock:
+
+        def run_mock(command, stdout: IO, **kwargs):
+            stdout.write('{"data": {"result": "ok"}}'.encode())
+
+        subprocess_run_mock.side_effect = run_mock
+        result = artifacts.query_truffle_db(
+            '"{test_query: 123}"', f"{tmp_path}/contracts"
+        )
+
+        assert result == {"result": "ok"}
+        assert subprocess_run_mock.call_count == 1
+        assert subprocess_run_mock.call_args[0][0] == [
+            "/test/truffle",
+            "db",
+            "query",
+            '"{test_query: 123}"',
+        ]
 
 
 @pytest.mark.parametrize(
-    "stdout, error",
+    "_stdout, error",
     [
         ("", 'Empty response from the Truffle DB.\nQuery: "test_query" \nError: ""'),
-        ("{[", 'JSONDecodeError. \nQuery: "test_query" \nRaw response: "{[\n"'),
+        ("{[", 'JSONDecodeError. \nQuery: "test_query" \nRaw response: "{["'),
         (
             '{"result": "ok"}',
-            'Empty response from the Truffle DB.\nQuery: "test_query" \nRaw response: "{"result": "ok"}\n"',
+            'Empty response from the Truffle DB.\nQuery: "test_query" \nRaw response: "{"result": "ok"}"',
         ),
     ],
 )
-def test_query_db_errors(
-    tmp_path, fake_process, truffle_project, stdout: str, error: str
-):
+def test_query_db_errors(tmp_path, truffle_project, _stdout: str, error: str):
     os.chdir(tmp_path)
     logger = MockedLogger()
 
     artifacts = construct_artifacts()
-    fake_process.register_subprocess(
-        ["/test/truffle", "db", "query", "test_query"], stdout=stdout
-    )
-    with patch("fuzzing_cli.fuzz.ide.truffle.LOGGER", new=logger):
+
+    ProcessMock = namedtuple("ProcessMock", ["stderr"])
+
+    def run_mock(command, stdout: IO, **kwargs):
+        stdout.write(_stdout.encode())
+        return ProcessMock("".encode())
+
+    with patch("fuzzing_cli.fuzz.ide.truffle.LOGGER", new=logger), patch(
+        "fuzzing_cli.fuzz.ide.truffle.run"
+    ) as subprocess_run_mock:
+        subprocess_run_mock.side_effect = run_mock
         res = artifacts.query_truffle_db("test_query", f"{tmp_path}/contracts")
         assert res == {}
         assert logger.debug_messages[-1] == error
