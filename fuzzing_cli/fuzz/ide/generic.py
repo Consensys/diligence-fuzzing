@@ -4,6 +4,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import cbor2
+
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError, EmptyArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
@@ -134,13 +136,41 @@ class IDEArtifacts(ABC):
             y = y[2:]
         return x == y
 
+    @staticmethod
+    def get_metadata_hash(deployed_bytecode) -> Optional[str]:
+        if not deployed_bytecode or deployed_bytecode == "0x":
+            return None
+        metadata_length = int(deployed_bytecode[-4:], 16) * 2
+        encoded_metadata = deployed_bytecode[-(metadata_length + 4) : -4]
+        metadata = cbor2.loads(bytes.fromhex(encoded_metadata))
+        return metadata["ipfs"].hex().lower()
+
     def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
+        metadata_hash = self.get_metadata_hash(deployed_bytecode)
+        if metadata_hash is None:
+            LOGGER.debug(
+                f"Could not get metadata hash from the deployed bytecode: {deployed_bytecode}. Terminating search"
+            )
+            return None
         result_contracts, _ = self.process_artifacts()
+        LOGGER.debug(
+            f"Searching a contract with the deployed bytecode metadata hash: {metadata_hash}"
+        )
         for _, contracts in result_contracts.items():
             for contract in contracts:
-                if self.compare_bytecode(
-                    deployed_bytecode, contract["deployedBytecode"]
-                ):
+                contract_metadata_hash = self.get_metadata_hash(
+                    contract["deployedBytecode"]
+                )
+                if contract_metadata_hash is None:
+                    LOGGER.debug(
+                        f"Skipping the contract \"{contract['contractName']}\" because of metadata hash absence"
+                    )
+                    continue
+                LOGGER.debug(
+                    f"Comparing with the contract \"{contract['contractName']}\" with metadata hash: {contract_metadata_hash}"
+                )
+                if metadata_hash == contract_metadata_hash:
+                    LOGGER.debug("Matching contract is found")
                     return contract
         return None
 
