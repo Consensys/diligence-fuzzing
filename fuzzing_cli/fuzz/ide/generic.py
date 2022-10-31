@@ -206,3 +206,29 @@ class IDEArtifacts(ABC):
     def validate(self) -> None:
         if len(self.sources.keys()) == 0 or len(self.contracts) == 0:
             raise EmptyArtifactsError()
+
+    @staticmethod
+    def get_ignored_sources(
+        generated_sources: Optional[List[Dict[str, any]]] = None,
+        source_map: Optional[str] = None,
+        source_ids: Optional[List[str]] = None,
+    ) -> List[int]:
+        if generated_sources:  # compiler output has generated sources data
+            ignored_sources = set()
+            for generated_source in generated_sources:
+                if generated_source["language"].lower() == "yul" and type(
+                    generated_source["id"] is int
+                ):
+                    ignored_sources.add(generated_source["id"])
+            return sorted(list(ignored_sources))
+
+        sm = source_map.split(";")
+        all_file_ids = set()
+        for c in sm:
+            component = c.split(":")
+            if len(component) < 3 or component[2] == "":
+                continue
+            all_file_ids.add(component[2])
+        return sorted(
+            [int(file_id) for file_id in all_file_ids if file_id not in source_ids]
+        )
