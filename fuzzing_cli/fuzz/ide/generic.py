@@ -47,33 +47,12 @@ class IDEArtifacts(ABC):
         pass
 
     @property
-    @abstractmethod
     def contracts(self) -> List[Contract]:
-        """ Returns sources
-        sources = {
-            "filename": [
-                {
-                    "bytecode": <>,
-                    ...
-                    "deployedBytecode": <>
-                }
-            ]
-        }
-        """
-        pass
+        return self.fetch_data()[0]
 
     @property
-    @abstractmethod
     def sources(self) -> Dict[str, Source]:
-        """ Returns sources
-        sources = {
-            "filename": {
-                "ast": <>,
-                "source: ""
-            }
-        }
-        """
-        pass
+        return self.fetch_data()[1]
 
     @staticmethod
     @abstractmethod
@@ -183,11 +162,6 @@ class IDEArtifacts(ABC):
             for k, v in _result_contracts.items()
             if self.normalize_path(k) in normalized_include
         }
-        # result_sources = {
-        #     k: v
-        #     for k, v in _result_sources.items()
-        #     if self.normalize_path(k) in normalized_include
-        # }
         return self.flatten_contracts(result_contracts), _result_sources
 
     @abstractmethod

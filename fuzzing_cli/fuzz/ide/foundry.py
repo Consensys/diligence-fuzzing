@@ -15,6 +15,8 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FoundryArtifacts(IDEArtifacts):
+    add_compilation_hint = True
+
     def __init__(
         self,
         options: FuzzingOptions,
@@ -45,27 +47,22 @@ class FoundryArtifacts(IDEArtifacts):
     def get_default_sources_dir() -> Path:
         return Path.cwd().joinpath("src")
 
-    @property
-    def contracts(self) -> List[Contract]:
-        return self.fetch_data()[0]
-
-    @property
-    def sources(self) -> Dict[str, Source]:
-        return self.fetch_data()[1]
-
-    @staticmethod
-    def _get_build_info(build_dir) -> Dict:
+    @classmethod
+    def _get_build_info(cls, build_dir) -> Dict:
         build_dir = Path(build_dir)
         if not build_dir.is_dir():
             raise BuildArtifactsError("Build directory doesn't exist")
 
+        error_msg = "build-info directory doesn't exist."
+        if cls.add_compilation_hint:
+            error_msg += (
+                " Please make sure to run `foundry build --build-info` before fuzzing"
+            )
+
         build_info_dir = Path(build_dir).joinpath("build-info")
 
         if not build_info_dir.is_dir():
-            raise BuildArtifactsError(
-                "build-info directory doesn't exist. "
-                "Please make sure to run `foundry build --build-info` before fuzzing"
-            )
+            raise BuildArtifactsError(error_msg)
 
         for child in build_info_dir.glob("*.json"):
             if not child.is_file():
@@ -85,10 +82,7 @@ class FoundryArtifacts(IDEArtifacts):
             ):
                 return data
 
-        raise BuildArtifactsError(
-            "build-info json file wasn't found. "
-            "Please make sure to run `foundry build --build-info` before fuzzing"
-        )
+        raise BuildArtifactsError(error_msg)
 
     def get_source(self, source_path: str) -> str:
         if self.map_to_original_source and Path(source_path + ".original").is_file():
@@ -109,7 +103,7 @@ class FoundryArtifacts(IDEArtifacts):
             source_ids.append(source["id"])
             source_paths[str(source["id"])] = source_name
             result_sources[source_name] = {
-                "fileIndex": str(source["id"]),
+                "fileIndex": source["id"],
                 "source": self.get_source(self.normalize_path(source_name)),
                 "ast": source["ast"],
             }

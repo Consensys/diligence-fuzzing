@@ -44,31 +44,6 @@ class BrownieArtifacts(IDEArtifacts):
     def get_default_sources_dir() -> Path:
         return Path.cwd().joinpath("contracts")
 
-    @property
-    def contracts(self) -> List[Contract]:
-        return self.fetch_data()[0]
-
-    @property
-    def sources(self) -> Dict[str, Source]:
-        return self.fetch_data()[1]
-
-    @staticmethod
-    def get_compiler_generated_source_ids(
-        source_map: str, sources: Dict[str, str]
-    ) -> List[int]:
-        # this method is necessary because brownie does not preserve `generatedSources` for deployedBytecode
-        # from solidity compiler's output (i.e. `deployedGeneratedSources`)
-        sm = source_map.split(";")
-        allFileIds = set()
-        for c in sm:
-            component = c.split(":")
-            if len(component) < 3 or component[2] == "":
-                continue
-            allFileIds.add(component[2])
-        return sorted(
-            [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
-        )
-
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         """ example build_files_by_source_file
@@ -86,32 +61,10 @@ class BrownieArtifacts(IDEArtifacts):
         result_contracts = {}
         result_sources = {}
 
-        # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
-        for source_file, contracts in build_files_by_source_file.items():
-            result_contracts[source_file] = []
-            for contract in contracts:
-                # We get the build items from brownie and rename them into the properties used by the FaaS
-                try:
-                    result_contracts[source_file] += [
-                        {
-                            "sourcePaths": contract["allSourcePaths"],
-                            "deployedSourceMap": contract["deployedSourceMap"],
-                            "deployedBytecode": contract["deployedBytecode"],
-                            "sourceMap": contract["sourceMap"],
-                            "bytecode": contract["bytecode"],
-                            "contractName": contract["contractName"],
-                            "mainSourceFile": contract["sourcePath"],
-                            "ignoredSources": self.get_compiler_generated_source_ids(
-                                source_map=contract["deployedSourceMap"],
-                                sources=contract["allSourcePaths"],
-                            ),
-                        }
-                    ]
-                except KeyError as e:
-                    raise BuildArtifactsError(
-                        f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
-                    )
+        source_ids: List[str] = []
 
+        for source_file, contracts in build_files_by_source_file.items():
+            for contract in contracts:
                 for file_index, source_file_dep in contract["allSourcePaths"].items():
                     if source_file_dep in result_sources.keys():
                         continue
@@ -128,6 +81,7 @@ class BrownieArtifacts(IDEArtifacts):
                         "source": target_file["source"],
                         "ast": target_file["ast"],
                     }
+                    source_ids.append(str(file_index))
 
                     if (
                         self.map_to_original_source
@@ -138,4 +92,31 @@ class BrownieArtifacts(IDEArtifacts):
                         result_sources[source_file_dep][
                             "source"
                         ] = get_content_from_file(source_file_dep + ".original")
+
+        # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
+        for source_file, contracts in build_files_by_source_file.items():
+            result_contracts[source_file] = []
+            for contract in contracts:
+                # We get the build items from brownie and rename them into the properties used by the FaaS
+                try:
+                    result_contracts[source_file] += [
+                        {
+                            "sourcePaths": contract["allSourcePaths"],
+                            "deployedSourceMap": contract["deployedSourceMap"],
+                            "deployedBytecode": contract["deployedBytecode"],
+                            "sourceMap": contract["sourceMap"],
+                            "bytecode": contract["bytecode"],
+                            "contractName": contract["contractName"],
+                            "mainSourceFile": contract["sourcePath"],
+                            "ignoredSources": self.get_ignored_sources(
+                                generated_sources=None,
+                                source_map=contract["deployedSourceMap"],
+                                source_ids=source_ids,
+                            ),
+                        }
+                    ]
+                except KeyError as e:
+                    raise BuildArtifactsError(
+                        f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
+                    )
         return result_contracts, result_sources

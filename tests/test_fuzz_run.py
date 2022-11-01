@@ -293,7 +293,7 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
         **{**ide, "build_directory": "wrong_directory"},
     )
     os.makedirs(tmp_path.joinpath("wrong_directory"))
-    if ide["ide"] == "foundry":
+    if ide["ide"] == "foundry" or ide["ide"] == "hardhat":
         build_info = tmp_path.joinpath("wrong_directory", "build-info")
         os.makedirs(build_info)
         with open(build_info.joinpath("test.json"), "w") as f:
