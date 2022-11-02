@@ -1,0 +1,3 @@
+[run]
+omit =
+    fuzzing_cli/fuzz/config/pytimer.py

@@ -67,6 +67,7 @@ def test_sync_without_config(tmp_path):
         lazy_fixture("brownie_project"),
         lazy_fixture("hardhat_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
 @patch(
@@ -107,6 +108,7 @@ def test_syncing(tmp_path, ide):
         (lazy_fixture("brownie_project"), "Brownie"),
         (lazy_fixture("hardhat_project"), "Hardhat"),
         (lazy_fixture("dapptools_project"), "Dapptools"),
+        (lazy_fixture("foundry_project"), "Foundry"),
     ],
 )
 @pytest.mark.parametrize("confirm_ide", [True, False])
@@ -142,7 +144,7 @@ def test_determine_ide_not_confirmed(ide):
         inquirer_list.assert_called_once_with(
             "ide",
             message="Please select IDE",
-            choices=["Truffle", "Hardhat", "Brownie", "Dapptools"],
+            choices=["Truffle", "Hardhat", "Brownie", "Dapptools", "Foundry"],
         )
         if ide:
             click_confirm.assert_called_once_with(
@@ -289,6 +291,7 @@ def test_determine_targets_source_dir_not_exists(
         lazy_fixture("brownie_project"),
         lazy_fixture("hardhat_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
 def test_determine_build_dir(

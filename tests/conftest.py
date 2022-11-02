@@ -183,3 +183,25 @@ def truffle_echidna_project(tmp_path, request):
             "contracts/SecondVulnerableTokenTest.sol",
         ],
     }
+
+
+@pytest.fixture()
+def foundry_project(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "foundry_project", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "foundry",
+        "build_directory": "out",
+        "sources_directory": "src",
+        "targets": ["src/Foo.sol", "src/Bar.sol", "src/ABC.sol"],
+        "deployed_contract_address": "0x0c91f9338228f19315BE34E5CA5307DF586CBD99",
+        "additional_addresses": [
+            "0x9B92063B8B94A9EF8b5fDE3Df8D375B39bC9fC10",
+            "0x694D08b77D2499E161635005Fd4A77233cedD761",
+        ],
+    }

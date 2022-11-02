@@ -179,6 +179,7 @@ def test_fuzz_run_fuzzing_lessons(
         lazy_fixture("truffle_project"),
         lazy_fixture("brownie_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
 @pytest.mark.parametrize("absolute_targets", [True, False])
@@ -282,6 +283,7 @@ def test_fuzz(
         lazy_fixture("truffle_project"),
         lazy_fixture("brownie_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
 def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
@@ -291,6 +293,11 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
         **{**ide, "build_directory": "wrong_directory"},
     )
     os.makedirs(tmp_path.joinpath("wrong_directory"))
+    if ide["ide"] == "foundry" or ide["ide"] == "hardhat":
+        build_info = tmp_path.joinpath("wrong_directory", "build-info")
+        os.makedirs(build_info)
+        with open(build_info.joinpath("test.json"), "w") as f:
+            f.write('{"output": {"sources": {}, "contracts": {}}}')
 
     IDE_NAME = ide["ide"]
 

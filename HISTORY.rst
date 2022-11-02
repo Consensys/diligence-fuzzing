@@ -2,6 +2,10 @@
 History
 =======
 
+0.9.12 (2022-11-02)
+--------------------
+- Add :code:`Foundry` framework support
+
 0.9.11 (2022-09-29)
 --------------------
 - Fix large stdout handling for truffle db queries
