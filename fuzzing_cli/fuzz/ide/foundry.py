@@ -56,7 +56,7 @@ class FoundryArtifacts(IDEArtifacts):
         error_msg = "build-info directory doesn't exist."
         if cls.add_compilation_hint:
             error_msg += (
-                " Please make sure to run `foundry build --build-info` before fuzzing"
+                " Please make sure to run `forge build --build-info` before fuzzing"
             )
 
         build_info_dir = Path(build_dir).joinpath("build-info")
