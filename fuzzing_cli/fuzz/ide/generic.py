@@ -184,8 +184,8 @@ class IDEArtifacts(ABC):
     @staticmethod
     def get_ignored_sources(
         generated_sources: Optional[List[Dict[str, any]]] = None,
-        source_map: Optional[str] = None,
-        source_ids: Optional[List[str]] = None,
+        source_map: str = "",
+        source_ids: List[int] = [],
     ) -> List[int]:
         if generated_sources:  # compiler output has generated sources data
             ignored_sources = set()
@@ -204,5 +204,5 @@ class IDEArtifacts(ABC):
                 continue
             all_file_ids.add(component[2])
         return sorted(
-            [int(file_id) for file_id in all_file_ids if file_id not in source_ids]
+            [int(file_id) for file_id in all_file_ids if int(file_id) not in source_ids]
         )

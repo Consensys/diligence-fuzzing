@@ -1,8 +1,5 @@
 import os
 from pathlib import Path
-from typing import Dict, List
-
-from fuzzing_cli.fuzz.ide.generic import Contract, Source
 
 from .foundry import FoundryArtifacts
 

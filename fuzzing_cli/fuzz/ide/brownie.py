@@ -61,7 +61,7 @@ class BrownieArtifacts(IDEArtifacts):
         result_contracts = {}
         result_sources = {}
 
-        source_ids: List[str] = []
+        source_ids: List[int] = []
 
         for source_file, contracts in build_files_by_source_file.items():
             for contract in contracts:
@@ -74,14 +74,15 @@ class BrownieArtifacts(IDEArtifacts):
                         continue
 
                     # We can select any dict on the build_files_by_source_file[source_file] array
-                    # because the .source and .ast values will be the same in all.
+                    # because the .source and .ast values will be the same in all
+                    file_index = int(file_index)
                     target_file = build_files_by_source_file[source_file_dep][0]
                     result_sources[source_file_dep] = {
                         "fileIndex": file_index,
                         "source": target_file["source"],
                         "ast": target_file["ast"],
                     }
-                    source_ids.append(str(file_index))
+                    source_ids.append(file_index)
 
                     if (
                         self.map_to_original_source

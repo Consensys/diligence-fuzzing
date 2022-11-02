@@ -102,20 +102,18 @@ class DapptoolsArtifacts(IDEArtifacts):
         result_contracts: Dict[str, List[Contract]] = {}
         result_sources = {}
 
-        source_ids: List[str] = []
+        source_ids: List[int] = []
 
         for source_file_path, source_file in source_files.items():
-            file_index = str(source_file["id"])
-
             # We can select any dict on the build_files_by_source_file[source_file] array
             # because the .source and .ast values will be the same in all.
             target_file = build_files_by_source_file[source_file_path]
             result_sources[source_file_path] = {
-                "fileIndex": file_index,
+                "fileIndex": source_file["id"],
                 "source": get_content_from_file(source_file_path),
                 "ast": source_file["ast"],
             }
-            source_ids.append(file_index)
+            source_ids.append(source_file["id"])
 
             if (
                 self.map_to_original_source

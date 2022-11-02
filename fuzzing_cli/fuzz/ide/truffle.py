@@ -48,7 +48,7 @@ class TruffleArtifacts(IDEArtifacts):
         result_contracts = {}
         result_sources = {}
 
-        source_ids: List[str] = []
+        source_ids: List[int] = []
 
         for source_file, contracts in self.build_files_by_source_file.items():
             for contract in contracts:
@@ -70,7 +70,7 @@ class TruffleArtifacts(IDEArtifacts):
                         "source": target_file["source"],
                         "ast": target_file["ast"],
                     }
-                    source_ids.append(str(file_index))
+                    source_ids.append(file_index)
 
         for source_file, contracts in self.build_files_by_source_file.items():
             result_contracts[source_file] = []

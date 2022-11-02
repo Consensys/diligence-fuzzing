@@ -96,7 +96,7 @@ class FoundryArtifacts(IDEArtifacts):
         result_contracts = {}
         result_sources = {}
 
-        source_ids = []
+        source_ids: List[int] = []
         source_paths = {}
 
         for source_name, source in build_info["output"]["sources"].items():
