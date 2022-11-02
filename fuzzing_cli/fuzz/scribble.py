@@ -25,7 +25,7 @@ class ScribbleMixin:
         if process.returncode == 0:
             return 0, process.stdout.decode(), None
 
-        return (process.returncode, process.stdout.decode(), process.stderr.decode())
+        return process.returncode, process.stdout.decode(), process.stderr.decode()
 
     def instrument_solc_file(
         self, target: str, scribble_path: str, remappings: Tuple[str]

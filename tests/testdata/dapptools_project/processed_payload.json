@@ -80,7 +80,7 @@
   },
   "sources": {
     "src/ABC.sol": {
-      "fileIndex": "0",
+      "fileIndex": 0,
       "source": "pragma solidity >=0.8.1;\ncontract ABC {\n    int256 private x;\n    /// #if_succeeds {:msg \"P1\"} y == 30; \n    function ABCD() public view returns (int256 y) {\n        if (x == 30) {\n            assert(false);\n            return 3;\n        }\n        if (x == 50) {\n            assert(false);\n            return 5;\n        }\n        if (x == 70) {\n            assert(false);\n            return 7;\n        }\n        if (x == 90) {\n            assert(false);\n            return 9;\n        }\n        if (x == 110) {\n            assert(false);\n            return 11;\n        }\n        if (x == 130) {\n            assert(false);\n            return 13;\n        }\n        if (x == 150) {\n            assert(false);\n            return 15;\n        }\n        if (x == 170) {\n            assert(false);\n            return 17;\n        }\n        if (x == 190) {\n            assert(false);\n            return 19;\n        }\n        if (x == 210) {\n            assert(false);\n            return 21;\n        }\n        if (x == 230) {\n            assert(false);\n            return 23;\n        }\n        if (x == 250) {\n            assert(false);\n            return 25;\n        }\n        return 0;\n    }\n    function SetNext(bool b) public {\n        x = int256(2)*x + (b ? int256(1) : int256(0));\n    }\n}",
       "ast": {
         "absolutePath": "src/ABC.sol",
@@ -2243,7 +2243,7 @@
       }
     },
     "src/Bar.sol": {
-      "fileIndex": "1",
+      "fileIndex": 1,
       "source": "pragma solidity >=0.8.1;\n\ncontract Bar {\n\n    uint256 private x;\n\n    function AAB() public view returns (uint256) {\n        if (x == 10) {\n            assert(false);\n            return 1;\n        }\n        if (x == 30) {\n            assert(false);\n            return 3;\n        }\n        if (x == 50) {\n            assert(false);\n            return 5;\n        }\n        if (x == 70) {\n            assert(false);\n            return 7;\n        }\n        if (x == 90) {\n            assert(false);\n            return 9;\n        }\n        if (x == 110) {\n            assert(false);\n            return 11;\n        }\n        if (x == 130) {\n            assert(false);\n            return 13;\n        }\n        if (x == 150) {\n            assert(false);\n            return 15;\n        }\n        if (x == 170) {\n            assert(false);\n            return 17;\n        }\n        if (x == 190) {\n            assert(false);\n            return 19;\n        }\n        if (x == 210) {\n            assert(false);\n            return 19;\n        }\n        return 0;\n    }\n    function SetNext(bool b) public {\n        x = 2*x + (b ? 1 : 0);\n    }\n}",
       "ast": {
         "absolutePath": "src/Bar.sol",
@@ -4131,7 +4131,7 @@
       }
     },
     "src/Foo.sol": {
-      "fileIndex": "2",
+      "fileIndex": 2,
       "source": "pragma solidity >=0.8.1;\ncontract Foo {\n    int256 private x;\n    function Bar() public view returns (int256) {\n        if (x == 10) {\n            assert(false);\n            return 1;\n        }\n        if (x == 30) {\n            assert(false);\n            return 3;\n        }\n        if (x == 50) {\n            assert(false);\n            return 5;\n        }\n        if (x == 70) {\n            assert(false);\n            return 7;\n        }\n        if (x == 90) {\n            assert(false);\n            return 9;\n        }\n        if (x == 110) {\n            assert(false);\n            return 11;\n        }\n        if (x == 130) {\n            assert(false);\n            return 13;\n        }\n        if (x == 150) {\n            assert(false);\n            return 15;\n        }\n        if (x == 170) {\n            assert(false);\n            return 17;\n        }\n        if (x == 190) {\n            assert(false);\n            return 19;\n        }\n        if (x == 210) {\n            assert(false);\n            return 21;\n        }\n        return 0;\n    }\n    function SetNext(bool b) public {\n        x = int256(2)*x + (b ? int256(1) : int256(0));\n    }\n}",
       "ast": {
         "absolutePath": "src/Foo.sol",
@@ -6151,7 +6151,7 @@
       }
     },
     "src/Migrations.sol": {
-      "fileIndex": "3",
+      "fileIndex": 3,
       "source": "// SPDX-License-Identifier: MIT\npragma solidity >=0.8.0 <0.9.0;\n\ncontract Migrations {\n  address public owner = msg.sender;\n  uint public last_completed_migration;\n\n  modifier restricted() {\n    require(\n      msg.sender == owner,\n      \"This function is restricted to the contract's owner\"\n    );\n    _;\n  }\n\n  function setCompleted(uint completed) public restricted {\n    last_completed_migration = completed;\n  }\n}\n",
       "ast": {
         "absolutePath": "src/Migrations.sol",
