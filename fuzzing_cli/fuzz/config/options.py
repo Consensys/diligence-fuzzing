@@ -37,7 +37,9 @@ class FuzzingOptions:
         self.map_to_original_source = map_to_original_source
         self.dry_run = dry_run
         self.build_directory: Path = self.make_absolute_path(build_directory)
-        self.sources_directory: Path = self.make_absolute_path(sources_directory)
+        self.sources_directory: Optional[Path] = self.make_absolute_path(
+            sources_directory
+        )
         self.deployed_contract_address = deployed_contract_address
         self.target: List[str] = targets
         self.rpc_url = rpc_url

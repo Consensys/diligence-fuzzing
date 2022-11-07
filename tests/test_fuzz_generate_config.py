@@ -20,6 +20,7 @@ from fuzzing_cli.fuzz.generate_config import (
     determine_cpu_cores,
     determine_ide,
     determine_rpc_url,
+    determine_sources_dir,
     determine_targets,
 )
 
@@ -364,3 +365,26 @@ def test_determine_campaign_name(tmp_path: Path, truffle_project):
         )
 
     assert campaign_name == "test-1"
+
+
+def test_determine_sources_dir(tmp_path, truffle_project):
+    assert determine_sources_dir([]) is None
+    assert determine_sources_dir([str(tmp_path.joinpath("contracts"))]) == str(
+        tmp_path.joinpath("contracts")
+    )
+    assert determine_sources_dir(
+        [str(tmp_path.joinpath("contracts", "ABC.sol"))]
+    ) == str(tmp_path.joinpath("contracts"))
+    assert determine_sources_dir(
+        [
+            str(tmp_path.joinpath("contracts")),
+            str(tmp_path.joinpath("contracts", "Foo.sol")),
+            str(tmp_path.joinpath("contracts", "ABC.sol")),
+        ]
+    ) == str(tmp_path.joinpath("contracts"))
+    assert determine_sources_dir(
+        [
+            str(tmp_path.joinpath("contracts", "Foo.sol")),
+            str(tmp_path.joinpath("contracts", "Bar.sol")),
+        ]
+    ) == str(tmp_path.joinpath("contracts"))
