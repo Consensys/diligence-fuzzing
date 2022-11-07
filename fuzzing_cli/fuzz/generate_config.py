@@ -1,6 +1,6 @@
 from os.path import commonpath, relpath
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import click
 import inquirer
@@ -179,7 +179,9 @@ def determine_campaign_name() -> str:
     return name
 
 
-def determine_sources_dir(targets: List[str]) -> str:
+def determine_sources_dir(targets: List[str]) -> Optional[str]:
+    if len(targets) == 0:
+        return None
     if len(targets) == 1:
         if Path(targets[0]).is_dir():
             # looks like contracts directory
