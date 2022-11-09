@@ -84,10 +84,13 @@ class FoundryArtifacts(IDEArtifacts):
 
         raise BuildArtifactsError(error_msg)
 
-    def get_source(self, source_path: str) -> str:
-        if self.map_to_original_source and Path(source_path + ".original").is_file():
-            return get_content_from_file(source_path + ".original")
-        return get_content_from_file(source_path)
+    def get_source(self, source_path: str, sources: Dict[str, Dict[str, str]]) -> str:
+        if (
+            self.map_to_original_source
+            and Path(self.normalize_path(source_path) + ".original").is_file()
+        ):
+            return get_content_from_file(self.normalize_path(source_path) + ".original")
+        return sources[source_path]["content"]
 
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
@@ -104,7 +107,7 @@ class FoundryArtifacts(IDEArtifacts):
             source_paths[str(source["id"])] = source_name
             result_sources[source_name] = {
                 "fileIndex": source["id"],
-                "source": self.get_source(self.normalize_path(source_name)),
+                "source": self.get_source(source_name, build_info["input"]["sources"]),
                 "ast": source["ast"],
             }
 

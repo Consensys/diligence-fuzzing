@@ -14,6 +14,7 @@ from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.quickcheck import fuzz_auto
 from fuzzing_cli.fuzz.run import fuzz_run
+from fuzzing_cli.fuzz.version import fuzz_version
 
 LOGGER = logging.getLogger("fuzzing-cli")
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -81,6 +82,7 @@ cli.add_command(fuzz_disarm)
 cli.add_command(fuzz_generate_config)
 cli.add_command(fuzz_auto)
 cli.add_command(fuzz_lesson)
+cli.add_command(fuzz_version)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover
