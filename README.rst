@@ -34,6 +34,7 @@ Usage
       generate-config  Generate config file for fuzzing
       lesson           Manage fuzzing lessons
       run              Submit contracts to the Diligence Fuzzing API
+      version          Show diligence-fuzzing version
 
 
 

@@ -85,7 +85,10 @@ class FoundryArtifacts(IDEArtifacts):
         raise BuildArtifactsError(error_msg)
 
     def get_source(self, source_path: str, sources: Dict[str, Dict[str, str]]) -> str:
-        if self.map_to_original_source and Path(self.normalize_path(source_path) + ".original").is_file():
+        if (
+            self.map_to_original_source
+            and Path(self.normalize_path(source_path) + ".original").is_file()
+        ):
             return get_content_from_file(self.normalize_path(source_path) + ".original")
         return sources[source_path]["content"]
 
