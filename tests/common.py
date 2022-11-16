@@ -59,6 +59,9 @@ def generate_fuzz_config(
     faas_url: Optional[str] = None,
     suggested_seed_seqs: Optional[List[Mapping[str, any]]] = None,
     time_limit: Optional[str] = None,
+    chain_id: Optional[str] = None,
+    enable_cheat_codes: Optional[bool] = None,
+    string_chain_id=True,
 ):
     config_file = "analyze:"
     if remappings:
@@ -142,6 +145,19 @@ def generate_fuzz_config(
 
     if time_limit:
         config_file += f"\n  time_limit: {time_limit}"
+
+    fuzzer_options = ""
+    if chain_id is not None:
+        if string_chain_id:
+            fuzzer_options += f'\n    chain_id: "{chain_id}"'
+        else:
+            fuzzer_options += (
+                f"\n    chain_id: {chain_id}"
+            )  # hex will be converted to number
+    if enable_cheat_codes is not None:
+        fuzzer_options += f"\n    enable_cheat_codes: {enable_cheat_codes}"
+    if fuzzer_options:
+        config_file += f"\n  fuzzer_options:{fuzzer_options}"
 
     return config_file
 

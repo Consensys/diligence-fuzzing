@@ -2,6 +2,19 @@
 History
 =======
 
+0.9.15 (2022-11-16)
+--------------------
+- Add new fuzzer options
+
+0.9.14 (2022-11-09)
+--------------------
+- Add :code:`version` command
+- Fix artifacts collection for :code:`Foundry` and :code:`Hardhat`
+
+0.9.13 (2022-11-08)
+--------------------
+- Fix sources directory detection bug in :code:`generate-config` command
+
 0.9.12 (2022-11-02)
 --------------------
 - Add :code:`Foundry` framework support

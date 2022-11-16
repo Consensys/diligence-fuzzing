@@ -30,6 +30,8 @@ class FuzzingOptions:
         truffle_executable_path: Optional[str] = None,
         incremental: bool = False,
         time_limit: Optional[str] = None,
+        chain_id: Optional[Union[str, int]] = None,
+        enable_cheat_codes: Optional[bool] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -50,6 +52,10 @@ class FuzzingOptions:
         self.project = project
         self.incremental = incremental
         self.time_limit = self._parse_time_limit(time_limit)
+        self.chain_id: Optional[str] = self.parse_chain_id(chain_id)
+        self.enable_cheat_codes = (
+            bool(enable_cheat_codes) if enable_cheat_codes is not None else None
+        )
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -67,6 +73,14 @@ class FuzzingOptions:
         self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
             key
         )
+
+    @staticmethod
+    def parse_chain_id(chain_id: Optional[Union[str, int]]) -> Optional[str]:
+        if chain_id is None or (type(chain_id) == str and len(chain_id) == 0):
+            return None
+        if type(chain_id) == int:
+            return hex(chain_id)
+        return chain_id
 
     @staticmethod
     def _parse_time_limit(time_limit: Optional[str]) -> Optional[int]:
@@ -151,4 +165,9 @@ class FuzzingOptions:
         if self.incremental and self.corpus_target:
             raise click.exceptions.UsageError(
                 "Both `incremental` and `corpus_target` are set. Please set only one option in your config file"
+            )
+
+        if self.chain_id and not self.chain_id.startswith("0x"):
+            raise click.exceptions.UsageError(
+                f"`chain_id` is not in hex format (0x..). Please provide correct hex value"
             )
