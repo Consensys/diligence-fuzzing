@@ -163,6 +163,10 @@ def fuzz_run(
                     "suggested_seed_seqs": fuzz_config.get("suggested_seed_seqs"),
                     "lesson_description": fuzz_config.get("lesson_description"),
                     "time_limit": fuzz_config.get("time_limit"),
+                    "chain_id": fuzz_config.get("fuzzer_options", {}).get("chain_id"),
+                    "enable_cheat_codes": fuzz_config.get("fuzzer_options", {}).get(
+                        "enable_cheat_codes"
+                    ),
                 }
             ).items()
             if v is not None
@@ -232,17 +236,7 @@ def fuzz_run(
 
         rpc_client.check_contracts(seed_state, artifacts, options.target)
 
-    faas_client = FaasClient(
-        faas_url=options.faas_url,
-        campaign_name_prefix=options.campaign_name_prefix,
-        project_type=project_type,
-        client_id=options.auth_client_id,
-        refresh_token=options.refresh_token,
-        auth_endpoint=options.auth_endpoint,
-        project=options.project,
-        quick_check=options.quick_check,
-        time_limit=options.time_limit,
-    )
+    faas_client = FaasClient(options=options, project_type=project_type)
 
     try:
         campaign_id = faas_client.create_faas_campaign(

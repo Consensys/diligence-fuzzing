@@ -334,10 +334,21 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
 
 @pytest.mark.parametrize("ide", [lazy_fixture("hardhat_project")])
 @pytest.mark.parametrize(
-    "corpus_target, time_limit, project",
+    "corpus_target, time_limit, project, chain_id, enable_cheat_codes, string_chain_id",
     [
-        (None, None, None),
-        ("cmp_9e931b147e7143a8b53041c708d5474e", "15mins", "Test Project 1"),
+        (None, None, None, None, None, True),
+        (
+            "cmp_9e931b147e7143a8b53041c708d5474e",
+            "15mins",
+            "Test Project 1",
+            "0x2a",
+            True,
+            True,
+        ),
+        (None, None, None, "0x11", False, False),
+        (None, None, None, "0x22", None, False),
+        (None, None, None, 42, None, False),
+        (None, None, None, "", None, True),
     ],
 )
 def test_fuzz_parameters(
@@ -346,6 +357,9 @@ def test_fuzz_parameters(
     corpus_target: Optional[str],
     time_limit: Optional[str],
     project: Optional[str],
+    chain_id: Optional[Union[str, int]],
+    enable_cheat_codes: Optional[bool],
+    string_chain_id: bool,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -353,6 +367,9 @@ def test_fuzz_parameters(
         **ide,
         time_limit=time_limit,
         project=project,
+        chain_id=chain_id,
+        enable_cheat_codes=enable_cheat_codes,
+        string_chain_id=string_chain_id,
     )
 
     IDE_NAME = ide["ide"]
@@ -389,6 +406,15 @@ def test_fuzz_parameters(
     assert payload["corpus"].get("target", None) == corpus_target
     assert payload.get("timeLimit", None) == (900 if time_limit else None)
     assert payload.get("project", None) == project or None
+
+    _chain_id = chain_id
+    if type(_chain_id) == int:
+        _chain_id = hex(_chain_id)
+
+    assert payload["parameters"].get("chain-id") == (_chain_id or None)
+    assert payload["parameters"].get("enable-cheat-codes") == (
+        None if enable_cheat_codes is None else enable_cheat_codes
+    )
 
 
 def test_rpc_not_running(tmp_path):

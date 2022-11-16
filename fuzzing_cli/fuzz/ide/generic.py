@@ -38,12 +38,12 @@ class IDEArtifacts(ABC):
 
     @classmethod
     @abstractmethod
-    def get_name(cls) -> str:
+    def get_name(cls) -> str:  # pragma: no cover
         pass
 
     @classmethod
     @abstractmethod
-    def validate_project(cls) -> bool:
+    def validate_project(cls) -> bool:  # pragma: no cover
         pass
 
     @property
@@ -56,12 +56,12 @@ class IDEArtifacts(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_default_build_dir() -> Path:
+    def get_default_build_dir() -> Path:  # pragma: no cover
         pass
 
     @staticmethod
     @abstractmethod
-    def get_default_sources_dir() -> Path:
+    def get_default_sources_dir() -> Path:  # pragma: no cover
         pass
 
     @staticmethod
@@ -165,7 +165,9 @@ class IDEArtifacts(ABC):
         return self.flatten_contracts(result_contracts), _result_sources
 
     @abstractmethod
-    def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
+    def process_artifacts(
+        self
+    ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 
     def normalize_path(self, path: str) -> str:
