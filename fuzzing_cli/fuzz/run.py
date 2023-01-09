@@ -231,7 +231,8 @@ def fuzz_run(
         except EmptyArtifactsError:
             LOGGER.debug("Empty artifacts")
             raise UsageError(
-                f"No contract being submitted. Please check your config (hint: build_directory path or targets paths)"
+                f"No contract being submitted. Please check your config (hint: build_directory path or targets paths) "
+                f"or recompile contracts"
             )
 
         rpc_client.check_contracts(seed_state, artifacts, options.target)

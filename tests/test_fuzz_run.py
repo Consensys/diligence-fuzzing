@@ -297,7 +297,9 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
         build_info = tmp_path.joinpath("wrong_directory", "build-info")
         os.makedirs(build_info)
         with open(build_info.joinpath("test.json"), "w") as f:
-            f.write('{"output": {"sources": {}, "contracts": {}}}')
+            f.write(
+                '{"input": {"sources": {}}, "output": {"sources": {}, "contracts": {}}}'
+            )
 
     IDE_NAME = ide["ide"]
 
@@ -325,7 +327,7 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
     assert result.exit_code == 2
     assert (
         f"Error: No contract being submitted. "
-        f"Please check your config (hint: build_directory path or targets paths)\n"
+        f"Please check your config (hint: build_directory path or targets paths) or recompile contracts\n"
         in result.output
     )
 

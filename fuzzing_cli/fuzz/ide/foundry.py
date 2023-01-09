@@ -64,6 +64,11 @@ class FoundryArtifacts(IDEArtifacts):
         if not build_info_dir.is_dir():
             raise BuildArtifactsError(error_msg)
 
+        build_data = {
+            "input": {"sources": {}},
+            "output": {"sources": {}, "contracts": {}},
+        }
+
         for child in build_info_dir.glob("*.json"):
             if not child.is_file():
                 continue
@@ -80,9 +85,11 @@ class FoundryArtifacts(IDEArtifacts):
                 and data["output"].get("sources") is not None
                 and data["output"].get("contracts") is not None
             ):
-                return data
+                build_data["input"]["sources"].update(data["input"]["sources"])
+                build_data["output"]["sources"].update(data["output"]["sources"])
+                build_data["output"]["contracts"].update(data["output"]["contracts"])
 
-        raise BuildArtifactsError(error_msg)
+        return build_data
 
     def get_source(self, source_path: str, sources: Dict[str, Dict[str, str]]) -> str:
         if (
