@@ -2,6 +2,10 @@
 History
 =======
 
+0.9.16 (2023-01-09)
+--------------------
+- Fix artifacts processing for :code:`Hardhat` and :code:`Foundry` which led to an error
+
 0.9.15 (2022-11-16)
 --------------------
 - Add new fuzzer options
