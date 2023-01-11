@@ -121,8 +121,28 @@ class IDEArtifacts(ABC):
             return None
         metadata_length = int(deployed_bytecode[-4:], 16) * 2
         encoded_metadata = deployed_bytecode[-(metadata_length + 4) : -4]
-        metadata = cbor2.loads(bytes.fromhex(encoded_metadata))
-        return metadata["ipfs"].hex().lower()
+        try:
+            metadata = cbor2.loads(bytes.fromhex(encoded_metadata))
+            if (
+                type(metadata) is not dict
+            ):  # maybe we've got break_marker thus parsing wasn't successful
+                # It's possible when metadata hash wasn't included in the bytecode (--metadata-hash=none param to solc)
+                # or it's just an invalid bytecode
+                return None
+            for _hash_type in ("ipfs", "bzzr0", "bzzr1"):
+                if _hash_type not in metadata:
+                    continue
+                return metadata[_hash_type].hex().lower()
+            LOGGER.debug(
+                f'Cannot find suitable metadata hash. Encoded metadata "{encoded_metadata}". Decoded metadata "{json.dumps(metadata)}"'
+            )
+            return None
+        except Exception as e:
+            LOGGER.debug(
+                f'Exception decoding metadata from the bytecode. Encoded metadata "{encoded_metadata}"'
+            )
+            LOGGER.error(e)
+            return None
 
     def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
         metadata_hash = self.get_metadata_hash(deployed_bytecode)
