@@ -1,6 +1,6 @@
 import logging
 import traceback
-from typing import Optional
+from typing import Dict, Optional
 
 import click
 from click import ClickException, UsageError
@@ -130,47 +130,18 @@ def fuzz_run(
             " deprecated. You should use the --key and 'key' options instead."
         )
 
-    options = FuzzingOptions.parse_obj(
-        {
-            k: v
-            for k, v in (
-                {
-                    "ide": ide or fuzz_config.get("ide"),
-                    "quick_check": fuzz_config.get("quick_check", False),
-                    "build_directory": fuzz_config.get("build_directory"),
-                    "sources_directory": fuzz_config.get("sources_directory"),
-                    "deployed_contract_address": address
-                    or fuzz_config.get("deployed_contract_address"),
-                    "targets": target or fuzz_config.get("targets"),
-                    "map_to_original_source": map_to_original_source,
-                    "rpc_url": fuzz_config.get("rpc_url"),
-                    "faas_url": fuzz_config.get("faas_url"),
-                    "number_of_cores": fuzz_config.get("number_of_cores"),
-                    "campaign_name_prefix": fuzz_config.get("campaign_name_prefix"),
-                    "corpus_target": corpus_target or fuzz_config.get("corpus_target"),
-                    "additional_contracts_addresses": more_addresses
-                    or fuzz_config.get("additional_contracts_addresses"),
-                    "dry_run": dry_run,
-                    "key": key
-                    or fuzz_config.get("key")
-                    or api_key
-                    or fuzz_config.get("api_key")
-                    or refresh_token
-                    or fuzz_config.get("refresh_token"),
-                    "project": project or fuzz_config.get("project"),
-                    "truffle_executable_path": truffle_path,
-                    "incremental": fuzz_config.get("incremental"),
-                    "suggested_seed_seqs": fuzz_config.get("suggested_seed_seqs"),
-                    "lesson_description": fuzz_config.get("lesson_description"),
-                    "time_limit": fuzz_config.get("time_limit"),
-                    "chain_id": fuzz_config.get("fuzzer_options", {}).get("chain_id"),
-                    "enable_cheat_codes": fuzz_config.get("fuzzer_options", {}).get(
-                        "enable_cheat_codes"
-                    ),
-                }
-            ).items()
-            if v is not None
-        }
+    options = FuzzingOptions.from_config(
+        fuzz_config,
+        ide=ide,
+        deployed_contract_address=address,
+        additional_contracts_addresses=more_addresses,
+        targets=target,
+        map_to_original_source=map_to_original_source,
+        corpus_target=corpus_target,
+        dry_run=dry_run,
+        key=key or api_key or refresh_token,
+        project=project,
+        truffle_executable_path=truffle_path,
     )
 
     _corpus_target = options.corpus_target
@@ -237,11 +208,20 @@ def fuzz_run(
 
         rpc_client.check_contracts(seed_state, artifacts, options.target)
 
+    return submit_campaign(options, project_type, artifacts, seed_state)
+
+
+def submit_campaign(
+    options: FuzzingOptions,
+    project_type: str,
+    artifacts: IDEArtifacts,
+    seed_state: Dict[str, any],
+) -> None:
     faas_client = FaasClient(options=options, project_type=project_type)
 
     try:
         campaign_id = faas_client.create_faas_campaign(
-            campaign_data=artifacts, seed_state=seed_state, dry_run=options.dry_run
+            campaign_data=artifacts, seed_state=seed_state
         )
         click.echo(
             "You can view campaign here: "

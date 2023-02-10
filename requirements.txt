@@ -9,3 +9,4 @@ pycryptodome==3.14.1
 rlp==3.0.0
 py-solc-x==1.1.0
 cbor2==5.4.2
+toml==0.10.2
