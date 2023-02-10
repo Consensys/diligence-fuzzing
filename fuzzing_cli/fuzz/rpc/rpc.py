@@ -117,6 +117,14 @@ class RPCClient(RPCClientBase):
                 for key, value in dict(transaction).items():
                     if value is None:
                         transaction[key] = ""
+                transaction.update(
+                    {
+                        "blockCoinbase": block["miner"],
+                        "blockDifficulty": block["difficulty"],
+                        "blockGasLimit": block["gasLimit"],
+                        "blockTimestamp": block["timestamp"],
+                    }
+                )
                 processed_transactions.append(transaction)
         return processed_transactions
 
