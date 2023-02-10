@@ -10,6 +10,7 @@ import yaml
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
+from fuzzing_cli.fuzz.foundry_tests import cli as foundry_test
 from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.quickcheck import fuzz_auto
@@ -83,6 +84,7 @@ cli.add_command(fuzz_generate_config)
 cli.add_command(fuzz_auto)
 cli.add_command(fuzz_lesson)
 cli.add_command(fuzz_version)
+cli.add_command(foundry_test)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

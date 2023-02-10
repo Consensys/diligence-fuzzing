@@ -71,16 +71,6 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 def prepare_seed_state(
     contracts: List[Contract], number_of_cores: int, corpus_target: Optional[str] = None
 ) -> Dict[str, any]:
-    accounts = {}
-    for idx, contract in enumerate(contracts):
-        contract_address = mk_contract_address(BASE_ADDRESS, idx)
-        accounts[contract_address] = {
-            "nonce": idx,
-            "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "code": contract.get("deployedBytecode"),
-            "storage": {"0x0": "0x1"},
-        }
-
     setup = {
         "steps": [
             {

@@ -9,7 +9,7 @@ class IDEPayload(TypedDict):
 
 
 class Contract(TypedDict):
-    sourcePaths: Dict[int, str]
+    sourcePaths: Dict[str, str]
     deployedSourceMap: str
     deployedBytecode: str
     sourceMap: str
