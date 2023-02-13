@@ -84,7 +84,7 @@ def prepare_seed_state(
                 "nonce": "0x0",
                 "r": "0xf",
                 "s": "0xf",
-                "to": None,
+                "to": "",
                 "transactionIndex": "0x0",
                 "v": "0xf",
                 "value": "0x0",
