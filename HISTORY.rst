@@ -5,7 +5,7 @@ History
 0.10.0 (2023-02-13)
 --------------------
 - Add foundry unit tests submission command (:code:`fuzz forge test`)
-- Fix contracts finding logic to use both metadata hash comparison and the whole bytecode comparison
+- Fix contracts searching logic to use both metadata hash comparison and the whole bytecode comparison
 - Provide map-to-original-source flag to the backend
 
 0.9.17 (2023-01-11)
