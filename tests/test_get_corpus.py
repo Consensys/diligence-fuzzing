@@ -90,6 +90,7 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
         "sources": {},
         "contracts": [],
         "quickCheck": False,
+        "mapToOriginalSource": False,
     }
 
 

@@ -148,15 +148,26 @@ class IDEArtifacts(ABC):
         metadata_hash = self.get_metadata_hash(deployed_bytecode)
         if metadata_hash is None:
             LOGGER.debug(
-                f"Could not get metadata hash from the deployed bytecode: {deployed_bytecode}. Terminating search"
+                f"Could not get metadata hash from the deployed bytecode: {deployed_bytecode}. "
+                f"Falling back to bytecode comparison"
             )
-            return None
         result_contracts, _ = self.process_artifacts()
         LOGGER.debug(
             f"Searching a contract with the deployed bytecode metadata hash: {metadata_hash}"
         )
         for _, contracts in result_contracts.items():
             for contract in contracts:
+                if metadata_hash is None:
+                    # Search for contract by comparing whole bytecode instead of metadata hash comparison.
+                    # It's handy for cases when metadata hash is not present in the bytecode
+                    # (due to metadata.bytecodeHash = none in solc params)
+                    if self.compare_bytecode(
+                        deployed_bytecode, contract["deployedBytecode"]
+                    ):
+                        LOGGER.debug("Matching contract is found")
+                        return contract
+                    continue
+
                 contract_metadata_hash = self.get_metadata_hash(
                     contract["deployedBytecode"]
                 )
