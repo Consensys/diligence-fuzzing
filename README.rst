@@ -31,6 +31,7 @@ Usage
       arm              Prepare the target files for Diligence Fuzzing API...
       auto             Automatically annotate test contracts
       disarm           Revert the target files to their original,...
+      forge            Submit foundry unit tests to fuzzing
       generate-config  Generate config file for fuzzing
       lesson           Manage fuzzing lessons
       run              Submit contracts to the Diligence Fuzzing API

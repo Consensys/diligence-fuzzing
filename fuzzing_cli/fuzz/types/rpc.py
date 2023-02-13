@@ -20,11 +20,15 @@ class SeedSequenceTransaction(TypedDict):
 EVMTransaction = TypedDict(
     "EVMTransaction",
     {
-        "hash": str,
-        "nonce": str,
+        "blockCoinbase": str,
+        "blockDifficulty": str,
+        "blockGasLimit": str,
+        "blockTimestamp": str,
         "blockHash": str,
         "blockNumber": str,
         "transactionIndex": str,
+        "hash": str,
+        "nonce": str,
         "from": str,
         "to": str,
         "value": str,

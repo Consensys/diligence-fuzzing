@@ -152,6 +152,10 @@ def test_fuzz_run_fuzzing_lessons(
         "other-addresses-under-test": None,
         "steps": [
             {
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockTimestamp": "0x62bd726f",
                 "hash": "0x6b19d9163af45714d6fe366f686e1f53484933f0830b2ab493aa9a3cc823ce55",
                 "nonce": "0x0",
                 "blockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",

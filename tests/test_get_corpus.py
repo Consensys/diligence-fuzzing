@@ -10,7 +10,7 @@ from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide.truffle import TruffleArtifacts
 from fuzzing_cli.fuzz.rpc.rpc import RPCClient
-from tests.common import get_code_mocker, get_test_case, write_config
+from tests.common import get_code_mocker, get_test_case, mocked_rpc_client, write_config
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
 
@@ -21,7 +21,16 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
         targets="contracts/MasterChefV2.sol",
     )
 
-    with requests_mock.Mocker() as m, patch.object(
+    mocked_block = {
+        "number": "0x0",
+        "miner": "0x0",
+        "difficulty": "0x0",
+        "gasLimit": "0x0",
+        "timestamp": "0x0",
+        "transactions": [{"hash": "0xtest"}],
+    }
+
+    with mocked_rpc_client([mocked_block], {}), patch.object(
         RPCClient, "validate_seed_state"
     ) as validate_seed_state_mock, patch.object(
         FaasClient, "start_faas_campaign"
@@ -31,12 +40,6 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
         validate_seed_state_mock.return_value = ({}, [])
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
-        m.register_uri(
-            "POST",
-            "http://localhost:9898",
-            status_code=200,
-            json={"result": {"number": "0x0", "transactions": [{"hash": "0xtest"}]}},
-        )
 
         runner = CliRunner()
         result = runner.invoke(
@@ -73,7 +76,15 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
         "name": "test",
         "corpus": {
             "address-under-test": "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
-            "steps": [{"hash": "0xtest"}],
+            "steps": [
+                {
+                    "hash": "0xtest",
+                    "blockCoinbase": "0x0",
+                    "blockDifficulty": "0x0",
+                    "blockGasLimit": "0x0",
+                    "blockTimestamp": "0x0",
+                }
+            ],
             "other-addresses-under-test": None,
         },
         "sources": {},
