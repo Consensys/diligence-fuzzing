@@ -2,6 +2,10 @@
 History
 =======
 
+0.10.2 (2023-02-13)
+--------------------
+- Fix quickcheck campaigns bug
+
 0.10.1 (2023-02-13)
 --------------------
 - Add block data to transactions in corpus
