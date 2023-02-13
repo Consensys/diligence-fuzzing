@@ -78,7 +78,7 @@ def test_fuzz_arm(
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == f"{out}\n\n"
+    assert result.output == f"{out}\n"
     assert len(fake_process.calls) == 1
     process_command = fake_process.calls[0]
     assert process_command[0:4] == cmd[0:4]
@@ -211,7 +211,7 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == "success\n\n"
+    assert result.output == "success\n"
     assert len(fake_process.calls) == 1
     assert_is_equal(
         fake_process.calls[0],

@@ -98,10 +98,7 @@ class FaasClient:
             raise RequestError("Error starting FaaS campaign", detail=repr(e))
 
     def create_faas_campaign(
-        self,
-        campaign_data: IDEArtifacts,
-        seed_state: Dict[str, any],
-        dry_run: bool = False,
+        self, campaign_data: IDEArtifacts, seed_state: Dict[str, any]
     ):
         """Submit a campaign to the FaaS and start that campaign.
 
@@ -158,7 +155,7 @@ class FaasClient:
                 "Error getting Scribble arming metadata", detail=repr(e)
             )
 
-        if dry_run:  # pragma: no cover
+        if self.options.dry_run:  # pragma: no cover
             print("Printing output \n --------")
             print(f"{json.dumps(api_payload)}")
             print("End of output \n --------")

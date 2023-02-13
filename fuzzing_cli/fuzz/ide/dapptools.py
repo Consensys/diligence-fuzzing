@@ -141,10 +141,13 @@ class DapptoolsArtifacts(IDEArtifacts):
 
                     result_contracts[source_file] += [
                         {
-                            "sourcePaths": {
-                                str(source_file["id"]): file_path
-                                for file_path, source_file in source_files.items()
-                            },
+                            "sourcePaths": self.get_used_sources(
+                                {
+                                    str(source_file["id"]): file_path
+                                    for file_path, source_file in source_files.items()
+                                },
+                                contract["evm"]["deployedBytecode"]["sourceMap"],
+                            ),
                             "deployedSourceMap": contract["evm"]["deployedBytecode"][
                                 "sourceMap"
                             ],

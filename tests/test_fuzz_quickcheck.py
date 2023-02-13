@@ -112,7 +112,7 @@ def test_no_annotated_contracts(tmp_path, truffle_echidna_project, fake_process)
             127,
             "Annotation Error",
             None,
-            "Error: QuickCheckError: Annotating failed\nDetail: \nAnnotation Error\n\n",
+            "Error: QuickCheckError: Annotating failed\nDetail: \nAnnotation Error\n",
         ),
         (
             0,

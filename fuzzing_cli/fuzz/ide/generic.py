@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import cbor2
 
@@ -177,12 +177,24 @@ class IDEArtifacts(ABC):
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
         normalized_include = [self.normalize_path(p) for p in self._include]
         _result_contracts, _result_sources = self.process_artifacts()
-        result_contracts = {
+        result_contracts = self.flatten_contracts(
+            {
+                k: v
+                for k, v in _result_contracts.items()
+                if self.normalize_path(k) in normalized_include
+            }
+        )
+
+        used_file_ids = set()
+        for contract in result_contracts:
+            used_file_ids.update(contract["sourcePaths"].keys())
+
+        result_sources = {
             k: v
-            for k, v in _result_contracts.items()
-            if self.normalize_path(k) in normalized_include
+            for k, v in _result_sources.items()
+            if str(v["fileIndex"]) in used_file_ids
         }
-        return self.flatten_contracts(result_contracts), _result_sources
+        return result_contracts, result_sources
 
     @abstractmethod
     def process_artifacts(
@@ -228,3 +240,20 @@ class IDEArtifacts(ABC):
         return sorted(
             [int(file_id) for file_id in all_file_ids if int(file_id) not in source_ids]
         )
+
+    @staticmethod
+    def get_used_sources(
+        source_paths: Dict[str, str], source_map: str
+    ) -> Dict[str, str]:
+        sm = source_map.split(";")
+        all_file_ids = set()
+        for c in sm:
+            component = c.split(":")
+            if len(component) < 3 or component[2] == "":
+                continue
+            all_file_ids.add(component[2])
+        return {
+            file_id: name
+            for file_id, name in source_paths.items()
+            if file_id in all_file_ids
+        }

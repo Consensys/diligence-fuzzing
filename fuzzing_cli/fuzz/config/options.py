@@ -1,7 +1,7 @@
 import base64
 import math
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -105,6 +105,72 @@ class FuzzingOptions:
     @classmethod
     def parse_obj(cls, obj):
         return cls(**obj)
+
+    @classmethod
+    def from_config(
+        cls,
+        config: Dict[str, Any],
+        ide: Optional[str] = None,
+        deployed_contract_address: Optional[str] = None,
+        targets: Optional[List[str]] = None,
+        map_to_original_source: bool = False,
+        corpus_target: Optional[str] = None,
+        additional_contracts_addresses: Optional[Union[List[str], str]] = None,
+        dry_run: bool = False,
+        key: Optional[str] = None,
+        project: Optional[str] = None,
+        truffle_executable_path: Optional[str] = None,
+        quick_check: Optional[bool] = None,
+        build_directory: Optional[str] = None,
+        sources_directory: Optional[str] = None,
+        enable_cheat_codes: Optional[bool] = None,
+    ) -> "FuzzingOptions":
+        return cls.parse_obj(
+            {
+                k: v
+                for k, v in (
+                    {
+                        "ide": ide or config.get("ide"),
+                        "quick_check": config.get("quick_check", False)
+                        if quick_check is None
+                        else quick_check,
+                        "build_directory": build_directory
+                        or config.get("build_directory"),
+                        "sources_directory": sources_directory
+                        or config.get("sources_directory"),
+                        "deployed_contract_address": deployed_contract_address
+                        or config.get("deployed_contract_address"),
+                        "targets": targets or config.get("targets"),
+                        "map_to_original_source": map_to_original_source,
+                        "rpc_url": config.get("rpc_url"),
+                        "faas_url": config.get("faas_url"),
+                        "number_of_cores": config.get("number_of_cores"),
+                        "campaign_name_prefix": config.get("campaign_name_prefix"),
+                        "corpus_target": corpus_target or config.get("corpus_target"),
+                        "additional_contracts_addresses": additional_contracts_addresses
+                        or config.get("additional_contracts_addresses"),
+                        "dry_run": dry_run,
+                        "key": key
+                        or config.get("key")
+                        or config.get("api_key")
+                        or config.get("refresh_token"),
+                        "project": project or config.get("project"),
+                        "truffle_executable_path": truffle_executable_path,
+                        "incremental": config.get("incremental"),
+                        "suggested_seed_seqs": config.get("suggested_seed_seqs"),
+                        "lesson_description": config.get("lesson_description"),
+                        "time_limit": config.get("time_limit"),
+                        "chain_id": config.get("fuzzer_options", {}).get("chain_id"),
+                        "enable_cheat_codes": config.get("fuzzer_options", {}).get(
+                            "enable_cheat_codes"
+                        )
+                        if enable_cheat_codes is None
+                        else enable_cheat_codes,
+                    }
+                ).items()
+                if v is not None
+            }
+        )
 
     @staticmethod
     def _decode_refresh_token(refresh_token: str) -> Tuple[str, str, str]:
