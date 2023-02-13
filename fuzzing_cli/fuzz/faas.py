@@ -130,6 +130,7 @@ class FaasClient:
             "sources": campaign_data.sources,
             "contracts": campaign_data.contracts,
             "quickCheck": self.options.quick_check,
+            "mapToOriginalSource": self.options.map_to_original_source,
         }
 
         if self.options.project is not None:
