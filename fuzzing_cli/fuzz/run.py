@@ -51,7 +51,7 @@ headers = {"Content-Type": "application/json"}
     "-s",
     "--map-to-original-source",
     is_flag=True,
-    default=False,
+    default=None,
     required=False,
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
@@ -156,8 +156,7 @@ def fuzz_run(
             targets=options.target,
             build_dir=options.build_directory,
             sources_dir=options.sources_directory,
-            map_to_original_source=map_to_original_source
-            or options.map_to_original_source,
+            map_to_original_source=options.map_to_original_source,
             remappings=analyze_config.get("remappings", []),
             solc_version=analyze_config.get("solc-version", []),
             solc_path=None,
@@ -223,6 +222,8 @@ def submit_campaign(
         campaign_id = faas_client.create_faas_campaign(
             campaign_data=artifacts, seed_state=seed_state
         )
+        if options.dry_run:
+            return
         click.echo(
             "You can view campaign here: "
             + options.faas_url

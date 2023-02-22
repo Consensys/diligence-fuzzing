@@ -32,6 +32,7 @@ class FuzzingOptions:
         time_limit: Optional[str] = None,
         chain_id: Optional[Union[str, int]] = None,
         enable_cheat_codes: Optional[bool] = None,
+        foundry_tests: bool = False,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -56,6 +57,7 @@ class FuzzingOptions:
         self.enable_cheat_codes = (
             bool(enable_cheat_codes) if enable_cheat_codes is not None else None
         )
+        self.foundry_tests = foundry_tests
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -113,7 +115,7 @@ class FuzzingOptions:
         ide: Optional[str] = None,
         deployed_contract_address: Optional[str] = None,
         targets: Optional[List[str]] = None,
-        map_to_original_source: bool = False,
+        map_to_original_source: Optional[bool] = None,
         corpus_target: Optional[str] = None,
         additional_contracts_addresses: Optional[Union[List[str], str]] = None,
         dry_run: bool = False,
@@ -124,6 +126,7 @@ class FuzzingOptions:
         build_directory: Optional[str] = None,
         sources_directory: Optional[str] = None,
         enable_cheat_codes: Optional[bool] = None,
+        foundry_tests: bool = False,
     ) -> "FuzzingOptions":
         return cls.parse_obj(
             {
@@ -141,7 +144,11 @@ class FuzzingOptions:
                         "deployed_contract_address": deployed_contract_address
                         or config.get("deployed_contract_address"),
                         "targets": targets or config.get("targets"),
-                        "map_to_original_source": map_to_original_source,
+                        "map_to_original_source": config.get(
+                            "map_to_original_source", False
+                        )
+                        if map_to_original_source is None
+                        else map_to_original_source,
                         "rpc_url": config.get("rpc_url"),
                         "faas_url": config.get("faas_url"),
                         "number_of_cores": config.get("number_of_cores"),
@@ -166,6 +173,7 @@ class FuzzingOptions:
                         )
                         if enable_cheat_codes is None
                         else enable_cheat_codes,
+                        "foundry_tests": foundry_tests,
                     }
                 ).items()
                 if v is not None

@@ -147,6 +147,9 @@ class FaasClient:
                 "enable-cheat-codes"
             ] = self.options.enable_cheat_codes
 
+        if self.options.foundry_tests:
+            api_payload["foundryTests"] = True
+
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
             if instr_meta is not None:
@@ -157,9 +160,7 @@ class FaasClient:
             )
 
         if self.options.dry_run:  # pragma: no cover
-            print("Printing output \n --------")
-            print(f"{json.dumps(api_payload)}")
-            print("End of output \n --------")
+            print(json.dumps(api_payload, indent=4))
             return "campaign not started due to --dry-run option"
 
         campaign_id = self.start_faas_campaign(api_payload)

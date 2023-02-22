@@ -79,6 +79,7 @@ def foundry_test(ctx: Context, key: str, dry_run: bool, build_args: Optional[str
         quick_check=True,
         enable_cheat_codes=True,
         dry_run=dry_run,
+        foundry_tests=True,
     )
 
     repo = IDERepository.get_instance()
