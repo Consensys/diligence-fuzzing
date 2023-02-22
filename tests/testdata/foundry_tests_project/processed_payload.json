@@ -18,7 +18,7 @@
         "nonce": "0x0",
         "r": "0xf",
         "s": "0xf",
-        "to": null,
+        "to": "",
         "transactionIndex": "0x0",
         "v": "0xf",
         "value": "0x0"
@@ -34,7 +34,7 @@
         "nonce": "0x0",
         "r": "0xf",
         "s": "0xf",
-        "to": null,
+        "to": "",
         "transactionIndex": "0x0",
         "v": "0xf",
         "value": "0x0"
