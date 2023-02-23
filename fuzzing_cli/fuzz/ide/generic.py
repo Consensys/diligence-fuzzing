@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import cbor2
 
@@ -101,8 +101,18 @@ class IDEArtifacts(ABC):
 
         return build_files_by_source_file
 
-    @staticmethod
-    def flatten_contracts(contracts: Dict[str, List[Contract]]) -> List[Contract]:
+    def flatten_contracts(self, contracts: Dict[str, List[Contract]]) -> List[Contract]:
+        if self._options.target_contracts:
+            flatten_contracts: List[Contract] = []
+            for contract_path, contracts in contracts.items():
+                for contract in contracts:
+                    if (
+                        not contract["contractName"]
+                        in self._options.target_contracts[contract_path]
+                    ):
+                        continue
+                    flatten_contracts.append(contract)
+            return flatten_contracts
         return [
             c for contracts_for_file in contracts.values() for c in contracts_for_file
         ]

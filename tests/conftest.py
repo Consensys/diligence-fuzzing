@@ -8,6 +8,7 @@ import pytest
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
     foundry_config_mock,
+    foundry_test_list_mock,
 )
 
 

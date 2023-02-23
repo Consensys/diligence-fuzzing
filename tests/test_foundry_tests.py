@@ -1,3 +1,4 @@
+from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,11 +8,9 @@ from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
 from tests.common import assert_is_equal, get_test_case, write_config
 
-build_command = [
-    "forge",
-    "build",
-    "--build-info",
-    "--force",
+empty_build_command = ["forge", "build", "--build-info", "--force"]
+
+build_command = empty_build_command + [
     "--contracts",
     "A",
     "B",
@@ -22,13 +21,72 @@ build_command = [
 ]
 
 
+def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
+    return {k: v for k, v in d.items() if k in keys}
+
+
 @pytest.mark.parametrize(
-    "build_args, build_cmd",
+    "build_args, build_cmd, list_args, corpus, contracts, sources",
     [
-        (None, ["forge", "build", "--build-info", "--force"]),
         (
-            "--build-args=--contracts A B C --optimize --evm-version 0.8.1",
+            None,
+            ["forge", "build", "--build-info", "--force"],
+            ["--match-path", '"test/*"'],
+            lambda p: p["corpus"],
+            lambda p: p["contracts"],
+            lambda p: p["sources"],
+        ),
+        (
+            ["--build-args=--contracts A B C --optimize --evm-version 0.8.1"],
             build_command,
+            ["--match-path", '"test/*"'],
+            lambda p: p["corpus"],
+            lambda p: p["contracts"],
+            lambda p: p["sources"],
+        ),
+        (
+            ["--match-path", '"test/Counter*"'],
+            empty_build_command,
+            ["--match-path", '"test/Counter*"'],
+            lambda p: {**p["corpus"], "steps": [p["corpus"]["steps"][0]]},
+            lambda p: [p["contracts"][0]],
+            lambda p: filter_keys(
+                p["sources"],
+                ["lib/forge-std/lib/ds-test/src/test.sol", "test/Counter.t.sol"],
+            ),
+        ),
+        (
+            ["--match-path", '"test/Counter*"', "--match-contract", '"Counter*"'],
+            empty_build_command,
+            ["--match-path", '"test/Counter*"', "--match-contract", '"Counter*"'],
+            lambda p: {**p["corpus"], "steps": [p["corpus"]["steps"][0]]},
+            lambda p: [p["contracts"][0]],
+            lambda p: filter_keys(
+                p["sources"],
+                ["lib/forge-std/lib/ds-test/src/test.sol", "test/Counter.t.sol"],
+            ),
+        ),
+        (
+            ["--match-path", "test/Counter*", "--match-contract", "Counter*"],
+            empty_build_command,
+            ["--match-path", "test/Counter*", "--match-contract", "Counter*"],
+            lambda p: {**p["corpus"], "steps": [p["corpus"]["steps"][0]]},
+            lambda p: [p["contracts"][0]],
+            lambda p: filter_keys(
+                p["sources"],
+                ["lib/forge-std/lib/ds-test/src/test.sol", "test/Counter.t.sol"],
+            ),
+        ),
+        (
+            ["--match-contract", '"Counter*"'],
+            empty_build_command,
+            ["--match-contract", '"Counter*"'],
+            lambda p: {**p["corpus"], "steps": [p["corpus"]["steps"][0]]},
+            lambda p: [p["contracts"][0]],
+            lambda p: filter_keys(
+                p["sources"],
+                ["lib/forge-std/lib/ds-test/src/test.sol", "test/Counter.t.sol"],
+            ),
         ),
     ],
 )
@@ -37,8 +95,13 @@ def test_foundry_tests(
     tmp_path,
     foundry_config_mock,
     foundry_build_mock,
-    build_args,
-    build_cmd,
+    foundry_test_list_mock,
+    build_args: Optional[List[str]],
+    build_cmd: List[str],
+    list_args: List[str],
+    corpus: Callable[[Dict[str, Any]], Dict[str, Any]],
+    contracts: Callable[[Dict[str, Any]], Dict[str, Any]],
+    sources: Callable[[Dict[str, Any]], Dict[str, Any]],
 ):
     write_config(config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path))
 
@@ -57,7 +120,7 @@ def test_foundry_tests(
             "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
         ]
         if build_args:
-            cmd.append(build_args)
+            cmd += build_args
         result = runner.invoke(cli, cmd)
 
     assert result.exit_code == 0
@@ -66,6 +129,12 @@ def test_foundry_tests(
         in result.output
     )
 
+    assert (
+        foundry_test_list_mock.call_count(
+            ["forge", "test", "--list", "--json"] + list_args
+        )
+        == 1
+    )
     assert foundry_config_mock.call_count(["forge", "config"]) == 1
     assert foundry_build_mock.calls[0] == build_cmd
     assert foundry_build_mock.call_count(build_cmd) == 1
@@ -78,7 +147,7 @@ def test_foundry_tests(
     )
 
     assert payload["parameters"] == processed_payload["parameters"]
-    assert payload["corpus"] == processed_payload["corpus"]
-    assert_is_equal(payload["contracts"], processed_payload["contracts"])
-    assert payload["sources"] == processed_payload["sources"]
+    assert payload["corpus"] == corpus(processed_payload)
+    assert_is_equal(payload["contracts"], contracts(processed_payload))
+    assert payload["sources"] == sources(processed_payload)
     assert payload["name"] == "test-campaign-1"

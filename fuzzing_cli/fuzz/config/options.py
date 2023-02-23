@@ -1,7 +1,7 @@
 import base64
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import click
 
@@ -33,6 +33,7 @@ class FuzzingOptions:
         chain_id: Optional[Union[str, int]] = None,
         enable_cheat_codes: Optional[bool] = None,
         foundry_tests: bool = False,
+        target_contracts: Optional[Dict[str, Set[str]]] = None,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -58,6 +59,7 @@ class FuzzingOptions:
             bool(enable_cheat_codes) if enable_cheat_codes is not None else None
         )
         self.foundry_tests = foundry_tests
+        self.target_contracts = target_contracts
 
         self.auth_endpoint = None
         self.refresh_token = None
@@ -127,6 +129,7 @@ class FuzzingOptions:
         sources_directory: Optional[str] = None,
         enable_cheat_codes: Optional[bool] = None,
         foundry_tests: bool = False,
+        target_contracts: Optional[Dict[str, Set[str]]] = None,
     ) -> "FuzzingOptions":
         return cls.parse_obj(
             {
@@ -174,6 +177,7 @@ class FuzzingOptions:
                         if enable_cheat_codes is None
                         else enable_cheat_codes,
                         "foundry_tests": foundry_tests,
+                        "target_contracts": target_contracts,
                     }
                 ).items()
                 if v is not None
