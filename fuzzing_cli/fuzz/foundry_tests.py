@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -13,14 +14,22 @@ from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
 
 
+LOGGER = logging.getLogger("fuzzing-cli")
+
+
 def parse_config() -> Dict[str, Any]:
+    LOGGER.debug("Invoking `forge config` command")
     result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
+    LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
 
 
 def compile_tests(build_args):
     cmd = ["forge", "build", "--build-info", "--force", *build_args]
+    LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    LOGGER.debug("Invoking `forge build` command succeeded")
 
 
 def collect_tests(
@@ -32,7 +41,7 @@ def collect_tests(
     target_contracts: Optional[Dict[str, Set[str]]] = None
     cmd = ["forge", "test", "--list", "--json"]
     if match_path is None and match_contract is None:
-        cmd += ["--match-path", f'"{test_dir}/*"']
+        cmd += ["--match-path", f'{test_dir}/*']
 
     if match_path:
         cmd += ["--match-path", match_path]
@@ -40,9 +49,12 @@ def collect_tests(
     if match_contract:
         target_contracts = {}
         cmd += ["--match-contract", match_contract]
+    LOGGER.debug(f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})")
     result = subprocess.run(
         cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
+    LOGGER.debug(f"Invoking `forge test --list` command succeeded. Parsing the list ...")
+    LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
     tests: Dict[str, Dict[str, List[str]]] = json.loads(
         result.stdout.decode().splitlines()[-1]
     )
