@@ -13,7 +13,7 @@ list_args = {
     '--match-path "test/Counter*" --match-contract "Counter*"': list_output,
     "--match-path test/Counter* --match-contract Counter*": list_output,
     '--match-contract "Counter*"': list_output,
-    '--match-path "test/*"': """[⠔] Compiling...
+    "--match-path test/*": """[⠔] Compiling...
         No files changed, compilation skipped
         {"test/Counter.t.sol":{"CounterTest":["testIncrement","testSetNumber"]},"test/VulnerableToken.t.sol":{"VulnerableTokenTest":["testTransfer"]}}""",
 }

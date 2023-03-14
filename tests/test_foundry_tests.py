@@ -31,7 +31,7 @@ def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
         (
             None,
             ["forge", "build", "--build-info", "--force"],
-            ["--match-path", '"test/*"'],
+            ["--match-path", "test/*"],
             lambda p: p["corpus"],
             lambda p: p["contracts"],
             lambda p: p["sources"],
@@ -39,7 +39,7 @@ def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
         (
             ["--build-args=--contracts A B C --optimize --evm-version 0.8.1"],
             build_command,
-            ["--match-path", '"test/*"'],
+            ["--match-path", "test/*"],
             lambda p: p["corpus"],
             lambda p: p["contracts"],
             lambda p: p["sources"],

@@ -13,7 +13,6 @@ from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
 
-
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
@@ -41,7 +40,7 @@ def collect_tests(
     target_contracts: Optional[Dict[str, Set[str]]] = None
     cmd = ["forge", "test", "--list", "--json"]
     if match_path is None and match_contract is None:
-        cmd += ["--match-path", f'{test_dir}/*']
+        cmd += ["--match-path", f"{test_dir}/*"]
 
     if match_path:
         cmd += ["--match-path", match_path]
@@ -49,11 +48,15 @@ def collect_tests(
     if match_contract:
         target_contracts = {}
         cmd += ["--match-contract", match_contract]
-    LOGGER.debug(f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})")
+    LOGGER.debug(
+        f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})"
+    )
     result = subprocess.run(
         cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
-    LOGGER.debug(f"Invoking `forge test --list` command succeeded. Parsing the list ...")
+    LOGGER.debug(
+        f"Invoking `forge test --list` command succeeded. Parsing the list ..."
+    )
     LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
     tests: Dict[str, Dict[str, List[str]]] = json.loads(
         result.stdout.decode().splitlines()[-1]
@@ -122,8 +125,14 @@ def foundry_test(
      * Submit to fuzzing
     """
     fuzz_config = ctx.obj.get("fuzz", {}) or {}
+
+    click.echo("🛠️  Parsing foundry config")
     foundry_config = parse_config()
+
+    click.echo("🛠️  Compiling tests")
     compile_tests([] if build_args is None else build_args.split(" "))
+
+    click.echo("🛠️  Collecting tests")
     targets, target_contracts = collect_tests(
         test_dir=Path(foundry_config["profile"]["default"]["test"]),
         match_path=match_path,
@@ -152,12 +161,16 @@ def foundry_test(
         sources_dir=options.sources_directory,
         map_to_original_source=False,
     )
+
+    click.echo("🛠️  Collecting and validating campaigns for submission")
     artifacts.validate()
 
+    click.echo("🛠️  Preparing the seed state")
     seed_state = prepare_seed_state(
         artifacts.contracts, options.number_of_cores, options.corpus_target
     )
 
-    return submit_campaign(
-        options, repo.get_ide("foundry").get_name(), artifacts, seed_state
-    )
+    click.echo(f"⚡️ Submitting campaigns")
+    submit_campaign(options, repo.get_ide("foundry").get_name(), artifacts, seed_state)
+
+    return click.echo("Done 🎉")
