@@ -13,7 +13,7 @@ class ScribbleMixin:
 
     @staticmethod
     def _handle_scribble_error(
-        process: subprocess.CompletedProcess
+        process: subprocess.CompletedProcess,
     ) -> Tuple[int, Optional[str], Optional[str]]:
         """Handle scribble subprocess errors.
 

@@ -183,6 +183,7 @@ def test_annotation_errors(
     "corpus_target", ["crp_30f45fac74c04182b023ead4f0ddb709", None]
 )
 def test_fuzz_run(
+    api_key,
     tmp_path: Path,
     truffle_echidna_project,
     fake_process,

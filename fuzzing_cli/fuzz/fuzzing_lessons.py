@@ -8,8 +8,7 @@ from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 
 
 def prepare_rpc_client(ctx: Dict[str, any]) -> RPCClient:
-    fuzz_config = ctx.get("fuzz")
-    options = FuzzingOptions.parse_obj(fuzz_config)
+    options = FuzzingOptions.from_config(ctx.get("fuzz"), _validate_key=False)
     return RPCClient(options.rpc_url, options.number_of_cores)
 
 

@@ -233,3 +233,12 @@ def foundry_tests_project(tmp_path):
             "0x694D08b77D2499E161635005Fd4A77233cedD761",
         ],
     }
+
+
+@pytest.fixture()
+def api_key(monkeypatch):
+    monkeypatch.setenv(
+        "FUZZ_API_KEY", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
+    )
+    yield
+    monkeypatch.delenv("FUZZ_API_KEY", raising=False)

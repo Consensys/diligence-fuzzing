@@ -10,7 +10,7 @@ from tests.common import assert_is_equal, write_config
 
 
 @pytest.mark.parametrize(
-    "remappings, solc_version, no_assert",
+    "remappings, solc_version, _assert",
     [
         (None, None, None),
         (
@@ -33,7 +33,7 @@ def test_fuzz_arm(
     fake_process,
     remappings: Optional[List[str]],
     solc_version: Optional[str],
-    no_assert: Optional[bool],
+    _assert: Optional[bool],
     params_in_config: bool,
 ):
     cmd = [
@@ -51,7 +51,7 @@ def test_fuzz_arm(
             **scribble_project,
             remappings=remappings,
             solc_version=solc_version,
-            no_assert=no_assert,
+            _assert=_assert,
         )
     else:
         write_config(
@@ -73,8 +73,8 @@ def test_fuzz_arm(
             command.extend(["--remap-import", r])
     if solc_version and not params_in_config:
         command.extend(["--solc-version", solc_version])
-    if no_assert and not params_in_config:
-        command.extend(["--no-assert"])
+    if _assert and not params_in_config:
+        command.extend(["--assert"])
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
@@ -93,10 +93,10 @@ def test_fuzz_arm(
     else:
         assert "--compiler-version" not in process_command
 
-    if no_assert:
-        assert "--no-assert" in process_command
-    else:
+    if _assert:
         assert "--no-assert" not in process_command
+    else:
+        assert "--no-assert" in process_command
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
@@ -221,6 +221,7 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
+            "--no-assert",
             f"{tmp_path}/contracts/Migrations.sol",
             f"{tmp_path}/contracts/VulnerableToken.sol",
         ],

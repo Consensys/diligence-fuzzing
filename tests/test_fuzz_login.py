@@ -26,7 +26,7 @@ class ArtifactMock:
         return None
 
 
-class TestArtifacts:
+class ArtifactsMock:
     def __init__(self, *args, **kwargs):
         pass
 
@@ -57,26 +57,25 @@ def test_no_keys(tmp_path, truffle_project):
     new=Mock(return_value=ArtifactMock),
 )
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
-@mark.parametrize("in_config,", [False, True])
-@mark.parametrize("key_type,", ["api_key", "refresh_token"])
-def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_project):
+@mark.parametrize("as_env,", [False, True])
+def test_provide_api_key(as_env: bool, tmp_path, truffle_project, monkeypatch):
     runner = CliRunner()
-    if not in_config:
-        write_config(not_include=["api_key"])
+    write_config()
+    if not as_env:
+        monkeypatch.delenv("FUZZ_API_KEY", raising=False)
         result = runner.invoke(
             cli,
             [
                 "run",
                 f"{tmp_path}/contracts",
-                f"--{key_type.replace('_', '-')}",
+                f"--key",
                 "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
             ],
         )
     else:
-        if key_type == "api_key":
-            write_config()
-        else:
-            write_config(not_include=["api_key"], add_refresh_token=True)
+        monkeypatch.setenv(
+            "FUZZ_API_KEY", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
+        )
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
     assert result.exit_code == 0
     assert "You can view campaign here:" in result.output
@@ -93,7 +92,7 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
 )
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
-    "refresh_token",
+    "key",
     [
         "test",
         "Y2xpZW50X2lkOjphdXRoX2VuZHBvaW50",  # |client_id::auth_endpoint|
@@ -105,12 +104,10 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
         "Ojpsd3d1aHM0bzU3Vlc3cll5Tm45SkpZdFd6dklpMkxMQg::refresh_token",  # wrongly padded base64 string
     ],
 )
-def test_wrong_refresh_token(refresh_token: str, tmp_path):
+def test_validate_api_key(key: str, tmp_path):
     runner = CliRunner()
-    write_config(not_include=["api_key"])
-    result = runner.invoke(
-        cli, ["run", f"{tmp_path}/contracts", "--refresh-token", refresh_token]
-    )
+    write_config()
+    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "-k", key])
     assert result.exit_code == 2
     assert KEY_MALFORMED_ERROR in result.output
 
@@ -156,13 +153,13 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
             json={"id": "test-campaign-id"},
         )
     runner = CliRunner()
-    write_config(not_include=["api_key"])
+    write_config()
     result = runner.invoke(
         cli,
         [
             "run",
             f"{tmp_path}/contracts",
-            "--refresh-token",
+            "--key",
             "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::test-rt",
         ],
     )

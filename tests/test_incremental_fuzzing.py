@@ -30,6 +30,7 @@ from tests.common import get_test_case, write_config
     ],
 )
 def test_parameters_check(
+    api_key,
     tmp_path,
     project: Optional[str],
     incremental: Optional[bool],
@@ -79,6 +80,7 @@ def test_parameters_check(
     ],
 )
 def test_incremental_fuzzing(
+    api_key,
     tmp_path,
     project: Optional[str],
     incremental: Optional[bool],

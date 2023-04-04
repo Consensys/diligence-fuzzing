@@ -74,7 +74,7 @@ class RPCClient(RPCClientBase):
         return deployed_bytecode
 
     def get_all_blocks(self) -> List[EVMBlock]:
-        """ Get all blocks from the node running at rpc_url
+        """Get all blocks from the node running at rpc_url
 
         Raises an exception if the number of blocks
         exceeds 10000 as it is likely a user error who passed the wrong

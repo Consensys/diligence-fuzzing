@@ -220,7 +220,7 @@ class IDEArtifacts(ABC):
 
     @abstractmethod
     def process_artifacts(
-        self
+        self,
     ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 

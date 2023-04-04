@@ -84,6 +84,7 @@ def cli(ctx):  # pragma: no-cover
     type=click.STRING,
     required=True,
     help="API key, can be created on the FaaS Dashboard. ",
+    envvar="FUZZ_API_KEY",
 )
 @click.option(
     "--dry-run",

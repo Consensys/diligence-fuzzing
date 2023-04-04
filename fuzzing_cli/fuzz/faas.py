@@ -23,7 +23,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FaasClient:
-    """ A client to interact with the FaaS API.
+    """A client to interact with the FaaS API.
 
     This object receives solidity compilation artifacts and a Harvey Seed state, generates a payload that the faas
     API can consume and submits it, also triggering the start of a Campaign.

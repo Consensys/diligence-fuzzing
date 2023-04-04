@@ -63,25 +63,12 @@ headers = {"Content-Type": "application/json"}
     help="Outputs the data to be sent to the FaaS API without making the request.",
 )
 @click.option(
-    "--api-key",
-    type=click.STRING,
-    default=None,
-    help="API key, can be created on the FaaS Dashboard. ",
-    hidden=True,
-)
-@click.option(
     "-k",
     "--key",
     type=click.STRING,
     default=None,
     help="API key, can be created on the FaaS Dashboard. ",
-)
-@click.option(
-    "--refresh-token",
-    type=click.STRING,
-    default=None,
-    help="Refresh Token, can be created on the FaaS Dashboard. ",
-    hidden=True,
+    envvar="FUZZ_API_KEY",
 )
 @click.option(
     "-p",
@@ -107,9 +94,7 @@ def fuzz_run(
     more_addresses: str,
     corpus_target: str,
     dry_run,
-    api_key,
     key,
-    refresh_token,
     map_to_original_source,
     project,
     truffle_path: Optional[str],
@@ -117,18 +102,6 @@ def fuzz_run(
     """Submit contracts to the Diligence Fuzzing API"""
     analyze_config = ctx.get("analyze", {}) or {}
     fuzz_config = ctx.get("fuzz", {}) or {}
-
-    if fuzz_config.get("api_key") or api_key:
-        LOGGER.warning(
-            "The --api-key parameter and 'api_key' configuration file option value have been"
-            " deprecated. You should use the --key and 'key' options instead."
-        )
-
-    if fuzz_config.get("refresh_token") or refresh_token:
-        LOGGER.warning(
-            "The --refresh-token parameter and 'refresh_token' configuration file option have been"
-            " deprecated. You should use the --key and 'key' options instead."
-        )
 
     options = FuzzingOptions.from_config(
         fuzz_config,
@@ -139,7 +112,7 @@ def fuzz_run(
         map_to_original_source=map_to_original_source,
         corpus_target=corpus_target,
         dry_run=dry_run,
-        key=key or api_key or refresh_token,
+        key=key,
         project=project,
         truffle_executable_path=truffle_path,
     )

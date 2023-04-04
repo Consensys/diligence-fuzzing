@@ -1,6 +1,5 @@
 """The main runtime of the Fuzzing CLI."""
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -18,8 +17,6 @@ from fuzzing_cli.fuzz.run import fuzz_run
 from fuzzing_cli.fuzz.version import fuzz_version
 
 LOGGER = logging.getLogger("fuzzing-cli")
-LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-logging.basicConfig(level=LOGLEVEL)
 
 
 # noinspection PyIncorrectDocstring
@@ -47,7 +44,6 @@ def cli(ctx, debug: bool, config: str) -> None:
     :param ctx: Click context holding group-level parameters
     :param debug: Boolean to enable the `logging` debug mode
     :param config: YAML config file to read default parameters from
-    :param stdout: Force printing to stdout and ignore output files
     """
 
     # set loggers to debug mode

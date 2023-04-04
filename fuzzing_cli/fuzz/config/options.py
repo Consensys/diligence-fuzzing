@@ -34,6 +34,7 @@ class FuzzingOptions:
         enable_cheat_codes: Optional[bool] = None,
         foundry_tests: bool = False,
         target_contracts: Optional[Dict[str, Set[str]]] = None,
+        _validate_key: bool = True,
     ):
         self.ide: Optional[str] = ide and ide.lower()
         self.quick_check = quick_check
@@ -65,7 +66,14 @@ class FuzzingOptions:
         self.refresh_token = None
         self.auth_client_id = None
 
-        self.validate(key)
+        self.validate(key, _validate_key)
+
+        if key:
+            (
+                self.auth_endpoint,
+                self.auth_client_id,
+                self.refresh_token,
+            ) = self._decode_refresh_token(key)
 
         if type(additional_contracts_addresses) == str:
             self.additional_contracts_addresses: Optional[List[str]] = [
@@ -73,10 +81,6 @@ class FuzzingOptions:
             ]
         else:
             self.additional_contracts_addresses = additional_contracts_addresses
-
-        self.auth_endpoint, self.auth_client_id, self.refresh_token = self._decode_refresh_token(
-            key
-        )
 
     @staticmethod
     def parse_chain_id(chain_id: Optional[Union[str, int]]) -> Optional[str]:
@@ -130,6 +134,7 @@ class FuzzingOptions:
         enable_cheat_codes: Optional[bool] = None,
         foundry_tests: bool = False,
         target_contracts: Optional[Dict[str, Set[str]]] = None,
+        _validate_key: bool = True,
     ) -> "FuzzingOptions":
         return cls.parse_obj(
             {
@@ -160,10 +165,7 @@ class FuzzingOptions:
                         "additional_contracts_addresses": additional_contracts_addresses
                         or config.get("additional_contracts_addresses"),
                         "dry_run": dry_run,
-                        "key": key
-                        or config.get("key")
-                        or config.get("api_key")
-                        or config.get("refresh_token"),
+                        "key": key,
                         "project": project or config.get("project"),
                         "truffle_executable_path": truffle_executable_path,
                         "incremental": config.get("incremental"),
@@ -178,6 +180,7 @@ class FuzzingOptions:
                         else enable_cheat_codes,
                         "foundry_tests": foundry_tests,
                         "target_contracts": target_contracts,
+                        "_validate_key": _validate_key,
                     }
                 ).items()
                 if v is not None
@@ -206,7 +209,7 @@ class FuzzingOptions:
             raise click.exceptions.UsageError(error_message)
         return endpoint, client_id, rt
 
-    def validate(self, key: Optional[str] = None):
+    def validate(self, key: Optional[str] = None, __validate_key: bool = True):
         if not self.build_directory:
             raise click.exceptions.UsageError(
                 "Build directory not provided. You need to set the `build_directory` "
@@ -218,10 +221,10 @@ class FuzzingOptions:
                 "please set the `sources_directory` under the `fuzz` key of your .fuzz.yml config file."
             )
 
-        if not key:
+        if not key and __validate_key is True:
             raise click.exceptions.UsageError(
                 "API key was not provided. You need to provide an API key as the `--key` parameter "
-                "of the `fuzz run` command or set the `key` under the `fuzz` key of your .fuzz.yml config file."
+                "of the `fuzz run` command or as `FUZZ_API_KEY` environment variable."
             )
         if not self.quick_check and not self.deployed_contract_address:
             raise click.exceptions.UsageError(

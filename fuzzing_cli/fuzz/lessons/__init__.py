@@ -66,8 +66,8 @@ class FuzzingLessons:
             LOGGER.warning("No transaction was recorded in this lesson")
         if number_of_blocks_at_start > 0:
             number_of_blocks_at_start -= (
-                1
-            )  # not an obvious conversion to index. Sorry :(
+                1  # not an obvious conversion to index. Sorry :(
+            )
 
         lesson_blocks: List[EVMBlock] = []
         for i in range(number_of_blocks_at_start, number_of_blocks_at_stop):
@@ -91,7 +91,7 @@ class FuzzingLessons:
 
     @staticmethod
     def prepare_suggested_seed_sequences(
-        blocks: List[EVMBlock]
+        blocks: List[EVMBlock],
     ) -> List[List[SeedSequenceTransaction]]:
         seed_seqs: List[SeedSequenceTransaction] = []
 
