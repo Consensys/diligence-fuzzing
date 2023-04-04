@@ -110,7 +110,7 @@ suggested_seed_seqs = [
     ],
 )
 def test_fuzz_run_fuzzing_lessons(
-    tmp_path, hardhat_fuzzing_lessons_project, lessons, seed_seqs
+    api_key, tmp_path, hardhat_fuzzing_lessons_project, lessons, seed_seqs
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -191,6 +191,7 @@ def test_fuzz_run_fuzzing_lessons(
 @pytest.mark.parametrize("absolute_sources_dir", [True, False])
 @pytest.mark.parametrize("folder_target", [True, False])
 def test_fuzz(
+    api_key,
     tmp_path,
     ide: Dict[str, any],
     absolute_targets: bool,
@@ -290,7 +291,7 @@ def test_fuzz(
         lazy_fixture("foundry_project"),
     ],
 )
-def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
+def test_fuzz_empty_artifacts(api_key, tmp_path, ide: Dict[str, any]):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -358,6 +359,7 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
     ],
 )
 def test_fuzz_parameters(
+    api_key,
     tmp_path,
     ide: Dict[str, any],
     corpus_target: Optional[str],
@@ -423,7 +425,7 @@ def test_fuzz_parameters(
     )
 
 
-def test_rpc_not_running(tmp_path):
+def test_rpc_not_running(api_key, tmp_path):
     write_config(base_path=str(tmp_path))
 
     with patch.object(requests, "request") as mocker:
@@ -451,7 +453,7 @@ def test_fuzz_no_build_dir(tmp_path):
     assert result.exit_code != 0
 
 
-def test_fuzz_no_deployed_address(tmp_path):
+def test_fuzz_no_deployed_address(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["deployed_contract_address"])
 
@@ -463,7 +465,7 @@ def test_fuzz_no_deployed_address(tmp_path):
     assert result.exit_code != 0
 
 
-def test_fuzz_no_target(tmp_path):
+def test_fuzz_no_target(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["targets"])
 
@@ -519,6 +521,7 @@ def test_fuzz_no_target(tmp_path):
     ],
 )
 def test_fuzz_submission_error(
+    api_key,
     tmp_path,
     brownie_project,
     status_code: int,
@@ -600,7 +603,7 @@ def test_fuzz_submission_error(
 
 @pytest.mark.parametrize("scribble_meta", [True, False, "exc"])
 def test_fuzz_add_scribble_meta(
-    tmp_path, hardhat_project, scribble_meta: Union[bool, str]
+    api_key, tmp_path, hardhat_project, scribble_meta: Union[bool, str]
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **hardhat_project
@@ -609,7 +612,7 @@ def test_fuzz_add_scribble_meta(
         with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
             json.dump({"some_property": "some_value"}, f)
 
-    if scribble_meta is "exc":
+    if scribble_meta == "exc":
         with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
             f.write("wrong_json")
 

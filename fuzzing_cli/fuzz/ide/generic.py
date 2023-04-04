@@ -101,8 +101,7 @@ class IDEArtifacts(ABC):
 
         return build_files_by_source_file
 
-    @staticmethod
-    def flatten_contracts(contracts: Dict[str, List[Contract]]) -> List[Contract]:
+    def flatten_contracts(self, contracts: Dict[str, List[Contract]]) -> List[Contract]:
         return [
             c for contracts_for_file in contracts.values() for c in contracts_for_file
         ]
@@ -184,17 +183,29 @@ class IDEArtifacts(ABC):
                     return contract
         return None
 
+    def include_contract(self, contract: Contract, targets: Set[str]):
+        source_path = contract["mainSourceFile"]
+        if not contract["bytecode"] or not contract["deployedBytecode"]:
+            return False
+        if self.normalize_path(source_path) not in targets:
+            return False
+        if (
+            self._options.target_contracts
+            and not contract["contractName"]
+            in self._options.target_contracts[source_path]
+        ):
+            return False
+        return True
+
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
-        normalized_include = [self.normalize_path(p) for p in self._include]
+        normalized_include = {self.normalize_path(p) for p in self._include}
         _result_contracts, _result_sources = self.process_artifacts()
-        result_contracts = self.flatten_contracts(
-            {
-                k: v
-                for k, v in _result_contracts.items()
-                if self.normalize_path(k) in normalized_include
-            }
-        )
+        result_contracts = [
+            contract
+            for contract in self.flatten_contracts(_result_contracts)
+            if self.include_contract(contract, normalized_include)
+        ]
 
         used_file_ids = set()
         for contract in result_contracts:
@@ -209,7 +220,7 @@ class IDEArtifacts(ABC):
 
     @abstractmethod
     def process_artifacts(
-        self
+        self,
     ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 

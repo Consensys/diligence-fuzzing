@@ -69,27 +69,27 @@ class DapptoolsArtifacts(IDEArtifacts):
 
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        """ example build_files_by_source_file
-            {
-                'contracts': {
-                    'src/Token.sol':{
-                        'Ownable':{
-                            abi:[...],
-                            evm: {
-                                bytecode: {...},
-                                deployedBytecode: {...},
-                            }
-                        },
-                        'OtherContractName'
-                    }
-                },
-                'sources': {
-                    'src/Token.sol':{
-                        ast: '',
-                        id: 0
-                    }
+        """example build_files_by_source_file
+        {
+            'contracts': {
+                'src/Token.sol':{
+                    'Ownable':{
+                        abi:[...],
+                        evm: {
+                            bytecode: {...},
+                            deployedBytecode: {...},
+                        }
+                    },
+                    'OtherContractName'
+                }
+            },
+            'sources': {
+                'src/Token.sol':{
+                    ast: '',
+                    id: 0
                 }
             }
+        }
         """
         # self._get_build_artifacts goes through each .json build file and extracts the Source file it references
         # A source file may contain several contracts, so it is possible that a given source file
@@ -128,7 +128,7 @@ class DapptoolsArtifacts(IDEArtifacts):
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
             result_contracts[source_file] = []
-            for (contract_name, contract) in contracts.items():
+            for contract_name, contract in contracts.items():
                 # We get the build items from dapptools and rename them into the properties used by the FaaS
                 try:
                     ignored_sources = self.get_ignored_sources(

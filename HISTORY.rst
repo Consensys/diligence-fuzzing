@@ -2,6 +2,16 @@
 History
 =======
 
+0.11.0 (2023-04-07)
+--------------------
+- Make :code:`no-assert` mode default for :code:`fuzz arm` command
+- Drop support for Python 3.6
+- Update dependencies
+- Fix various bugs
+- Improve error messages
+- Remove :code:`key` parameter from fuzzing config. Only :code:`FUZZ_API_KEY` environment variable or :code:`--key` command line argument is supported now.
+- Finalize Foundry seamless integration
+
 0.10.2 (2023-02-13)
 --------------------
 - Fix quickcheck campaigns bug
