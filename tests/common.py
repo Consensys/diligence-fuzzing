@@ -53,7 +53,7 @@ def generate_fuzz_config(
     absolute_sources_directory: bool = True,
     remappings: List[str] = [],
     solc_version: Optional[str] = None,
-    no_assert: Optional[bool] = None,
+    _assert: Optional[bool] = None,
     scribble_path: Optional[str] = None,
     quick_check: Optional[bool] = None,
     faas_url: Optional[str] = None,
@@ -69,8 +69,8 @@ def generate_fuzz_config(
         config_file += f"\n  remappings:\n{_data}"
     if solc_version:
         config_file += f"\n  solc-version: {solc_version}"
-    if no_assert is not None:
-        config_file += f"\n  no-assert: {str(no_assert).lower()}"
+    if _assert is not None:
+        config_file += f"\n  assert: {str(_assert).lower()}"
     if scribble_path is not None:
         config_file += f"\n  scribble-path: {scribble_path}"
 
@@ -87,10 +87,6 @@ def generate_fuzz_config(
         config_file += f'\n  rpc_url: "http://localhost:9898"'
     if "faas_url" not in not_include:
         config_file += f'\n  faas_url: "http://localhost:9899"'
-    if "api_key" not in not_include:
-        config_file += (
-            f'\n  key:\n    "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
-        )
     if "build_directory" not in not_include:
         if absolute_build_directory:
             config_file += f"\n  build_directory: {base_path}/{build_directory}"
@@ -152,8 +148,8 @@ def generate_fuzz_config(
             fuzzer_options += f'\n    chain_id: "{chain_id}"'
         else:
             fuzzer_options += (
-                f"\n    chain_id: {chain_id}"
-            )  # hex will be converted to number
+                f"\n    chain_id: {chain_id}"  # hex will be converted to number
+            )
     if enable_cheat_codes is not None:
         fuzzer_options += f"\n    enable_cheat_codes: {enable_cheat_codes}"
     if fuzzer_options:

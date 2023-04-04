@@ -112,7 +112,6 @@ class FoundryArtifacts(IDEArtifacts):
         for source_name, source in build_info["output"]["sources"].items():
             source_ids.append(source["id"])
             source_paths[str(source["id"])] = source_name
-            # TODO: add sources filtering? Or just add all sources? Fuzzer refers bytecodes by the hash in requests
             result_sources[source_name] = {
                 "fileIndex": source["id"],
                 "source": self.get_source(source_name, build_info["input"]["sources"]),

@@ -14,7 +14,7 @@ from tests.common import get_code_mocker, get_test_case, mocked_rpc_client, writ
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
 
-def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
+def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -94,7 +94,7 @@ def test_get_corpus(tmp_path, hardhat_project, monkeypatch):
     }
 
 
-def test_transactions_limit(tmp_path):
+def test_transactions_limit(api_key, tmp_path):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -130,7 +130,7 @@ def test_transactions_limit(tmp_path):
     )
 
 
-def test_call_error(tmp_path):
+def test_call_error(api_key, tmp_path):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -162,7 +162,7 @@ def test_call_error(tmp_path):
 
 
 @pytest.mark.parametrize("block", [None, {"number": "0x1", "transactions": []}])
-def test_no_latest_block(tmp_path, block):
+def test_no_latest_block(api_key, tmp_path, block):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -195,7 +195,7 @@ def test_no_latest_block(tmp_path, block):
     )
 
 
-def test_missing_targets_detection(tmp_path, truffle_project):
+def test_missing_targets_detection(api_key, tmp_path, truffle_project):
     # multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -244,7 +244,7 @@ def test_missing_targets_detection(tmp_path, truffle_project):
 
 @pytest.mark.parametrize("absolute_targets", [True, False])
 def test_mismatched_targets_detection(
-    tmp_path, truffle_project, absolute_targets: bool
+    api_key, tmp_path, truffle_project, absolute_targets: bool
 ):
     # multiple deployments
     write_config(
@@ -284,7 +284,7 @@ def test_mismatched_targets_detection(
     )
 
 
-def test_dangling_targets_detection(tmp_path, truffle_project):
+def test_dangling_targets_detection(api_key, tmp_path, truffle_project):
     # multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -334,7 +334,7 @@ def test_dangling_targets_detection(tmp_path, truffle_project):
     )
 
 
-def test_unknown_addresses_detection(tmp_path, truffle_project):
+def test_unknown_addresses_detection(api_key, tmp_path, truffle_project):
     # TODO: multiple deployments
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",

@@ -12,7 +12,7 @@ CONFIG_TEMPLATE = """analyze:
   # solc-version: "0.6.12"
   {% if solc_version %}solc-version: "{{ solc_version }}"{% endif %}
   {% if scribble_path %}scribble-path: {{ scribble_path }}{% endif %}
-  {% if no_assert %}no-assert: {{ no_assert }}{% endif %}
+  {% if assert %}assert: {{ assert }}{% endif %}
 
 fuzz:
   ide: {{ ide }}
@@ -47,9 +47,6 @@ fuzz:
 
   # Set a default project to which your campaigns will be attached to
   # project: "my project name"
-
-  # Set the API key, which can be obtained from the Diligence Fuzzing Dashboard
-  # key: "bHd3...ddsds"
 
   # Point to your ganache node which holds the seed 🌱
   rpc_url: {{ rpc_url }}

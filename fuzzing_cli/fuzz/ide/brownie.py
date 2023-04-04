@@ -46,16 +46,16 @@ class BrownieArtifacts(IDEArtifacts):
 
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        """ example build_files_by_source_file
-            {
-                'contracts/Token.sol':
-                    {
-                        'abi':... ,
-                        'ast':... ,
-                        'source':...,
-                        ''
-                    }
-            }
+        """example build_files_by_source_file
+        {
+            'contracts/Token.sol':
+                {
+                    'abi':... ,
+                    'ast':... ,
+                    'source':...,
+                    ''
+                }
+        }
         """
         build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         result_contracts = {}

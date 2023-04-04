@@ -1,6 +1,8 @@
+import json
+import logging
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import click
 import toml
@@ -10,22 +12,62 @@ from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
-from fuzzing_cli.util import files_by_directory
+
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 def parse_config() -> Dict[str, Any]:
+    LOGGER.debug("Invoking `forge config` command")
     result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
+    LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
 
 
 def compile_tests(build_args):
     cmd = ["forge", "build", "--build-info", "--force", *build_args]
+    LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    LOGGER.debug("Invoking `forge build` command succeeded")
 
 
-def collect_tests(test_dir: Path):
-    test_contracts: List[str] = files_by_directory(str(test_dir), ".t.sol")
-    return test_contracts
+def collect_tests(
+    test_dir: Path,
+    match_path: Optional[str] = None,
+    match_contract: Optional[str] = None,
+) -> Tuple[List[str], Optional[Dict[str, Set[str]]]]:
+    targets: List[str] = []
+    target_contracts: Optional[Dict[str, Set[str]]] = None
+    cmd = ["forge", "test", "--list", "--json"]
+    if match_path is None and match_contract is None:
+        cmd += ["--match-path", f"{test_dir}/*"]
+
+    if match_path:
+        cmd += ["--match-path", match_path]
+
+    if match_contract:
+        target_contracts = {}
+        cmd += ["--match-contract", match_contract]
+    LOGGER.debug(
+        f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})"
+    )
+    result = subprocess.run(
+        cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    LOGGER.debug(
+        f"Invoking `forge test --list` command succeeded. Parsing the list ..."
+    )
+    LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
+    tests: Dict[str, Dict[str, List[str]]] = json.loads(
+        result.stdout.decode().splitlines()[-1]
+    )
+    for test_path, test_contracts in tests.items():
+        targets.append(test_path)
+        if match_contract:
+            target_contracts[test_path] = {
+                contract for contract in test_contracts.keys()
+            }
+    return targets, target_contracts
 
 
 @click.group("forge")
@@ -35,7 +77,6 @@ def cli(ctx):  # pragma: no-cover
     pass
 
 
-# TODO: allow forge build parameters
 @cli.command("test")
 @click.option(
     "--key",
@@ -43,6 +84,7 @@ def cli(ctx):  # pragma: no-cover
     type=click.STRING,
     required=True,
     help="API key, can be created on the FaaS Dashboard. ",
+    envvar="FUZZ_API_KEY",
 )
 @click.option(
     "--dry-run",
@@ -51,13 +93,32 @@ def cli(ctx):  # pragma: no-cover
     help="Outputs the data to be sent to the FaaS API without making the request.",
 )
 @click.option(
+    "--match-contract",
+    type=click.STRING,
+    default=None,
+    help="Only run tests in contracts matching the specified regex pattern",
+)
+@click.option(
+    "--match-path",
+    type=click.STRING,
+    default=None,
+    help="Only run tests in source files matching the specified glob pattern",
+)
+@click.option(
     "--build-args",
     default=None,
     help="Additional string of `forge compile` command arguments for custom build strategies ("
     "e.g. --build-args=--deny-warnings --build-args --use 0.8.1)",
 )
 @click.pass_context
-def foundry_test(ctx: Context, key: str, dry_run: bool, build_args: Optional[str]):
+def foundry_test(
+    ctx: Context,
+    key: str,
+    dry_run: bool,
+    build_args: Optional[str],
+    match_contract: Optional[str],
+    match_path: Optional[str],
+):
     """
     Command to:
      * Compile unit tests
@@ -65,9 +126,19 @@ def foundry_test(ctx: Context, key: str, dry_run: bool, build_args: Optional[str
      * Submit to fuzzing
     """
     fuzz_config = ctx.obj.get("fuzz", {}) or {}
+
+    click.echo("🛠️  Parsing foundry config")
     foundry_config = parse_config()
+
+    click.echo("🛠️  Compiling tests")
     compile_tests([] if build_args is None else build_args.split(" "))
-    targets = collect_tests(Path(foundry_config["profile"]["default"]["test"]))
+
+    click.echo("🛠️  Collecting tests")
+    targets, target_contracts = collect_tests(
+        test_dir=Path(foundry_config["profile"]["default"]["test"]),
+        match_path=match_path,
+        match_contract=match_contract,
+    )
 
     options = FuzzingOptions.from_config(
         fuzz_config,
@@ -79,6 +150,8 @@ def foundry_test(ctx: Context, key: str, dry_run: bool, build_args: Optional[str
         quick_check=True,
         enable_cheat_codes=True,
         dry_run=dry_run,
+        foundry_tests=True,
+        target_contracts=target_contracts,
     )
 
     repo = IDERepository.get_instance()
@@ -89,12 +162,16 @@ def foundry_test(ctx: Context, key: str, dry_run: bool, build_args: Optional[str
         sources_dir=options.sources_directory,
         map_to_original_source=False,
     )
+
+    click.echo("🛠️  Collecting and validating campaigns for submission")
     artifacts.validate()
 
+    click.echo("🛠️  Preparing the seed state")
     seed_state = prepare_seed_state(
         artifacts.contracts, options.number_of_cores, options.corpus_target
     )
 
-    return submit_campaign(
-        options, repo.get_ide("foundry").get_name(), artifacts, seed_state
-    )
+    click.echo(f"⚡️ Submitting campaigns")
+    submit_campaign(options, repo.get_ide("foundry").get_name(), artifacts, seed_state)
+
+    return click.echo("Done 🎉")
