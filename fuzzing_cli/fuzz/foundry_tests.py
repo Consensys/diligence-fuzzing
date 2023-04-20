@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -25,8 +26,17 @@ def parse_config() -> Dict[str, Any]:
 
 
 def compile_tests(build_args):
+    # we store the config file
     cmd = ["forge", "build", "--build-info", "--force", *build_args]
     LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
+
+    # we set the environment variables because passing a forge config
+    # file as a parameter does not work unless we override the user's
+    # config file. These env vars are cleared when the process ends.
+    os.environ["FOUNDRY_OPTIMIZER"] = "false"
+    os.environ["FOUNDRY_BYTECODE_HASH"] = "ipfs"
+    os.environ["FOUNDRY_CBOR_METADATA"] = "true"
+
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     LOGGER.debug("Invoking `forge build` command succeeded")
 
