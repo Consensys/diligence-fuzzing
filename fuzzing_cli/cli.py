@@ -48,6 +48,7 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     # set loggers to debug mode
     if debug:
+        logging.basicConfig(level=logging.DEBUG)
         for name in logging.root.manager.loggerDict:
             logging.getLogger(name).setLevel(logging.DEBUG)
 

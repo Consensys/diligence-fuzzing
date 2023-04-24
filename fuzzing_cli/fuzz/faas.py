@@ -149,6 +149,8 @@ class FaasClient:
 
         if self.options.foundry_tests:
             api_payload["foundryTests"] = True
+            if self.options.foundry_tests_list is not None:
+                api_payload["foundryTestsList"] = self.options.foundry_tests_list
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()

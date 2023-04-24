@@ -35,7 +35,7 @@ def collect_tests(
     test_dir: Path,
     match_path: Optional[str] = None,
     match_contract: Optional[str] = None,
-) -> Tuple[List[str], Optional[Dict[str, Set[str]]]]:
+) -> Tuple[List[str], Optional[Dict[str, Set[str]]], Dict[str, Dict[str, List[str]]]]:
     targets: List[str] = []
     target_contracts: Optional[Dict[str, Set[str]]] = None
     cmd = ["forge", "test", "--list", "--json"]
@@ -67,7 +67,7 @@ def collect_tests(
             target_contracts[test_path] = {
                 contract for contract in test_contracts.keys()
             }
-    return targets, target_contracts
+    return targets, target_contracts, tests
 
 
 @click.group("forge")
@@ -82,7 +82,6 @@ def cli(ctx):  # pragma: no-cover
     "--key",
     "-k",
     type=click.STRING,
-    required=True,
     help="API key, can be created on the FaaS Dashboard. ",
     envvar="FUZZ_API_KEY",
 )
@@ -134,7 +133,7 @@ def foundry_test(
     compile_tests([] if build_args is None else build_args.split(" "))
 
     click.echo("🛠️  Collecting tests")
-    targets, target_contracts = collect_tests(
+    targets, target_contracts, tests_list = collect_tests(
         test_dir=Path(foundry_config["profile"]["default"]["test"]),
         match_path=match_path,
         match_contract=match_contract,
@@ -152,6 +151,7 @@ def foundry_test(
         dry_run=dry_run,
         foundry_tests=True,
         target_contracts=target_contracts,
+        foundry_tests_list=tests_list,
     )
 
     repo = IDERepository.get_instance()

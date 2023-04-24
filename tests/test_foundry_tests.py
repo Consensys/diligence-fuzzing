@@ -151,3 +151,20 @@ def test_foundry_tests(
     assert_is_equal(payload["contracts"], contracts(processed_payload))
     assert payload["sources"] == sources(processed_payload)
     assert payload["name"] == "test-campaign-1"
+
+    foundry_tests_list = {
+        "test/Counter.t.sol": {
+            "CounterTest": ["testIncrement", "testSetNumber"],
+        },
+        "test/VulnerableToken.t.sol": {
+            "VulnerableTokenTest": ["testTransfer"],
+        },
+    }
+    if list_args != ["--match-path", "test/*"]:
+        foundry_tests_list = {
+            "test/Counter.t.sol": {
+                "CounterTest": ["testIncrement", "testSetNumber"],
+            },
+        }
+
+    assert payload["foundryTestsList"] == foundry_tests_list
