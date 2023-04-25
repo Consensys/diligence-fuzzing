@@ -2,6 +2,11 @@
 History
 =======
 
+0.11.1 (2023-04-18)
+--------------------
+- Fix API key handling
+- Add Foundry tests list to submitted campaign
+
 0.11.0 (2023-04-07)
 --------------------
 - Make :code:`no-assert` mode default for :code:`fuzz arm` command

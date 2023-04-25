@@ -33,6 +33,7 @@ class FuzzingOptions:
         chain_id: Optional[Union[str, int]] = None,
         enable_cheat_codes: Optional[bool] = None,
         foundry_tests: bool = False,
+        foundry_tests_list: Optional[Dict[str, Dict[str, List[str]]]] = None,
         target_contracts: Optional[Dict[str, Set[str]]] = None,
         _validate_key: bool = True,
     ):
@@ -60,6 +61,7 @@ class FuzzingOptions:
             bool(enable_cheat_codes) if enable_cheat_codes is not None else None
         )
         self.foundry_tests = foundry_tests
+        self.foundry_tests_list = foundry_tests_list
         self.target_contracts = target_contracts
 
         self.auth_endpoint = None
@@ -135,6 +137,7 @@ class FuzzingOptions:
         foundry_tests: bool = False,
         target_contracts: Optional[Dict[str, Set[str]]] = None,
         _validate_key: bool = True,
+        foundry_tests_list: Optional[Dict[str, Dict[str, List[str]]]] = None,
     ) -> "FuzzingOptions":
         return cls.parse_obj(
             {
@@ -179,6 +182,7 @@ class FuzzingOptions:
                         if enable_cheat_codes is None
                         else enable_cheat_codes,
                         "foundry_tests": foundry_tests,
+                        "foundry_tests_list": foundry_tests_list,
                         "target_contracts": target_contracts,
                         "_validate_key": _validate_key,
                     }
@@ -224,7 +228,7 @@ class FuzzingOptions:
         if not key and __validate_key is True:
             raise click.exceptions.UsageError(
                 "API key was not provided. You need to provide an API key as the `--key` parameter "
-                "of the `fuzz run` command or as `FUZZ_API_KEY` environment variable."
+                "to the command or as `FUZZ_API_KEY` environment variable."
             )
         if not self.quick_check and not self.deployed_contract_address:
             raise click.exceptions.UsageError(
