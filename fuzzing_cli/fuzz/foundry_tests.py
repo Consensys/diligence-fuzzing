@@ -7,9 +7,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import click
 import toml
-from click import Context
 
-from fuzzing_cli.fuzz.config import FuzzingOptions
+from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
@@ -80,8 +79,7 @@ def collect_tests(
 
 
 @click.group("forge")
-@click.pass_obj
-def cli(ctx):  # pragma: no-cover
+def cli():  # pragma: no-cover
     """Submit foundry unit tests to fuzzing"""
     pass
 
@@ -92,7 +90,6 @@ def cli(ctx):  # pragma: no-cover
     "-k",
     type=click.STRING,
     help="API key, can be created on the FaaS Dashboard. ",
-    envvar="FUZZ_API_KEY",
 )
 @click.option(
     "--dry-run",
@@ -118,9 +115,7 @@ def cli(ctx):  # pragma: no-cover
     help="Additional string of `forge compile` command arguments for custom build strategies ("
     "e.g. --build-args=--deny-warnings --build-args --use 0.8.1)",
 )
-@click.pass_context
 def foundry_test(
-    ctx: Context,
     key: str,
     dry_run: bool,
     build_args: Optional[str],
@@ -133,8 +128,6 @@ def foundry_test(
      * Automatically collect unit-test contracts
      * Submit to fuzzing
     """
-    fuzz_config = ctx.obj.get("fuzz", {}) or {}
-
     click.echo("🛠️  Parsing foundry config")
     foundry_config = parse_config()
 
@@ -148,25 +141,28 @@ def foundry_test(
         match_contract=match_contract,
     )
 
-    options = FuzzingOptions.from_config(
-        fuzz_config,
-        ide="foundry",
-        build_directory=foundry_config["profile"]["default"]["out"],
-        sources_directory=foundry_config["profile"]["default"]["src"],
-        targets=targets,
-        key=key,
-        quick_check=True,
-        enable_cheat_codes=True,
-        dry_run=dry_run,
-        foundry_tests=True,
-        target_contracts=target_contracts,
-        foundry_tests_list=tests_list,
+    options = FuzzingOptions(
+        **omit_none(
+            {
+                "ide": "foundry",
+                "build_directory": foundry_config["profile"]["default"]["out"],
+                "sources_directory": foundry_config["profile"]["default"]["src"],
+                "targets": targets,
+                "key": key,
+                "quick_check": True,
+                "enable_cheat_codes": True,
+                "dry_run": dry_run,
+                "foundry_tests": True,
+                "target_contracts": target_contracts,
+                "foundry_tests_list": tests_list,
+            }
+        )
     )
 
     repo = IDERepository.get_instance()
     artifacts: IDEArtifacts = repo.get_ide("foundry")(
         options=options,
-        targets=options.target,
+        targets=options.targets,
         build_dir=options.build_directory,
         sources_dir=options.sources_directory,
         map_to_original_source=False,

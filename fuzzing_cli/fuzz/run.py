@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import click
 from click import ClickException, UsageError
 
-from .config import FuzzingOptions
+from .config import AnalyzeOptions, FuzzingOptions, omit_none
 from .exceptions import EmptyArtifactsError, FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
@@ -18,7 +18,7 @@ headers = {"Content-Type": "application/json"}
 
 
 @click.command("run")
-@click.argument("target", default=None, nargs=-1)
+@click.argument("targets", default=None, nargs=-1)
 @click.option(
     "-d",
     "--ide",
@@ -68,7 +68,6 @@ headers = {"Content-Type": "application/json"}
     type=click.STRING,
     default=None,
     help="API key, can be created on the FaaS Dashboard. ",
-    envvar="FUZZ_API_KEY",
 )
 @click.option(
     "-p",
@@ -85,10 +84,8 @@ headers = {"Content-Type": "application/json"}
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
-@click.pass_obj
 def fuzz_run(
-    ctx,
-    target,
+    targets,
     ide: Optional[str],
     address: str,
     more_addresses: str,
@@ -100,21 +97,22 @@ def fuzz_run(
     truffle_path: Optional[str],
 ):
     """Submit contracts to the Diligence Fuzzing API"""
-    analyze_config = ctx.get("analyze", {}) or {}
-    fuzz_config = ctx.get("fuzz", {}) or {}
 
-    options = FuzzingOptions.from_config(
-        fuzz_config,
-        ide=ide,
-        deployed_contract_address=address,
-        additional_contracts_addresses=more_addresses,
-        targets=target,
-        map_to_original_source=map_to_original_source,
-        corpus_target=corpus_target,
-        dry_run=dry_run,
-        key=key,
-        project=project,
-        truffle_executable_path=truffle_path,
+    options = FuzzingOptions(
+        **omit_none(
+            {
+                "ide": ide,
+                "deployed_contract_address": address,
+                "additional_contracts_addresses": more_addresses,
+                "targets": targets if len(targets) > 0 else None,
+                "map_to_original_source": map_to_original_source,
+                "corpus_target": corpus_target,
+                "dry_run": dry_run,
+                "key": key,
+                "project": project,
+                "truffle_executable_path": truffle_path,
+            }
+        )
     )
 
     _corpus_target = options.corpus_target
@@ -122,18 +120,19 @@ def fuzz_run(
         _corpus_target = options.project
 
     if options.quick_check:
+        analyze_options = AnalyzeOptions()
         project_type: str = "QuickCheck"
         artifacts: IDEArtifacts = QuickCheck(
             options=options,
-            scribble_path=analyze_config.get("scribble-path") or "scribble",
-            targets=options.target,
+            scribble_path=analyze_options.scribble_path,
+            targets=options.targets,
             build_dir=options.build_directory,
             sources_dir=options.sources_directory,
             map_to_original_source=options.map_to_original_source,
-            remappings=analyze_config.get("remappings", []),
-            solc_version=analyze_config.get("solc-version", []),
+            remappings=analyze_options.remappings,
+            solc_version=analyze_options.solc_version,
             solc_path=None,
-            no_assert=analyze_config.get("no-assert", False),
+            no_assert=analyze_options.no_assert,
         )
         seed_state = prepare_seed_state(
             artifacts.contracts, options.number_of_cores, _corpus_target
@@ -161,7 +160,7 @@ def fuzz_run(
 
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
-            targets=options.target,
+            targets=options.targets,
             build_dir=options.build_directory or _IDEClass.get_default_build_dir(),
             sources_dir=options.sources_directory
             or _IDEClass.get_default_sources_dir(),
@@ -178,7 +177,7 @@ def fuzz_run(
                 f"or recompile contracts"
             )
 
-        rpc_client.check_contracts(seed_state, artifacts, options.target)
+        rpc_client.check_contracts(seed_state, artifacts, options.targets)
 
     return submit_campaign(options, project_type, artifacts, seed_state)
 

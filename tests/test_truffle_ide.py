@@ -25,8 +25,8 @@ def construct_artifacts() -> TruffleArtifacts:
         TruffleArtifacts, "_get_project_sources", new=Mock(return_value={})
     ):
         return TruffleArtifacts(
-            options=FuzzingOptions.parse_obj(
-                {
+            options=FuzzingOptions(
+                **{
                     "build_directory": "build/contracts",
                     "sources_directory": "contracts",
                     "key": "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
