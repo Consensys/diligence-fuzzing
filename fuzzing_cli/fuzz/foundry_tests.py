@@ -26,7 +26,6 @@ def parse_config() -> Dict[str, Any]:
 
 
 def compile_tests(build_args):
-    # we store the config file
     cmd = ["forge", "build", "--build-info", "--force", *build_args]
     LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
 
