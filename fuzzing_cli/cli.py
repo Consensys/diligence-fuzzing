@@ -1,5 +1,6 @@
 """The main runtime of the Fuzzing CLI."""
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -54,17 +55,19 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     LOGGER.debug("Initializing configuration context")
     if Path(config).is_file():
+        # this env var is used by the `FuzzingOptions` class to load the config later
+        os.environ["FUZZ_CONFIG_FILE"] = str(Path(config).absolute())
+
         LOGGER.debug(f"Parsing config at {config}")
         with open(config) as config_f:
             parsed_config = yaml.safe_load(config_f.read())
     else:
-        parsed_config = {"fuzz": {}, "analyze": {}}
+        parsed_config = {"analyze": {}}
 
     ctx.obj = {
         "debug": debug,
         "config": str(Path(config).absolute()),
         "analyze": parsed_config.get("analyze", {}),
-        "fuzz": parsed_config.get("fuzz", {}),
     }
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")

@@ -446,10 +446,7 @@ def test_fuzz_no_build_dir(tmp_path):
     write_config(not_include=["build_directory"])
 
     result = runner.invoke(cli, ["run", "contracts"])
-    assert (
-        "Build directory not provided. You need to set the `build_directory`"
-        in result.output
-    )
+    assert "Error: Invalid config: Build directory not provided\n" in result.output
     assert result.exit_code != 0
 
 
@@ -459,7 +456,7 @@ def test_fuzz_no_deployed_address(api_key, tmp_path):
 
     result = runner.invoke(cli, ["run", "contracts"])
     assert (
-        "Deployed contract address not provided. You need to provide an address"
+        "Error: Invalid config: Deployed contract address not provided.\n"
         in result.output
     )
     assert result.exit_code != 0
@@ -470,7 +467,7 @@ def test_fuzz_no_target(api_key, tmp_path):
     write_config(not_include=["targets"])
 
     result = runner.invoke(cli, ["run"])
-    assert "Error: Target not provided." in result.output
+    assert "Error: Invalid config: Targets not provided.\n" in result.output
     assert result.exit_code != 0
 
 

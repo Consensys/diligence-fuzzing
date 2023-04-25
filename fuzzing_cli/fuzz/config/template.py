@@ -17,11 +17,10 @@ CONFIG_TEMPLATE = """analyze:
 fuzz:
   ide: {{ ide }}
 
-  # fuzzer_options:
-    # Change the chain ID that is used by the fuzzer. Default is 0x1 (1)
-    # chain_id: "0x2a" # (42)
-    # Enable/Disable "cheat codes" in fuzzer (as introduced by dapptools)
-    # enable_cheat_codes: true
+  # Change the chain ID that is used by the fuzzer. Default is 0x1 (1)
+  # chain_id: "0x2a" # (42)
+  # Enable/Disable "cheat codes" in fuzzer (as introduced by dapptools)
+  # enable_cheat_codes: true
 
   quick_check: {{ quick_check }}
 

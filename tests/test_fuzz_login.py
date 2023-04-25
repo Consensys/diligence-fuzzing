@@ -40,10 +40,10 @@ class ArtifactsMock:
 
 def test_no_keys(tmp_path, truffle_project):
     runner = CliRunner()
-    write_config(not_include=["api_key"])
+    write_config(ide="truffle", not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "API key was not provided." in result.output
+    assert "Error: Invalid config: API key not provided" in result.output
     assert result.exit_code != 0
 
 

@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import click
 from click import ClickException
 
+from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -40,9 +41,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
     required=False,
     help="If specified, execution will halt when an invariant is violated (instead of only emitting an event).",
 )
-@click.pass_obj
 def fuzz_arm(
-    ctx,
     targets,
     scribble_path: str,
     remap_import: Tuple[str],
@@ -71,32 +70,35 @@ def fuzz_arm(
     :param solc_version: The solc version to use for Solidity compilation
     :param _assert: If set, execution will halt when an invariant is violated
     """
-    analyze_config = ctx.get("analyze", {}) or {}
-    solc_version = solc_version or analyze_config.get("solc-version") or None
-    remap_import = remap_import or analyze_config.get("remappings") or []
-    scribble_path = scribble_path or analyze_config.get("scribble-path") or "scribble"
-
-    if _assert:
-        no_assert = False
-    else:
-        no_assert = not analyze_config.get("assert", False)
-
-    fuzz_config = ctx.get("fuzz", {}) or {}
-    targets = targets or fuzz_config.get("targets") or None
-
-    if not targets:
-        raise click.exceptions.UsageError(
-            "Target not provided. You need to provide a target as the last parameter of the `fuzz arm` command."
-            "\nYou can also set the `targets` on the `fuzz` key of your .fuzz.yml config file."
+    options = AnalyzeOptions(
+        **omit_none(
+            {
+                "solc_version": solc_version,
+                "remappings": remap_import if len(remap_import) > 0 else None,
+                "scribble_path": scribble_path,
+                "assert_": _assert,
+            }
         )
+    )
+
+    fuzzing_options = FuzzingOptions(
+        **omit_none(
+            {
+                "targets": targets if len(targets) > 0 else None,
+            }
+        ),
+        no_build_directory=True,
+        no_key=True,
+        no_deployed_contract_address=True,
+    )
 
     try:
         return_code, out, err = ScribbleMixin.instrument_solc_in_place(
-            file_list=targets,
-            scribble_path=scribble_path,
-            remappings=remap_import,
-            solc_version=solc_version,
-            no_assert=no_assert,
+            file_list=fuzzing_options.targets,
+            scribble_path=options.scribble_path,
+            remappings=options.remappings,
+            solc_version=options.solc_version,
+            no_assert=not options.assert_,
         )
         if return_code == 0:
             click.secho(out)
@@ -107,9 +109,9 @@ def fuzz_arm(
             )
     except FileNotFoundError:
         raise click.exceptions.UsageError(
-            f'Scribble not found at path "{scribble_path}". '
-            f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command"
-            f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
+            f'Scribble not found at path "{options.scribble_path}". '
+            f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
+            f"or set one in config"
         )
     except:
         raise

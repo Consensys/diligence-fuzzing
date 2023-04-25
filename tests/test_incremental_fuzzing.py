@@ -17,15 +17,14 @@ from tests.common import get_test_case, write_config
             None,
             True,
             None,
-            "`incremental` config parameter is set to true without specifying `project`. "
-            "Please provide the `project` in your .fuzz.yml config file.",
+            "Invalid config: `incremental` config parameter is set to true without specifying `project`.",
         ),
         (
             "test-project-1",
             True,
             "cmp_123",
-            "Both `incremental` and `corpus_target` are set. "
-            "Please set only one option in your config file",
+            "Invalid config: Both `incremental` and `corpus_target` are set. "
+            "Please set only one option.",
         ),
     ],
 )
@@ -48,7 +47,7 @@ def test_parameters_check(
 
     assert result.exit_code == 2
     assert (
-        f"Usage: cli run [OPTIONS] [TARGET]...\nTry 'cli run --help' for help.\n\nError: {error_detail}\n"
+        f"Usage: cli run [OPTIONS] [TARGETS]...\nTry 'cli run --help' for help.\n\nError: {error_detail}\n"
         == result.output
     )
 
