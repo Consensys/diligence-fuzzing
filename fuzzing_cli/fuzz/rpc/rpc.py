@@ -129,6 +129,8 @@ class RPCClient(RPCClientBase):
         return processed_transactions
 
     
+
+
     def get_inconsistent_addresses(
         self, seed_state: Dict[str, any]
     ) -> Tuple[Dict[str, str], List[str]]:
@@ -274,7 +276,31 @@ class RPCClient(RPCClientBase):
 
         return inner_checker
 
-    def set_implict_targets(self, seed_state: Dict[str, any], artifacts: IDEArtifacts):
+    def get_artifacts_by_addresses(
+        self, addresses: List[str], paths: List[str]
+    ) -> IDEArtifacts:
+        """Get the artifacts of the contracts at the given addresses"""
+        # get the deployed bytecodes for each address
+        artifacts: IDEArtifacts = {}
+        for address in addresses:
+            artifacts[address] = None
+        return artifacts
+    
+    
+    def smart_mode2():
+        
+        # addresses set but no target source files
+        # so we create the list of target source files
+
+        addresses = [*addresses_under_test,*more_addresses_under_test] or get_all_deployed_addresses()
+
+        
+        artifacts = targets or (address -> getDeployedbytecode(address) -> getArtifact())
+        return [addresses, artifacts]
+        
+    
+
+    def get_all_deployed_addresses(self, seed_state: Dict[str, any], artifacts: IDEArtifacts):
         # get all the addresses from the rpc client
          # Goes through the steps of the rpc node's txs and gets the addresses for each contract
         steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
