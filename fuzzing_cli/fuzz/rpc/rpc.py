@@ -139,8 +139,8 @@ class RPCClient(RPCClientBase):
         Parameters:
         seed_state (Dict[str, any]): The seed state is the list of transactions which are deployed on the RPC node. It also includes the list of contracts that the user wants to fuzz (addresses under test).
         
-        Returns:
-        :Tuple[Dict[str, str], List[str]]: A tuple of the list of contracts addresses that are either not deployed in the rpc node or not provided by the user.
+        Returns -> Tuple[Dict[str, str], List[str]]:
+        [missing_targets, unknown_targets]: missing targets is the list of contracts that are in the RPC node but the user did not provide. unknown targets is the list of contracts that the user provided but are not deployed in the rpc node
         """
         # Goes through the steps of the rpc node's txs and gets the addresses for each contract
         steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
@@ -274,15 +274,38 @@ class RPCClient(RPCClientBase):
 
         return inner_checker
 
-    """
-    This function is used to check if the contracts deployed at the addresses in the seed state
-    """
+    
     def check_contracts(
         self,
         seed_state: Dict[str, any],
         artifacts: IDEArtifacts,
         source_targets: List[str],
     ):
+        """
+        This function checks the contracts provided in the seed state and their addresses to ensure they are deployed correctly. It verifies that:
+
+        All contracts deployed at the addresses specified in the addresses_under_test are found on the RPC.
+        The source files of contracts that are deployed but not provided as targets are acknowledged.
+        The addresses of contracts provided as targets without setting up their addresses in addresses_under_test are reported.
+        The contracts specified in addresses_under_test without a corresponding contract object are identified.
+        
+        Parameters
+        self : object
+        The instance of the class the method is called on.
+        seed_state : Dict[str, any]
+        A dictionary containing the seed state data, including the addresses_under_test and other analysis setup information.
+        artifacts : IDEArtifacts
+        An instance of the IDEArtifacts class containing the contract artifacts.
+        source_targets : List[str]
+        A list of source file paths provided as targets for the analysis.
+
+        Raises
+
+        ClickException
+        If there are unknown or mismatched targets, or if dangling contract targets are found.
+        UsageError
+        If there is an error during an RPC call.
+        """
         # Normalize the paths in source_targets
         # Make all paths absolute and not relative
         source_targets = [artifacts.normalize_path(s) for s in source_targets]
@@ -290,11 +313,18 @@ class RPCClient(RPCClientBase):
             # Validate the seed state and obtain missing and unknown targets
             missing_targets, unknown_targets = self.get_inconsistent_addresses(seed_state)
 
+            # The user provided an address that is not deployed in the rpc node
             if unknown_targets:
                 raise ClickException(
                     f"Unable to find contracts deployed at {', '.join(unknown_targets)}"
                 )
 
+            
+
+            # We gather the list of contracts that have been deployed to the RPC node but
+            # the user did not provide the contract address as a target.
+            # It's best effort because there may be some addresses deployed whose source could 
+            # not be found in the project.
             missing_targets_resolved: List[
                 Tuple[str, Optional[str], Optional[str]]
             ] = []
@@ -302,6 +332,7 @@ class RPCClient(RPCClientBase):
                 if deployed_bytecode is None:
                     contract = None
                 else:
+                    # Get the contract object from the deployed bytecode
                     contract = artifacts.get_contract(deployed_bytecode)
                 missing_targets_resolved.append(
                     (
@@ -311,6 +342,11 @@ class RPCClient(RPCClientBase):
                     )
                 )
 
+
+            # This is the case where a user marked the source file as a target in the targets field
+            # but did not provide the address in addresses_under_test.
+            # This error may not be necessary but we'll leave it here for the cases where users are explicit
+            # about the targets (source files and addresses) they want to fuzz.
             mismatched_targets: List[Tuple[str, str]] = []
             for t in missing_targets_resolved:
                 source_file = t[1]
@@ -328,6 +364,8 @@ class RPCClient(RPCClientBase):
                     f"their addresses in the config file or as parameters to `fuzz run`:\n{data}"
                 )
 
+            # An acknowledgement message to the user that some contracts were not included in the seed state
+            # This is probably intended by the user but we'll let them know in case it's not.
             if missing_targets_resolved:
                 data = "\n".join(
                     [
@@ -339,16 +377,22 @@ class RPCClient(RPCClientBase):
                     f"⚠️ Following contracts were not included into the seed state:\n{data}"
                 )
 
+            # All the addresses that are provided by the user in the config file or as parameters to `fuzz run`
             contract_targets: List[str] = [
                 seed_state["analysis-setup"]["address-under-test"]
             ] + (
                 seed_state["analysis-setup"].get("other-addresses-under-test", []) or []
             )
             contract_targets = [t.lower() for t in contract_targets]
+            
+            # contracts set as address under test but we don't know the contract object.
+            # Because we couldn't make a correlation between the address and the deployed bytecode.
+            # This could happen when the metadata hashing is not enabled.
             dangling_contract_targets: List[Tuple[Optional[str], str]] = []
             check_path = self.path_inclusion_checker(source_targets)
             for t in contract_targets:
                 # correlate to the source file
+                # get code invokes an rpc call to get the deployed bytecode of the contract with address t.
                 deployed_bytecode = self.get_code(t)
                 if deployed_bytecode is None:  # it's unknown contract
                     LOGGER.debug(
@@ -360,6 +404,8 @@ class RPCClient(RPCClientBase):
                 if (
                     not contract
                     or contract.get("mainSourceFile", None) is None
+                    
+                    # check_path could fail when the main source file hasn't been included in the targets.
                     or not check_path(
                         artifacts.normalize_path(contract["mainSourceFile"])
                     )
