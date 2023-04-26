@@ -177,7 +177,7 @@ class RPCClient(RPCClientBase):
                 unknown_targets.append(target)
 
         # This is the list of contracts that are in the RPC node
-        # but the user did not provide
+        # but the user did not provide. We collect the deployed_bytecode
         missing_targets: Dict[str, str] = {}
         for contract in contracts:
             if contract not in targets:
@@ -274,6 +274,50 @@ class RPCClient(RPCClientBase):
 
         return inner_checker
 
+    def set_implict_targets(self, seed_state: Dict[str, any], artifacts: IDEArtifacts):
+        # get all the addresses from the rpc client
+         # Goes through the steps of the rpc node's txs and gets the addresses for each contract
+        steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
+        
+        # This is the list of all the contract addresses that are deployed(created) 
+        # in the rpc(ganache) node.
+        contracts: List[str] = []
+        for txn in steps:
+            # If "to" is empty, it means it's a contract creation
+            if txn["to"]:
+                continue
+            # These are contract creation txs
+            contracts.append(
+                mk_contract_address(
+                    txn["from"][2:], int(txn["nonce"], base=16), prefix=True
+                )
+            )
+
+        # get the deployed bytecodes for each address
+        for contract_address in contracts:
+            # correlate to the source file
+            # get code invokes an rpc call to get the deployed bytecode of the contract with address t.
+            deployed_bytecode = self.get_code(contract_address)
+            if deployed_bytecode is None:  # it's unknown contract
+                LOGGER.debug(
+                    f'No deployed bytecode is found in an RPC node for contract: "{contract_address}"'
+                )
+                continue
+            contract = artifacts.get_contract(deployed_bytecode)
+            if (
+                not contract
+                or contract.get("mainSourceFile", None) is None
+            ):
+                LOGGER.debug(
+                    f"Adding contract to dangling contracts list. Contract: {json.dumps(contract)}"
+                )
+                LOGGER.warning(f'Contract "{contract_address}" could not be found in sources. You can try to manually set the sources using the targets option. More at: https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#configuration')
+                dangling_contract_targets.append(
+                    (contract.get("mainSourceFile", None) if contract else None, contract_address)
+                )
+
+
+        # get the contract artifacts for each deployed bytecode
     
     def check_contracts(
         self,
