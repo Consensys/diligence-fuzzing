@@ -37,7 +37,7 @@ class RPCClientBase(ABC):
         ...
 
     @abstractmethod
-    def validate_seed_state(
+    def get_inconsistent_addresses(
         self, seed_state: Dict[str, any]
     ) -> Tuple[Dict[str, str], List[str]]:  # pragma: no cover
         ...

@@ -128,36 +128,62 @@ class RPCClient(RPCClientBase):
                 processed_transactions.append(transaction)
         return processed_transactions
 
-    def validate_seed_state(
+    
+    def get_inconsistent_addresses(
         self, seed_state: Dict[str, any]
     ) -> Tuple[Dict[str, str], List[str]]:
+        """
+        This function validates the seed state and returns the list of contracts that are 
+        either not deployed in the rpc node or not provided by the user.
+
+        Parameters:
+        seed_state (Dict[str, any]): The seed state is the list of transactions which are deployed on the RPC node. It also includes the list of contracts that the user wants to fuzz (addresses under test).
+        
+        Returns:
+        :Tuple[Dict[str, str], List[str]]: A tuple of the list of contracts addresses that are either not deployed in the rpc node or not provided by the user.
+        """
+        # Goes through the steps of the rpc node's txs and gets the addresses for each contract
         steps: List[EVMTransaction] = seed_state["analysis-setup"]["steps"]
+        
+        # This is the list of all the contract addresses that are deployed(created) 
+        # in the rpc(ganache) node.
         contracts: List[str] = []
         for txn in steps:
+            # If "to" is empty, it means it's a contract creation
             if txn["to"]:
                 continue
+            # These are contract creation txs
             contracts.append(
                 mk_contract_address(
                     txn["from"][2:], int(txn["nonce"], base=16), prefix=True
                 )
             )
 
+        # This is the list of contracts that the user provided 
+        # but are not deployed in the rpc node
         unknown_targets = []
 
+        # This is the list of contracts that the user provided
         targets: List[str] = [seed_state["analysis-setup"]["address-under-test"]] + (
             seed_state["analysis-setup"].get("other-addresses-under-test", []) or []
         )
+        # removing addresses in uppercase
         targets = [t.lower() for t in targets]
 
+        # If a user provided address is not deployed in the rpc node
+        # it will be added to the unknown_targets list
         for target in targets:
-            if target.lower() not in contracts:
+            if target not in contracts:
                 unknown_targets.append(target)
 
+        # This is the list of contracts that are in the RPC node
+        # but the user did not provide
         missing_targets: Dict[str, str] = {}
         for contract in contracts:
             if contract not in targets:
                 missing_targets[contract] = self.get_code(contract)
 
+        # We return the missing targets and the unknown targets as a tuple
         return missing_targets, unknown_targets
 
     def get_seed_state(
@@ -248,15 +274,21 @@ class RPCClient(RPCClientBase):
 
         return inner_checker
 
+    """
+    This function is used to check if the contracts deployed at the addresses in the seed state
+    """
     def check_contracts(
         self,
         seed_state: Dict[str, any],
         artifacts: IDEArtifacts,
         source_targets: List[str],
     ):
+        # Normalize the paths in source_targets
+        # Make all paths absolute and not relative
         source_targets = [artifacts.normalize_path(s) for s in source_targets]
         try:
-            missing_targets, unknown_targets = self.validate_seed_state(seed_state)
+            # Validate the seed state and obtain missing and unknown targets
+            missing_targets, unknown_targets = self.get_inconsistent_addresses(seed_state)
 
             if unknown_targets:
                 raise ClickException(
@@ -292,7 +324,7 @@ class RPCClient(RPCClientBase):
                     [f"  ◦ Target: {t} Address: {a}" for t, a in mismatched_targets]
                 )
                 raise ClickException(
-                    f"Following targets were provided without setting up "
+                    f"The following targets were provided without setting up "
                     f"their addresses in the config file or as parameters to `fuzz run`:\n{data}"
                 )
 

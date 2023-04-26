@@ -31,13 +31,13 @@ def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
     }
 
     with mocked_rpc_client([mocked_block], {}), patch.object(
-        RPCClient, "validate_seed_state"
-    ) as validate_seed_state_mock, patch.object(
+        RPCClient, "get_inconsistent_addresses"
+    ) as get_inconsistent_addresses_mock, patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         RPCClient, "check_contracts", Mock(return_value=True)
     ):
-        validate_seed_state_mock.return_value = ({}, [])
+        get_inconsistent_addresses_mock.return_value = ({}, [])
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
 
@@ -102,9 +102,9 @@ def test_transactions_limit(api_key, tmp_path):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "validate_seed_state"
-    ) as validate_seed_state_mock:
-        validate_seed_state_mock.return_value = ({}, [])
+        RPCClient, "get_inconsistent_addresses"
+    ) as get_inconsistent_addresses_mock:
+        get_inconsistent_addresses_mock.return_value = ({}, [])
         m.register_uri(
             "POST",
             "http://localhost:9898",
@@ -138,9 +138,9 @@ def test_call_error(api_key, tmp_path):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "validate_seed_state"
-    ) as validate_seed_state_mock:
-        validate_seed_state_mock.return_value = ({}, [])
+        RPCClient, "get_inconsistent_addresses"
+    ) as get_inconsistent_addresses_mock:
+        get_inconsistent_addresses_mock.return_value = ({}, [])
         m.register_uri("POST", "http://localhost:9898", exc=RequestException)
 
         runner = CliRunner()
@@ -170,9 +170,9 @@ def test_no_latest_block(api_key, tmp_path, block):
     )
 
     with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "validate_seed_state"
-    ) as validate_seed_state_mock:
-        validate_seed_state_mock.return_value = ({}, [])
+        RPCClient, "get_inconsistent_addresses"
+    ) as get_inconsistent_addresses_mock:
+        get_inconsistent_addresses_mock.return_value = ({}, [])
         m.register_uri(
             "POST", "http://localhost:9898", status_code=200, json={"result": block}
         )
@@ -277,7 +277,7 @@ def test_mismatched_targets_detection(
     assert result.exit_code == 1
     assert start_faas_campaign_mock.called is False
     assert (
-        f"Error: Following targets were provided without setting up "
+        f"Error: The following targets were provided without setting up "
         f"their addresses in the config file or as parameters to `fuzz run`:\n  "
         f"◦ Target: {tmp_path}/contracts/ABC.sol "
         f"Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579\n" == result.output

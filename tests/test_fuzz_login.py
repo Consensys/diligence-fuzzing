@@ -48,7 +48,7 @@ def test_no_keys(tmp_path, truffle_project):
 
 
 @patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+    RPCClient, attribute="get_inconsistent_addresses", new=Mock(return_value=({}, []))
 )
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
 @patch.object(RPCClient, "check_contracts", Mock(return_value=True))
@@ -82,7 +82,7 @@ def test_provide_api_key(as_env: bool, tmp_path, truffle_project, monkeypatch):
 
 
 @patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+    RPCClient, attribute="get_inconsistent_addresses", new=Mock(return_value=({}, []))
 )
 @patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
 @patch.object(RPCClient, "check_contracts", Mock(return_value=True))
@@ -113,7 +113,7 @@ def test_validate_api_key(key: str, tmp_path):
 
 
 @patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
+    RPCClient, attribute="get_inconsistent_addresses", new=Mock(return_value=({}, []))
 )
 @patch.object(
     RPCClient,
