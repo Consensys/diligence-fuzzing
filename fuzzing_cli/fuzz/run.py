@@ -177,20 +177,19 @@ def fuzz_run(
                 f"or recompile contracts"
             )
 
-        if(smart_mode  and (not options.targets or not options.addresses)):
-            [addresses, artifacts] = smart_mode
-        
-        rpc_client.check_contracts(seed_state, artifacts, options.targets)
+        rpc_client.check_contracts(
+            seed_state, artifacts, options.targets, options.smart_mode
+        )
 
         """
         New stuff:
-            - Check if the user is providing sources and addresses. If so, use them, so it is explicit. 
+            - Check if the user is providing sources and addresses. If so, use them, so it is explicit.
                 - We run rpc_client.check_contracts(seed_state, artifacts, options.targets) as before.
             - If these things are not provided, we go to implicit mode, where we:
                 - Option A
                     - We get all the addresses from the RPC client.
                     - We get all the sources from the artifacts by those addresses.
-                
+
                 - Option B
                     - We get all the sources that exist in the artifacts.
                     - We get all the addresses for each source

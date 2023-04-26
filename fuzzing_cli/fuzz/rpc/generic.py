@@ -62,5 +62,6 @@ class RPCClientBase(ABC):
         seed_state: Dict[str, any],
         artifacts: IDEArtifacts,
         source_targets: List[str],
+        smart_mode: bool,
     ):  # pragma: no cover
         ...

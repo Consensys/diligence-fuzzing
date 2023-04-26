@@ -73,6 +73,7 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
+    smart_mode: bool = True
 
     no_build_directory: bool = Field(False, exclude=True)
     no_key: bool = Field(False, exclude=True)
@@ -105,6 +106,23 @@ class FuzzingOptions(BaseSettings):
     @property
     def refresh_token(self):
         return self._parsed_key[2]
+
+    @property
+    def addresses_under_test(self) -> Set[str]:
+        addresses = set()
+        if self.deployed_contract_address:
+            addresses.add(self.deployed_contract_address)
+        if self.additional_contracts_addresses:
+            if isinstance(self.additional_contracts_addresses, str):
+                addresses.update(
+                    [
+                        addr.strip()
+                        for addr in self.additional_contracts_addresses.split(",")
+                    ]
+                )
+            else:
+                addresses.update(self.additional_contracts_addresses)
+        return addresses
 
     class Config:
         env_prefix = "fuzz_"
@@ -213,13 +231,18 @@ class FuzzingOptions(BaseSettings):
             raise ValueError("API key not provided")
 
         if (
-            not values.get("no_deployed_contract_address")
+            not values.get("smart_mode")
+            and not values.get("no_deployed_contract_address")
             and not values.get("quick_check", False)
             and not values.get("deployed_contract_address")
         ):
             raise ValueError("Deployed contract address not provided.")
 
-        if not values.get("no_targets") and not values.get("targets"):
+        if (
+            not values.get("smart_mode")
+            and not values.get("no_targets")
+            and not values.get("targets")
+        ):
             raise ValueError("Targets not provided.")
 
         if values.get("incremental") and not values.get("project"):
