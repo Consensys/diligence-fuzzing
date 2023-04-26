@@ -11,8 +11,8 @@ from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.foundry_tests import cli as foundry_test
+from fuzzing_cli.fuzz.fuzz_config import cli as fuzz_config
 from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
-from fuzzing_cli.fuzz.generate_config import fuzz_generate_config
 from fuzzing_cli.fuzz.quickcheck import fuzz_auto
 from fuzzing_cli.fuzz.run import fuzz_run
 from fuzzing_cli.fuzz.version import fuzz_version
@@ -80,11 +80,11 @@ LOGGER.debug("Registering fuzz commands")
 cli.add_command(fuzz_run)
 cli.add_command(fuzz_arm)
 cli.add_command(fuzz_disarm)
-cli.add_command(fuzz_generate_config)
 cli.add_command(fuzz_auto)
 cli.add_command(fuzz_lesson)
 cli.add_command(fuzz_version)
 cli.add_command(foundry_test)
+cli.add_command(fuzz_config)
 
 if __name__ == "__main__":
     sys.exit(cli())  # pragma: no cover

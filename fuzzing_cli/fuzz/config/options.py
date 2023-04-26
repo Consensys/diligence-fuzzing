@@ -1,5 +1,4 @@
 import base64
-import functools
 import logging
 import math
 import os
@@ -10,7 +9,7 @@ import click
 import yaml
 from pydantic import BaseSettings, Field, ValidationError, root_validator, validator
 
-from fuzzing_cli.fuzz.config.pytimer import str_to_sec
+from .pytimer import str_to_sec
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -47,31 +46,38 @@ class FuzzingOptions(BaseSettings):
     build_directory: Optional[Path] = None
     sources_directory: Optional[Path] = None
 
-    quick_check: bool = False
-    deployed_contract_address: Optional[str] = None
-    targets: Optional[List[str]] = None
-    map_to_original_source: bool = False
-    rpc_url: str = "http://localhost:7545"
-    faas_url: str = "https://fuzzing.diligence.tools"
-    number_of_cores: int = 1
-    campaign_name_prefix: str = "untitled"
-    corpus_target: Optional[str] = None
-    additional_contracts_addresses: Optional[Union[List[str], str]] = None
-    dry_run: bool = False
     key: Optional[str] = Field(None, env="FUZZ_API_KEY")
+
     project: Optional[str] = None
-    truffle_executable_path: Optional[str] = None
-    incremental: bool = False
+    corpus_target: Optional[str] = None
+    number_of_cores: int = 1
     time_limit: Optional[str] = None
-    chain_id: Optional[str] = None
+
+    targets: Optional[List[str]] = None
+    deployed_contract_address: Optional[str] = None
+    additional_contracts_addresses: Optional[Union[List[str], str]] = None
+    rpc_url: str = "http://localhost:7545"
+
+    campaign_name_prefix: str = "untitled"
+    map_to_original_source: bool = False
+
     enable_cheat_codes: Optional[bool] = None
+    chain_id: Optional[str] = None
+    incremental: bool = False
+    truffle_executable_path: Optional[str] = None
+    quick_check: bool = False
+
+    faas_url: str = Field("https://fuzzing.diligence.tools", exclude=True)
     foundry_tests: bool = False
     foundry_tests_list: Optional[Dict[str, Dict[str, List[str]]]] = None
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
-    no_build_directory: bool = False
-    no_key: bool = False
-    no_deployed_contract_address: bool = False
+    dry_run: bool = False
+
+    no_build_directory: bool = Field(False, exclude=True)
+    no_key: bool = Field(False, exclude=True)
+    no_deployed_contract_address: bool = Field(False, exclude=True)
+    no_targets: bool = Field(False, exclude=True)
 
     def __init__(self, *args, **data: Any):
         try:
@@ -213,7 +219,7 @@ class FuzzingOptions(BaseSettings):
         ):
             raise ValueError("Deployed contract address not provided.")
 
-        if not values.get("targets"):
+        if not values.get("no_targets") and not values.get("targets"):
             raise ValueError("Targets not provided.")
 
         if values.get("incremental") and not values.get("project"):
@@ -234,9 +240,13 @@ class FuzzingOptions(BaseSettings):
 
 
 class AnalyzeOptions(BaseSettings):
-    solc_version: Optional[str] = Field(None, alias="solc-version")
+    solc_version: Optional[str] = Field(
+        None, alias="solc-version", env="ANALYZE_SOLC_VERSION"
+    )
     remappings: List[str] = []
-    scribble_path: str = Field("scribble", alias="scribble-path")
+    scribble_path: str = Field(
+        "scribble", alias="scribble-path", env="ANALYZE_SCRIBBLE_PATH"
+    )
     no_assert: bool = True
     assert_: bool = Field(alias="assert", default=False, env="ANALYZE_ASSERT")
 

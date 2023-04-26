@@ -1,12 +1,16 @@
+import json as jsonlib
 import os
 from pathlib import Path
 
+import pytest
 import yaml
+from click.testing import CliRunner
 
+from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions
 
 
-def test_fuzzing_options_parsing(tmp_path, monkeypatch):
+def prepare_config(tmp_path: Path, monkeypatch):
     os.chdir(tmp_path)
     monkeypatch.setenv("FUZZ_CONFIG_FILE", str(tmp_path / ".fuzz.yml"))
 
@@ -40,6 +44,10 @@ def test_fuzzing_options_parsing(tmp_path, monkeypatch):
     os.environ["ANALYZE_SCRIBBLE_PATH"] = "ext2/scribble"
     os.environ["FUZZ_API_KEY"] = "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
 
+
+def test_fuzzing_options_parsing(tmp_path, monkeypatch):
+    prepare_config(tmp_path, monkeypatch)
+
     options = FuzzingOptions(
         build_directory="build",
     )
@@ -61,3 +69,69 @@ def test_fuzzing_options_parsing(tmp_path, monkeypatch):
     assert analyze_options.remappings == ["a=b"]
     assert analyze_options.no_assert is True
     assert analyze_options.solc_version is None
+
+
+@pytest.mark.parametrize("json", [True, False])
+def test_config_show(tmp_path, monkeypatch, json: bool):
+    prepare_config(tmp_path, monkeypatch)
+    os.environ["FUZZ_SOURCES_DIRECTORY"] = "contracts"
+    os.environ["FUZZ_BUILD_DIRECTORY"] = "build"
+    runner = CliRunner()
+    cmd = ["config", "show"]
+    if json:
+        cmd += ["--json"]
+    result = runner.invoke(cli, cmd)
+
+    faas_options_json = {
+        "ide": "hardhat",
+        "build_directory": f"{tmp_path}/build",
+        "sources_directory": f"{tmp_path}/contracts",
+        "key": "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
+        "project": None,
+        "corpus_target": None,
+        "number_of_cores": 1,
+        "time_limit": 1200,
+        "targets": ["contracts/ERC20.sol"],
+        "deployed_contract_address": "0x123",
+        "additional_contracts_addresses": None,
+        "rpc_url": "http://localhost:7545",
+        "campaign_name_prefix": "test",
+        "map_to_original_source": False,
+        "enable_cheat_codes": None,
+        "chain_id": None,
+        "incremental": False,
+        "truffle_executable_path": None,
+        "quick_check": False,
+        "foundry_tests": True,
+        "foundry_tests_list": None,
+        "target_contracts": None,
+        "dry_run": False,
+    }
+
+    analyze_options_json = {
+        "solc_version": None,
+        "remappings": [],
+        "scribble_path": "ext2/scribble",
+        "no_assert": True,
+        "assert_": False,
+    }
+
+    fuzz_config_repr = "\n".join([f"{k} = {v}" for k, v in faas_options_json.items()])
+    analyze_config_repr = "\n".join(
+        [f"{k} = {v}" for k, v in analyze_options_json.items()]
+    )
+
+    assert result.exit_code == 0
+    if json:
+        out = jsonlib.dumps(
+            {
+                "fuzz": faas_options_json,
+                "analyze": analyze_options_json,
+            }
+        )
+        assert result.output == f"{out}\n"
+    else:
+        assert (
+            result.output
+            == f"""FUZZ CONFIG\n-----------\n{fuzz_config_repr}\n\nANALYZE CONFIG\n--------------\n{analyze_config_repr}\n"""
+        )

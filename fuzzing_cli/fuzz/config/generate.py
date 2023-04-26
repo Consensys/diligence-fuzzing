@@ -7,10 +7,11 @@ import inquirer
 from click import BadParameter, UsageError, style
 from ruamel.yaml import YAML
 
-from fuzzing_cli.fuzz.config import update_config
-from fuzzing_cli.fuzz.config.template import generate_yaml
 from fuzzing_cli.fuzz.ide import IDERepository
 from fuzzing_cli.util import sol_files_by_directory
+
+from .template import generate_yaml
+from .utils import update_config
 
 yaml = YAML()
 yaml.indent(offset=2)
@@ -238,35 +239,3 @@ def sync_config(config_file: Path):
     )
     update_config(config_file, {"fuzz": {"targets": targets}})
     click.echo("Done 🎉")
-
-
-@click.command("generate-config")
-@click.option("--sync", help="Option to update targets", is_flag=True, default=False)
-@click.argument("config-file", type=click.Path(), default=".fuzz.yml", nargs=1)
-@click.pass_obj
-def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
-    """Generate config file for fuzzing
-
-    CONFIG_FILE config file name (default is .fuzz.yml)
-    """
-    cfs = style(config_file, fg="yellow")
-    if sync:
-        config_file = Path.cwd().joinpath(config_file)
-        if not config_file.exists() or not config_file.is_file():
-            command = style(
-                f"fuzz generate-config {config_file}", italic=True, fg="green"
-            )
-            raise click.UsageError(
-                f"⚠️  Config file {cfs} does not exist. "
-                f"Please create one either manually or using {command} command"
-            )
-        return sync_config(config_file)
-    if Path(config_file).exists():
-        command = style(
-            f"fuzz generate-config {config_file} --sync", italic=True, fg="green"
-        )
-        raise click.UsageError(
-            f"⚠️  Config file {cfs} already exists. "
-            f"Please specify another file or run {command} to update one."
-        )
-    recreate_config(config_file)
