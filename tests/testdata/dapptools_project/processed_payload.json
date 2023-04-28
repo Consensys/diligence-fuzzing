@@ -5,7 +5,7 @@
         "assertion-checking-mode": 1
     },
     "corpus": {
-        "address-under-test": "0xCBB2e00b2EbdAF0296252f3301107052B599B11f",
+        "address-under-test": "0xcbb2e00b2ebdaf0296252f3301107052b599b11f",
         "steps": [
             {
                 "blockCoinbase": "0x0000000000000000000000000000000000000000",
@@ -89,9 +89,9 @@
             }
         ],
         "other-addresses-under-test": [
-            "0x44F916B4598182465c7C2fDcC559c3d9c6A344fA",
-            "0x4D6026D3457843C1f653fC29A8c1033Af6F7D25b",
-            "0xA2817092A47fc56E5C88409322E11d5A853B1D31"
+            "0x44f916b4598182465c7c2fdcc559c3d9c6a344fa",
+            "0x4d6026d3457843c1f653fc29a8c1033af6f7d25b",
+            "0xa2817092a47fc56e5c88409322e11d5a853b1d31"
         ]
     },
     "sources": {

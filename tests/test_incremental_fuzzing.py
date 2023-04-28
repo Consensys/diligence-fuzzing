@@ -99,8 +99,8 @@ def test_incremental_fuzzing(
         RPCClient,
         "get_all_blocks",
         Mock(return_value=get_test_case("testdata/ganache-all-blocks.json")),
-    ), patch.object(
-        RPCClient, "check_contracts", Mock(return_value=True)
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors", new=Mock(return_value=True)
     ), patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock:
@@ -115,4 +115,4 @@ def test_incremental_fuzzing(
     )
     start_faas_campaign_mock.assert_called_once()
     request_payload = start_faas_campaign_mock.call_args[0][0]
-    assert request_payload["corpus"]["target"] == corpus_target_result
+    assert request_payload["corpus"].get("target") == corpus_target_result

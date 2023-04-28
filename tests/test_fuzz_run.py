@@ -148,7 +148,7 @@ def test_fuzz_run_fuzzing_lessons(
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args
     assert called_with[0][0]["corpus"] == {
-        "address-under-test": "0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
+        "address-under-test": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
         "other-addresses-under-test": None,
         "steps": [
             {
@@ -567,6 +567,8 @@ def test_fuzz_submission_error(
         get_test_case("testdata/brownie_project/blocks.json"), codes
     ), patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ), requests_mock.Mocker() as m:
         m.register_uri(
             "POST", "http://localhost:9898", real_http=True
@@ -625,6 +627,8 @@ def test_fuzz_add_scribble_meta(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ):
         campaign_id = "cmp_517b504e67474ab6b26a92a58e0adbf9"
         start_faas_campaign_mock.return_value = campaign_id

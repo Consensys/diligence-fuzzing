@@ -55,7 +55,7 @@ class FuzzingOptions(BaseSettings):
 
     targets: Optional[List[str]] = None
     deployed_contract_address: Optional[str] = None
-    additional_contracts_addresses: Optional[Union[List[str], str]] = None
+    additional_contracts_addresses: List[str] = []
     rpc_url: str = "http://localhost:7545"
 
     campaign_name_prefix: str = "untitled"
@@ -108,20 +108,22 @@ class FuzzingOptions(BaseSettings):
         return self._parsed_key[2]
 
     @property
-    def addresses_under_test(self) -> Set[str]:
-        addresses = set()
+    def addresses_under_test(self) -> List[str]:
+        addresses = []
         if self.deployed_contract_address:
-            addresses.add(self.deployed_contract_address)
+            addresses.append(self.deployed_contract_address.lower())
         if self.additional_contracts_addresses:
             if isinstance(self.additional_contracts_addresses, str):
-                addresses.update(
+                addresses.extend(
                     [
-                        addr.strip()
+                        addr.strip().lower()
                         for addr in self.additional_contracts_addresses.split(",")
                     ]
                 )
             else:
-                addresses.update(self.additional_contracts_addresses)
+                addresses.extend(
+                    [addr.lower() for addr in self.additional_contracts_addresses]
+                )
         return addresses
 
     class Config:
@@ -183,15 +185,23 @@ class FuzzingOptions(BaseSettings):
             return Path(path)
         return Path.cwd().joinpath(path)
 
-    @validator("additional_contracts_addresses")
+    @validator("deployed_contract_address", pre=True)
+    def _validate_deployed_contract_address(
+        cls, address: Optional[str] = None
+    ) -> Optional[str]:
+        if not address:
+            return None
+        return address.lower()
+
+    @validator("additional_contracts_addresses", pre=True)
     def _validate_contracts_addresses(
         cls, addresses: Optional[Union[List[str], str]]
     ) -> Optional[List[str]]:
         if not addresses:
-            return None
+            return []
         if type(addresses) == str:
-            return [addr.strip() for addr in addresses.split(",")]
-        return addresses
+            return [addr.strip().lower() for addr in addresses.split(",")]
+        return [addr.lower() for addr in addresses]
 
     @validator("key")
     def _validate_key(cls, key: Optional[str]) -> Optional[str]:
@@ -229,6 +239,16 @@ class FuzzingOptions(BaseSettings):
 
         if not values.get("no_key") and not values.get("key"):
             raise ValueError("API key not provided")
+
+        if (
+            values.get("smart_mode")
+            and values.get("deployed_contract_address")
+            and values.get("targets")
+        ):
+            click.secho(
+                "Warning: Smart mode is enabled and both deployed contract address and targets are specified. You"
+                " should turn off smart mode to work in expert mode.",
+            )
 
         if (
             not values.get("smart_mode")

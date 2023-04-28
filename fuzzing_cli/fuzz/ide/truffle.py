@@ -3,10 +3,9 @@ import os
 import tempfile
 from functools import lru_cache
 from json import JSONDecodeError
-from os.path import abspath
 from pathlib import Path
 from subprocess import PIPE, CompletedProcess, TimeoutExpired, run
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -18,20 +17,17 @@ class TruffleArtifacts(IDEArtifacts):
     def __init__(
         self,
         options: FuzzingOptions,
-        targets: List[str],
         build_dir: Path,
         sources_dir: Path,
+        targets: Optional[List[str]] = None,
         map_to_original_source: bool = False,
     ):
         super(TruffleArtifacts, self).__init__(
-            options, targets, build_dir, sources_dir, map_to_original_source
+            options, build_dir, sources_dir, targets, map_to_original_source
         )
         project_dir = str(Path.cwd().absolute())
         self.build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         self.project_sources = self._get_project_sources(project_dir)
-        # targets could be specified using relative path. But sourcePath in truffle artifacts
-        # will use absolute paths, so we need to use absolute paths in targets as well
-        self._include = [abspath(fp) for fp in self._include]
 
     @classmethod
     def get_name(cls) -> str:

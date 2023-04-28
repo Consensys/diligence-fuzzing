@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -16,9 +17,9 @@ class IDEArtifacts(ABC):
     def __init__(
         self,
         options: FuzzingOptions,
-        targets: List[str],
         build_dir: Path,
         sources_dir: Path,
+        targets: Optional[List[str]] = None,
         map_to_original_source: bool = False,
     ):
         self._payload: Optional[IDEPayload] = None
@@ -29,12 +30,25 @@ class IDEArtifacts(ABC):
         self.map_to_original_source = map_to_original_source
 
         # self._include is an array with all the solidity file paths under the targets
-        self._include: List[str] = []
+        self._include: Set[str] = set([])
         if targets:
-            include = []
-            for target in targets:
-                include.extend(sol_files_by_directory(target))
-            self._include = include
+            self.set_targets(targets)
+
+    def set_targets(self, targets: List[str]):
+        include = set([])
+        for target in targets:
+            include.update(
+                [self.normalize_path(p) for p in sol_files_by_directory(target)]
+            )
+        self._include = include
+
+    @staticmethod
+    def instance_for_targets(
+        artifacts: "IDEArtifacts", targets: List[str]
+    ) -> "IDEArtifacts":
+        _artifacts_for_targets = deepcopy(artifacts)
+        _artifacts_for_targets.set_targets(targets)
+        return _artifacts_for_targets
 
     @classmethod
     @abstractmethod
@@ -183,11 +197,15 @@ class IDEArtifacts(ABC):
                     return contract
         return None
 
-    def include_contract(self, contract: Contract, targets: Set[str]):
+    def include_contract(self, contract: Contract) -> bool:
+        if len(self._include) == 0:
+            # for case when targets are not specified
+            return True
+
         source_path = contract["mainSourceFile"]
         if not contract["bytecode"] or not contract["deployedBytecode"]:
             return False
-        if self.normalize_path(source_path) not in targets:
+        if self.normalize_path(source_path) not in self._include:
             return False
         if (
             self._options.target_contracts
@@ -199,12 +217,11 @@ class IDEArtifacts(ABC):
 
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
-        normalized_include = {self.normalize_path(p) for p in self._include}
         _result_contracts, _result_sources = self.process_artifacts()
         result_contracts = [
             contract
             for contract in self.flatten_contracts(_result_contracts)
-            if self.include_contract(contract, normalized_include)
+            if self.include_contract(contract)
         ]
 
         used_file_ids = set()

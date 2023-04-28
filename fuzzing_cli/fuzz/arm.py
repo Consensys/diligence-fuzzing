@@ -90,6 +90,7 @@ def fuzz_arm(
         no_build_directory=True,
         no_key=True,
         no_deployed_contract_address=True,
+        smart_mode=False,
     )
 
     try:

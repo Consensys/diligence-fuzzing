@@ -52,6 +52,7 @@ def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
         no_build_directory=True,
         no_key=True,
         no_deployed_contract_address=True,
+        smart_mode=False,
     )
 
     try:

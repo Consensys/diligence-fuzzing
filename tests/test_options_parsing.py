@@ -20,6 +20,7 @@ def prepare_config(tmp_path: Path, monkeypatch):
                 "fuzz": {
                     "ide": "hardhat",
                     "targets": ["contracts/ERC20.sol"],
+                    "smart_mode": False,
                 },
                 "analyze": {
                     "no_assert": True,
@@ -93,7 +94,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "time_limit": 1200,
         "targets": ["contracts/ERC20.sol"],
         "deployed_contract_address": "0x123",
-        "additional_contracts_addresses": None,
+        "additional_contracts_addresses": [],
         "rpc_url": "http://localhost:7545",
         "campaign_name_prefix": "test",
         "map_to_original_source": False,
@@ -106,6 +107,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "foundry_tests_list": None,
         "target_contracts": None,
         "dry_run": False,
+        "smart_mode": False,
     }
 
     analyze_options_json = {

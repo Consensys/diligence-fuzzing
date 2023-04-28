@@ -1,5 +1,5 @@
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import requests_mock
@@ -27,17 +27,12 @@ def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
         "difficulty": "0x0",
         "gasLimit": "0x0",
         "timestamp": "0x0",
-        "transactions": [{"hash": "0xtest"}],
+        "transactions": [{"hash": "0xtest", "to": "0x0"}],
     }
 
-    with mocked_rpc_client([mocked_block], {}), patch.object(
-        RPCClient, "get_inconsistent_addresses"
-    ) as get_inconsistent_addresses_mock, patch.object(
-        FaasClient, "start_faas_campaign"
-    ) as start_faas_campaign_mock, patch.object(
-        RPCClient, "check_contracts", Mock(return_value=True)
-    ):
-        get_inconsistent_addresses_mock.return_value = ({}, [])
+    with mocked_rpc_client([mocked_block], {}), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors",
+    ), patch.object(FaasClient, "start_faas_campaign") as start_faas_campaign_mock:
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
 
@@ -75,7 +70,7 @@ def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
         },
         "name": "test",
         "corpus": {
-            "address-under-test": "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
+            "address-under-test": "0x81c5d21c4a70ade85b39689df5a14b5b5027c28e",
             "steps": [
                 {
                     "hash": "0xtest",
@@ -83,6 +78,7 @@ def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
                     "blockDifficulty": "0x0",
                     "blockGasLimit": "0x0",
                     "blockTimestamp": "0x0",
+                    "to": "0x0",
                 }
             ],
             "other-addresses-under-test": None,
@@ -101,10 +97,9 @@ def test_transactions_limit(api_key, tmp_path):
         targets="contracts/MasterChefV2.sol",
     )
 
-    with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "get_inconsistent_addresses"
-    ) as get_inconsistent_addresses_mock:
-        get_inconsistent_addresses_mock.return_value = ({}, [])
+    with requests_mock.Mocker() as m, patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors",
+    ):
         m.register_uri(
             "POST",
             "http://localhost:9898",
@@ -137,10 +132,9 @@ def test_call_error(api_key, tmp_path):
         targets="contracts/MasterChefV2.sol",
     )
 
-    with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "get_inconsistent_addresses"
-    ) as get_inconsistent_addresses_mock:
-        get_inconsistent_addresses_mock.return_value = ({}, [])
+    with requests_mock.Mocker() as m, patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors",
+    ):
         m.register_uri("POST", "http://localhost:9898", exc=RequestException)
 
         runner = CliRunner()
@@ -162,17 +156,12 @@ def test_call_error(api_key, tmp_path):
 
 
 @pytest.mark.parametrize("block", [None, {"number": "0x1", "transactions": []}])
-def test_no_latest_block(api_key, tmp_path, block):
-    write_config(
-        base_path=str(tmp_path),
-        build_directory="artifacts",
-        targets="contracts/MasterChefV2.sol",
-    )
+def test_no_latest_block(api_key, tmp_path, block, foundry_project):
+    write_config(**{**foundry_project, "build_directory": f"{tmp_path}/out"})
 
-    with requests_mock.Mocker() as m, patch.object(
-        RPCClient, "get_inconsistent_addresses"
-    ) as get_inconsistent_addresses_mock:
-        get_inconsistent_addresses_mock.return_value = ({}, [])
+    with requests_mock.Mocker() as m, patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors",
+    ):
         m.register_uri(
             "POST", "http://localhost:9898", status_code=200, json={"result": block}
         )
@@ -227,12 +216,11 @@ def test_missing_targets_detection(api_key, tmp_path, truffle_project):
     payload = start_faas_campaign_mock.call_args[0][0]
     assert (
         payload["corpus"]["address-under-test"]
-        == "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065"
+        == "0x1672fb2eb51789abd1a9f2fe83d69c6f4c883065"
     )
     assert len(payload["contracts"]) == 1
     assert payload["contracts"][0]["contractName"] == "Foo"
     assert len(list(payload["sources"].keys())) == 4
-    # assert list(payload["sources"].keys())[0] == f"{tmp_path}/contracts/Foo.sol"
     assert (
         f"⚠️ Following contracts were not included into the seed state:\n"
         f"  ◦ Address: 0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6 Source File: {tmp_path}/contracts/Migrations.sol Contract Name: Migrations\n"
@@ -277,10 +265,11 @@ def test_mismatched_targets_detection(
     assert result.exit_code == 1
     assert start_faas_campaign_mock.called is False
     assert (
-        f"Error: The following targets were provided without setting up "
-        f"their addresses in the config file or as parameters to `fuzz run`:\n  "
-        f"◦ Target: {tmp_path}/contracts/ABC.sol "
-        f"Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579\n" == result.output
+        f"Error: The following targets were provided without providing addresses of "
+        f"respective contracts as addresses under test:\n"
+        f"  ◦ Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579 "
+        f"Source File: {tmp_path}/contracts/ABC.sol Contract Name: ABC\n"
+        == result.output
     )
 
 
@@ -327,8 +316,8 @@ def test_dangling_targets_detection(api_key, tmp_path, truffle_project):
     assert result.exit_code == 1
     assert start_faas_campaign_mock.called is False
     assert (
-        f"Error: Following contract's addresses were provided without specifying them as "
-        f"a target prior to `fuzz run`:\n"
+        f"Error: Following contract's addresses were provided as addresses under test without specifying "
+        f"them as a target prior to `fuzz run`:\n"
         f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Target: {tmp_path}/contracts/Bar.sol\n"
         == result.output
     )
@@ -367,6 +356,7 @@ def test_unknown_addresses_detection(api_key, tmp_path, truffle_project):
     assert result.exit_code == 1
     assert start_faas_campaign_mock.called is False
     assert (
-        "Error: Unable to find contracts deployed at 0x0000fb2eb51789abd1a9f2fe83d69c6f4c8830aa, "
-        "0x0000fb2eb51789abd1a9f2fe83d69c6f4c88bbbb\n" == result.output
+        "Error: Unable to find contracts with following addresses:\n"
+        "  ◦ 0x0000fb2eb51789abd1a9f2fe83d69c6f4c8830aa\n"
+        "  ◦ 0x0000fb2eb51789abd1a9f2fe83d69c6f4c88bbbb\n" == result.output
     )
