@@ -53,7 +53,11 @@ def show_config(json: bool = False):
 @click.argument("config-file", type=click.Path(), default=".fuzz.yml", nargs=1)
 def generate_config(config_file, sync: bool) -> None:
     """Generate config file for fuzzing. If `config-file` argument is provided, it will be used as a config file name.
-    If --sync option is provided, existing config file will be updated."""
+    If --sync option is provided, existing config file will be updated.
+    Params:
+        config-file: path to config file
+        sync: If true, update existing config file
+    """
     cfs = style(config_file, fg="yellow")
     if sync:
         config_file = Path.cwd().joinpath(config_file)
