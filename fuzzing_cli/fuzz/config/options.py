@@ -56,7 +56,7 @@ class FuzzingOptions(BaseSettings):
     targets: Optional[List[str]] = None
     deployed_contract_address: Optional[str] = None
     additional_contracts_addresses: List[str] = []
-    rpc_url: str = "http://localhost:7545"
+    rpc_url: str = "http://localhost:8545"
 
     campaign_name_prefix: str = "untitled"
     map_to_original_source: bool = False
@@ -227,43 +227,49 @@ class FuzzingOptions(BaseSettings):
             raise ValueError(error_message)
         return key
 
-    @root_validator()
-    def validate(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def _smart_mode_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not values.get("smart_mode"):
+            return values
+
+        if values.get("deployed_contract_address") and values.get("targets"):
+            click.secho(
+                "Warning: Smart mode is enabled and both deployed contract address and targets are specified. You"
+                " should turn off smart mode to work in expert mode.",
+            )
+
+        return values
+
+    @classmethod
+    def _regular_mode_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if values.get("smart_mode"):
+            return values
+
         if not values.get("no_build_directory") and not values.get("build_directory"):
             raise ValueError("Build directory not provided")
+
         if not values.get("sources_directory"):
             click.secho(
                 "Warning: Sources directory not specified. Using IDE defaults. For a proper seed state check "
                 "please set one.",
             )
 
-        if not values.get("no_key") and not values.get("key"):
-            raise ValueError("API key not provided")
-
         if (
-            values.get("smart_mode")
-            and values.get("deployed_contract_address")
-            and values.get("targets")
-        ):
-            click.secho(
-                "Warning: Smart mode is enabled and both deployed contract address and targets are specified. You"
-                " should turn off smart mode to work in expert mode.",
-            )
-
-        if (
-            not values.get("smart_mode")
-            and not values.get("no_deployed_contract_address")
+            not values.get("no_deployed_contract_address")
             and not values.get("quick_check", False)
             and not values.get("deployed_contract_address")
         ):
             raise ValueError("Deployed contract address not provided.")
 
-        if (
-            not values.get("smart_mode")
-            and not values.get("no_targets")
-            and not values.get("targets")
-        ):
+        if not values.get("no_targets") and not values.get("targets"):
             raise ValueError("Targets not provided.")
+
+        return values
+
+    @classmethod
+    def _common_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not values.get("no_key") and not values.get("key"):
+            raise ValueError("API key not provided")
 
         if values.get("incremental") and not values.get("project"):
             raise ValueError(
@@ -279,6 +285,14 @@ class FuzzingOptions(BaseSettings):
             raise ValueError(
                 f"`chain_id` is not in hex format (0x..). Please provide correct hex value"
             )
+
+        return values
+
+    @root_validator()
+    def validate(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values = cls._common_validator(values)
+        values = cls._smart_mode_validator(values)
+        values = cls._regular_mode_validator(values)
         return values
 
 

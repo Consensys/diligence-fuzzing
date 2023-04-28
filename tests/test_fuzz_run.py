@@ -443,9 +443,14 @@ def test_rpc_not_running(api_key, tmp_path):
 
 def test_fuzz_no_build_dir(tmp_path):
     runner = CliRunner()
-    write_config(not_include=["build_directory"])
+    write_config(
+        not_include=["build_directory"],
+    )
 
-    result = runner.invoke(cli, ["run", "contracts"])
+    result = runner.invoke(
+        cli,
+        ["run", "contracts", "-k", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"],
+    )
     assert "Error: Invalid config: Build directory not provided\n" in result.output
     assert result.exit_code != 0
 
@@ -673,3 +678,6 @@ def test_fuzz_add_scribble_meta(
                 )
 
         assert result.output == output
+
+    # cleanup
+    del os.environ["FUZZ_CONFIG_FILE"]

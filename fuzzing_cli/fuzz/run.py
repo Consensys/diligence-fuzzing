@@ -60,7 +60,7 @@ def handle_validation_errors(corpus_repo: CorpusRepository):
             data = "\n".join(
                 [
                     f"  ◦ Source File: {file_name} Contract Name: {contract_name}"
-                    for addr, file_name, contract_name in validation_error["data"]
+                    for file_name, contract_name in validation_error["data"]
                 ]
             )
             click.secho(

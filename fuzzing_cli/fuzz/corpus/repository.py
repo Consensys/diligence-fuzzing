@@ -155,7 +155,7 @@ class CorpusRepository:
             targets = list(
                 {
                     self._address_to_contract_mapping[addr]["mainSourceFile"]
-                    for addr in self._options.addresses_under_test
+                    for addr in self.all_deployed_contracts_addresses
                     if self._address_to_contract_mapping[addr] is not None
                 }
             )

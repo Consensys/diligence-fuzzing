@@ -95,7 +95,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "targets": ["contracts/ERC20.sol"],
         "deployed_contract_address": "0x123",
         "additional_contracts_addresses": [],
-        "rpc_url": "http://localhost:7545",
+        "rpc_url": "http://localhost:8545",
         "campaign_name_prefix": "test",
         "map_to_original_source": False,
         "enable_cheat_codes": None,
