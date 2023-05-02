@@ -32,7 +32,7 @@ RIGHT = "\x1b\x5b\x43"
 
 def test_generate_config(tmp_path, hardhat_project):
     os.chdir(tmp_path)
-    actions = ["y", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
+    actions = ["y", "n", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
     runner = CliRunner()
     result = runner.invoke(cli, ["config", "generate"], input="\n".join(actions))
     assert result.exit_code == 0
@@ -47,8 +47,32 @@ def test_generate_config(tmp_path, hardhat_project):
             "sources_directory": str(Path(tmp_path).joinpath("contracts")),
             "targets": [str(Path(tmp_path).joinpath("contracts"))],
             "rpc_url": "http://localhost:1111/",
+            "smart_mode": False,
             "number_of_cores": 4,
             "campaign_name_prefix": Path(tmp_path).name.lower().replace("-", "_"),
+            "quick_check": False,
+        },
+    }
+
+
+def test_generate_config_smart_mode(tmp_path, hardhat_project):
+    os.chdir(tmp_path)
+    actions = ["y", "y", "http://localhost:1111/", "4", "\n"]
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "generate"], input="\n".join(actions))
+    assert result.exit_code == 0
+    with open(Path(tmp_path).joinpath(".fuzz.yml"), "r") as f:
+        config = yaml.load(f, Loader=yaml.SafeLoader)
+    assert config == {
+        "analyze": None,
+        "fuzz": {
+            "ide": "hardhat",
+            "quick_check": False,
+            "rpc_url": "http://localhost:1111/",
+            "smart_mode": True,
+            "number_of_cores": 4,
+            "campaign_name_prefix": Path(tmp_path).name.lower().replace("-", "_"),
+            "quick_check": False,
         },
     }
 

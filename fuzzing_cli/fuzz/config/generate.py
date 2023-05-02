@@ -49,6 +49,14 @@ def determine_ide(confirm=False) -> str:
     return ide_name
 
 
+def determine_smart_mode(confirm: bool = False) -> str:
+    use_smart_mode: bool = click.confirm(
+        f"{QM} Enable Smart Mode? This will have the CLI automatically determine your source target and contract addresses. (recommended for beginners)",
+        default=True,
+    )
+    return use_smart_mode
+
+
 def __select_targets(targets: List[str]) -> List[str]:
     files = []
     files_in_dirs = []
@@ -194,16 +202,40 @@ def determine_sources_dir(targets: List[str]) -> Optional[str]:
 
 
 def recreate_config(config_file: str):
+    """Recreate a configuration file from its backup file.
+
+    Args:
+        config_file: The path to the configuration file to recreate.
+    """
+    # Determine IDE
     ide = determine_ide()
-    targets = determine_targets(ide)
-    build_dir = determine_build_dir(ide)
+    # Determine smart mode
+    smart_mode = determine_smart_mode()
+    if smart_mode:
+        # If smart mode, set targets and build_dir to None
+        # so that they are not written to the config file.
+        # Instead, they will be determined at runtime, which
+        # is the point of smart mode.
+        targets = None
+        build_dir = None
+        sources_directory = None
+    else:
+        # If not smart mode, determine targets and build_dir
+        targets = determine_targets(ide)
+        build_dir = determine_build_dir(ide)
+        # Determine sources directory
+        sources_directory = determine_sources_dir(targets)
+
+    # These run always
+    # Determine RPC URL
     rpc_url = determine_rpc_url()
+    # Determine CPU cores
+    # Todo: we should probably not ask for this and just always set the max
+    # number of cores on their plan.
     number_of_cores = determine_cpu_cores()
-    campaign_name_prefix = determine_campaign_name()
-
+    # Determine campaign name
     config_path = Path().cwd().joinpath(config_file)
-
-    sources_directory = determine_sources_dir(targets)
+    campaign_name_prefix = determine_campaign_name()
 
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
@@ -220,6 +252,7 @@ def recreate_config(config_file: str):
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,
                     "campaign_name_prefix": campaign_name_prefix,
+                    "smart_mode": smart_mode,
                     "no-assert": True,
                     "quick_check": False,
                 }
@@ -231,6 +264,12 @@ def recreate_config(config_file: str):
 
 
 def sync_config(config_file: Path):
+    """
+    here we sync config file with the current state of the project
+
+    Parameters:
+        config_file (Path): path to the config file
+    """
     ide = determine_ide(confirm=True)
     targets = determine_targets(ide)
 
