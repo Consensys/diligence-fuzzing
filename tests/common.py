@@ -236,3 +236,24 @@ TEST_BYTECODES = [
         "hash": None,
     },
 ]
+
+
+def construct_output(
+    message=None, prompt=None, result=None, prompt_input="y", error=False
+):
+    error_message = message
+    if result:
+        result = f"{result}\n"
+    if message:
+        message = f"{message}\n"
+        error_message = message
+    if error:
+        error_message = f"Error: {message}"
+        result = ""
+    if prompt:
+        if prompt_input == "y":
+            return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n" + result
+        return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n{error_message}" + result
+    if error:
+        return error_message + result
+    return message + result

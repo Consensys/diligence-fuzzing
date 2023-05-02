@@ -36,7 +36,7 @@ def prepare_config(tmp_path: Path, monkeypatch):
                 "FUZZ_TIME_LIMIT=5m",
                 "ANALYZE_SCRIBBLE_PATH=ext/scribble",
                 "FUZZ_DEPLOYED_CONTRACT_ADDRESS=0x123",
-                "FUZZ_ADDITIONAL_CONTRACTS_ADDRESSES=[\"0x456\", \"0x789\"]",
+                'FUZZ_ADDITIONAL_CONTRACTS_ADDRESSES=["0x456", "0x789"]',
             ]
         )
     )

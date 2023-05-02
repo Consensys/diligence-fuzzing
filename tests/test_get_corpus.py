@@ -10,7 +10,13 @@ from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
 from fuzzing_cli.fuzz.ide.truffle import TruffleArtifacts
 from fuzzing_cli.fuzz.rpc.rpc import RPCClient
-from tests.common import get_code_mocker, get_test_case, mocked_rpc_client, write_config
+from tests.common import (
+    construct_output,
+    get_code_mocker,
+    get_test_case,
+    mocked_rpc_client,
+    write_config,
+)
 from tests.testdata.truffle_project.mocks import db_calls_mock
 
 TESTS_PARAMETRIZATION = (
@@ -21,25 +27,6 @@ TESTS_PARAMETRIZATION = (
         (False, False),
     ],
 )
-
-
-def construct_output(message, prompt=None, result=None, prompt_input="y", error=False):
-    error_message = message
-    if result:
-        result = f"{result}\n"
-    if error:
-        error_message = f"Error: {message}"
-        result = ""
-    if prompt:
-        if prompt_input == "y":
-            return f"[?] {message}\n{prompt}? [Y/n]: {prompt_input}\n" + result
-        return (
-            f"[?] {message}\n{prompt}? [Y/n]: {prompt_input}\n{error_message}\n"
-            + result
-        )
-    if error:
-        return f"{error_message}\n" + result
-    return f"{message}\n" + result
 
 
 def truffle_mocked_context_invoke(
@@ -276,7 +263,6 @@ def test_not_targeted_contracts(
     )
     prompt = "Add them to targets"
     cmd_result = "You can view campaign here: http://localhost:9899/campaigns/cmp_0"
-
     assert (
         construct_output(
             output,

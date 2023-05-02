@@ -250,6 +250,12 @@ class FuzzingOptions(BaseSettings):
         if values.get("smart_mode"):
             return values
 
+        if not values.get("targets") and not values.get("deployed_contract_address"):
+            raise ValueError(
+                "No targets specified. "
+                "Please specify at least one target (deployed contract address or targets)."
+            )
+
         if not values.get("no_build_directory") and not values.get("build_directory"):
             click.secho(
                 "Warning: Build directory not specified. Using IDE defaults. For a proper seed state check "

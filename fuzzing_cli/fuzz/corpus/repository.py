@@ -67,8 +67,8 @@ class CorpusRepository:
             - Remove an address target
             - Remove a source target
         """
-        addresses_under_test = self._options.addresses_under_test
-        targets = self._options.targets
+        addresses_under_test = self.contract_targets[:]  # make shallow copy of the list
+        targets = self.source_targets[:]  # make shallow copy of the list
         for fix in suggested_fixes:
             if fix["type"] == "add_addresses":
                 addresses_under_test.extend(fix["data"])
@@ -198,58 +198,15 @@ class CorpusRepository:
     ) -> Tuple[List[CONTRACT_ADDRESS], List[str]]:
         """
         Construct the targets from the addresses under test and the targets options
-        or from provided addresses under test and targets
+        or from provided addresses under test and targets (after prompting for automatic fixes).
         """
         if addresses_under_test is None:
             addresses_under_test = self._options.addresses_under_test
         if targets is None:
-            targets = self._options.targets
+            targets = self._options.targets[
+                :
+            ]  # make a copy of the targets to not modify the original list
 
-        if not addresses_under_test and not targets:
-            # no addresses under test and no targets, so we should get all the deployed contracts from an RPC node
-            # and use them as the addresses under test and their source files as the targets
-            # first address under test is the first contract address in the list of all deployed contracts
-            # other addresses under test are the rest of the contracts addresses
-
-            targets = list(
-                {
-                    self._address_to_contract_mapping[addr]["mainSourceFile"]
-                    for addr in self.all_deployed_contracts_addresses
-                    if self._address_to_contract_mapping[addr] is not None
-                }
-            )
-            return _uniq(self.all_deployed_contracts_addresses), _uniq(targets)
-
-        if not addresses_under_test and targets:
-            # no addresses under test, so we should get all the deployed contracts from an RPC node
-            # and use them as the addresses under test, however, we have targets, so we should select
-            # the addresses under test that have the same source files as the targets. There could be
-            # case when the target is a contract that is not deployed, so we should skip it, and later
-            # it'll be handled by the validator
-
-            check_path = self._path_inclusion_checker(self._options.targets)
-            contract_targets = [
-                addr
-                for source_file_name, addresses in self._source_file_to_address_mapping.items()
-                if check_path(source_file_name)
-                for addr in addresses
-            ]
-
-            return _uniq(contract_targets), _uniq(targets)
-
-        if addresses_under_test and not targets:
-            # we have addresses under test, but no targets, so we should use the addresses under test
-            # as the targets
-            targets = list(
-                {
-                    self._address_to_contract_mapping[addr]["mainSourceFile"]
-                    for addr in self._options.addresses_under_test
-                    if self._address_to_contract_mapping[addr] is not None
-                }
-            )
-            return _uniq(addresses_under_test), _uniq(targets)
-
-        # This is the case when smart mode is off, or we have both addresses under test and targets
         return _uniq(addresses_under_test), _uniq(targets)
 
     @property
@@ -335,7 +292,10 @@ class CorpusRepository:
                 # This is a contract that's been provided as address under test,
                 # but its source file was not provided as a target
                 source_target_not_set.append(
-                    (contract_address, contract["mainSourceFile"])
+                    (
+                        contract_address,
+                        self._artifacts.normalize_path(contract["mainSourceFile"]),
+                    )
                 )
 
         for source_file_name in self.source_targets:

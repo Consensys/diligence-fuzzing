@@ -21,7 +21,9 @@ QM = f"[{style('?', fg='yellow')}]"
 
 
 def handle_validation_errors(
-    corpus_repo: CorpusRepository, prompt: bool = True
+    corpus_repo: CorpusRepository,
+    prompt: bool = True,
+    smart_mode: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Handle validation errors from the corpus repository and prompt the user for automatic fixes if needed.
@@ -39,9 +41,12 @@ def handle_validation_errors(
             error_message = (
                 f"Unable to find contracts with following addresses:\n{data}"
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nRemove ones from addresses under test?",
-                default=True,
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nRemove ones from addresses under test?",
+                    default=True,
+                )
             ):
                 suggested_fixes.append(
                     {"type": "remove_addresses", "data": validation_error["data"]}
@@ -55,9 +60,12 @@ def handle_validation_errors(
                 f"⚠️ No artifact found for following deployed contracts:\n{data}\nThis could be due to "
                 f"disabled metadata hash generation in your compiler settings."
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nRemove ones from addresses under test?",
-                default=True,
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nRemove ones from addresses under test?",
+                    default=True,
+                )
             ):
                 suggested_fixes.append(
                     {"type": "remove_addresses", "data": validation_error["data"]}
@@ -77,8 +85,12 @@ def handle_validation_errors(
                 f"The following targets were provided without providing "
                 f"addresses of respective contracts as addresses under test:\n{data}"
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nAdd them to addresses under test?", default=True
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nAdd them to addresses under test?",
+                    default=True,
+                )
             ):
                 suggested_fixes.append(
                     {
@@ -100,8 +112,11 @@ def handle_validation_errors(
                 f"Following contract's addresses were provided as addresses under test "
                 f"without specifying them as a target prior to `fuzz run`:\n{data}"
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nAdd them to targets?", default=True
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nAdd them to targets?", default=True
+                )
             ):
                 suggested_fixes.append(
                     {
@@ -124,8 +139,11 @@ def handle_validation_errors(
             error_message = (
                 f"⚠️ Following contracts were not deployed to RPC node:\n{data}"
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nRemove them from targets?", default=True
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nRemove them from targets?", default=True
+                )
             ):
                 suggested_fixes.append(
                     {
@@ -148,8 +166,11 @@ def handle_validation_errors(
             error_message = (
                 f"⚠️ Following contracts were not included into the seed state:\n{data}"
             )
-            if prompt and click.confirm(
-                f"{QM} {error_message}\nAdd them to targets?", default=True
+            if smart_mode or (
+                prompt
+                and click.confirm(
+                    f"{QM} {error_message}\nAdd them to targets?", default=True
+                )
             ):
                 suggested_fixes.extend(
                     [
@@ -327,7 +348,9 @@ def fuzz_run(
 
         corpus_repo = CorpusRepository(rpc_client, artifacts, options, _corpus_target)
         # if the no_prompts flag is set, we need to fail if there are any validation errors
-        suggested_fixes = handle_validation_errors(corpus_repo, prompt=not no_prompts)
+        suggested_fixes = handle_validation_errors(
+            corpus_repo, prompt=not no_prompts, smart_mode=options.smart_mode
+        )
         if suggested_fixes:
             corpus_repo.apply_auto_fix(suggested_fixes)
             # after applying the fixes, we need to revalidate the corpus
