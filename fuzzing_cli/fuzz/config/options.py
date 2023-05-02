@@ -290,7 +290,7 @@ class FuzzingOptions(BaseSettings):
     @classmethod
     def _common_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if not values.get("no_key") and not values.get("key"):
-            raise ValueError("API key not provided")
+            raise ValueError("API key not provided. To use this tool, you must obtain an API key from https://fuzzing.diligence.tools/keys.")
 
         if values.get("incremental") and not values.get("project"):
             raise ValueError(

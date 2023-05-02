@@ -61,7 +61,7 @@ def test_no_keys(tmp_path, truffle_project):
     write_config(ide="truffle", not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "Error: Invalid config: API key not provided" in result.output
+    assert "Error: Invalid config: API key not provided. To use this tool, you must obtain an API key from https://fuzzing.diligence.tools/keys." in result.output
     assert result.exit_code != 0
 
 
