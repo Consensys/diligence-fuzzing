@@ -53,7 +53,7 @@ class FuzzingOptions(BaseSettings):
     number_of_cores: int = 1
     time_limit: Optional[str] = None
 
-    targets: Optional[List[str]] = None
+    targets: List[str] = []
     deployed_contract_address: Optional[str] = None
     additional_contracts_addresses: List[str] = []
     rpc_url: str = "http://localhost:8545"

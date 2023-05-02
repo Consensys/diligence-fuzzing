@@ -19,6 +19,14 @@ class NoTransactionFound(Exception):
     pass
 
 
+def _uniq(lst: List[str]) -> List[str]:
+    """
+    Remove duplicates from a list while preserving order
+    """
+    seen = set()
+    return [x for x in lst if not (x in seen or seen.add(x))]
+
+
 class CorpusRepository:
     def __init__(
         self,
@@ -210,7 +218,7 @@ class CorpusRepository:
                     if self._address_to_contract_mapping[addr] is not None
                 }
             )
-            return self.all_deployed_contracts_addresses, targets
+            return _uniq(self.all_deployed_contracts_addresses), _uniq(targets)
 
         if not addresses_under_test and targets:
             # no addresses under test, so we should get all the deployed contracts from an RPC node
@@ -227,7 +235,7 @@ class CorpusRepository:
                 for addr in addresses
             ]
 
-            return contract_targets, targets
+            return _uniq(contract_targets), _uniq(targets)
 
         if addresses_under_test and not targets:
             # we have addresses under test, but no targets, so we should use the addresses under test
@@ -239,10 +247,10 @@ class CorpusRepository:
                     if self._address_to_contract_mapping[addr] is not None
                 }
             )
-            return addresses_under_test, targets
+            return _uniq(addresses_under_test), _uniq(targets)
 
         # This is the case when smart mode is off, or we have both addresses under test and targets
-        return addresses_under_test, targets
+        return _uniq(addresses_under_test), _uniq(targets)
 
     @property
     def seed_state(self) -> Dict[str, any]:
