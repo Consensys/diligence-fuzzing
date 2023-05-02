@@ -20,6 +20,7 @@ def prepare_config(tmp_path: Path, monkeypatch):
                 "fuzz": {
                     "ide": "hardhat",
                     "targets": ["contracts/ERC20.sol"],
+                    "smart_mode": False,
                 },
                 "analyze": {
                     "no_assert": True,
@@ -35,6 +36,7 @@ def prepare_config(tmp_path: Path, monkeypatch):
                 "FUZZ_TIME_LIMIT=5m",
                 "ANALYZE_SCRIBBLE_PATH=ext/scribble",
                 "FUZZ_DEPLOYED_CONTRACT_ADDRESS=0x123",
+                "FUZZ_ADDITIONAL_CONTRACTS_ADDRESSES=[\"0x456\", \"0x789\"]",
             ]
         )
     )
@@ -76,6 +78,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
     prepare_config(tmp_path, monkeypatch)
     os.environ["FUZZ_SOURCES_DIRECTORY"] = "contracts"
     os.environ["FUZZ_BUILD_DIRECTORY"] = "build"
+    os.environ["FUZZ_TARGETS"] = '["contracts/ERC20.sol", "contracts/ERC721.sol"]'
     runner = CliRunner()
     cmd = ["config", "show"]
     if json:
@@ -91,10 +94,13 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "corpus_target": None,
         "number_of_cores": 1,
         "time_limit": 1200,
-        "targets": ["contracts/ERC20.sol"],
+        "targets": [
+            "contracts/ERC20.sol",
+            "contracts/ERC721.sol",
+        ],
         "deployed_contract_address": "0x123",
-        "additional_contracts_addresses": None,
-        "rpc_url": "http://localhost:7545",
+        "additional_contracts_addresses": ["0x456", "0x789"],
+        "rpc_url": "http://localhost:8545",
         "campaign_name_prefix": "test",
         "map_to_original_source": False,
         "enable_cheat_codes": None,
@@ -106,6 +112,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "foundry_tests_list": None,
         "target_contracts": None,
         "dry_run": False,
+        "smart_mode": False,
     }
 
     analyze_options_json = {

@@ -5,7 +5,7 @@
         "assertion-checking-mode": 1
     },
     "corpus": {
-        "address-under-test": "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
+        "address-under-test": "0x128b125f3d14338e71aa0c213b3ffc3d545c8c47",
         "steps": [
             {
                 "hash": "0x42a13ff43f2c3fdfb06acd452c3831cefd3b56a7bb660018466b36a12169f6ba",
@@ -89,9 +89,9 @@
             }
         ],
         "other-addresses-under-test": [
-            "0x89cf0b64A1612d8AB6320FE8aCfb99E2A1654Dc5",
-            "0x128B125f3D14338E71AA0C213B3FfC3D545C8c47",
-            "0xa5528c75E001Eff845A36577D14a7d3F6F5Ed4C4"
+            "0x89cf0b64a1612d8ab6320fe8acfb99e2a1654dc5",
+            "0x81c5d21c4a70ade85b39689df5a14b5b5027c28e",
+            "0xa5528c75e001eff845a36577d14a7d3f6f5ed4c4"
         ]
     },
     "sources": {

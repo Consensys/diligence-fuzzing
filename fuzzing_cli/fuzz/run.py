@@ -1,11 +1,13 @@
 import logging
 import traceback
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import click
-from click import ClickException, UsageError
+from click import ClickException, UsageError, style
 
 from .config import AnalyzeOptions, FuzzingOptions, omit_none
+from .corpus import CorpusRepository
+from .corpus.repository import NoTransactionFound
 from .exceptions import EmptyArtifactsError, FaaSError
 from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
@@ -14,7 +16,160 @@ from .rpc.rpc import RPCClient
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
-headers = {"Content-Type": "application/json"}
+
+QM = f"[{style('?', fg='yellow')}]"
+
+
+def handle_validation_errors(
+    corpus_repo: CorpusRepository, prompt: bool = True
+) -> List[Dict[str, Any]]:
+    """
+    Handle validation errors from the corpus repository and prompt the user for automatic fixes if needed.
+    If the user chooses to fix the errors, a list of suggested fixes is returned and the ones are applied.
+    Otherwise, an exception is raised if there are any validation errors.
+
+    :param corpus_repo: Corpus repository
+    :param prompt: Whether to prompt the user for automatic fixes
+    :return: List of suggested fixes
+    """
+    suggested_fixes = []
+    for validation_error in corpus_repo.validation_errors:
+        if validation_error["type"] == "unknown_contracts":
+            data = "\n".join([f"  ◦ {addr}" for addr in validation_error["data"]])
+            error_message = (
+                f"Unable to find contracts with following addresses:\n{data}"
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nRemove ones from addresses under test?",
+                default=True,
+            ):
+                suggested_fixes.append(
+                    {"type": "remove_addresses", "data": validation_error["data"]}
+                )
+                continue
+            raise ClickException(error_message)
+
+        if validation_error["type"] == "contracts_with_no_artifact":
+            data = "\n".join([f"  ◦ {addr}" for addr in validation_error["data"]])
+            error_message = (
+                f"⚠️ No artifact found for following deployed contracts:\n{data}\nThis could be due to "
+                f"disabled metadata hash generation in your compiler settings."
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nRemove ones from addresses under test?",
+                default=True,
+            ):
+                suggested_fixes.append(
+                    {"type": "remove_addresses", "data": validation_error["data"]}
+                )
+                continue
+            click.secho(error_message)
+            continue
+
+        if validation_error["type"] == "contract_target_not_set":
+            data = "\n".join(
+                [
+                    f"  ◦ Address: {addr} Source File: {file_name} Contract Name: {contract_name}"
+                    for addr, file_name, contract_name in validation_error["data"]
+                ]
+            )
+            error_message = (
+                f"The following targets were provided without providing "
+                f"addresses of respective contracts as addresses under test:\n{data}"
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nAdd them to addresses under test?", default=True
+            ):
+                suggested_fixes.append(
+                    {
+                        "type": "add_addresses",
+                        "data": [addr for addr, _, _ in validation_error["data"]],
+                    }
+                )
+                continue
+            raise ClickException(error_message)
+
+        if validation_error["type"] == "source_target_not_set":
+            data = "\n".join(
+                [
+                    f"  ◦ Address: {addr} Target: {file_name}"
+                    for addr, file_name in validation_error["data"]
+                ]
+            )
+            error_message = (
+                f"Following contract's addresses were provided as addresses under test "
+                f"without specifying them as a target prior to `fuzz run`:\n{data}"
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nAdd them to targets?", default=True
+            ):
+                suggested_fixes.append(
+                    {
+                        "type": "add_targets",
+                        "data": [
+                            file_name for _, file_name in validation_error["data"]
+                        ],
+                    }
+                )
+                continue
+            raise ClickException(error_message)
+
+        if validation_error["type"] == "not_deployed_contracts":
+            data = "\n".join(
+                [
+                    f"  ◦ Source File: {file_name} Contract Name: {contract_name}"
+                    for file_name, contract_name in validation_error["data"]
+                ]
+            )
+            error_message = (
+                f"⚠️ Following contracts were not deployed to RPC node:\n{data}"
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nRemove them from targets?", default=True
+            ):
+                suggested_fixes.append(
+                    {
+                        "type": "remove_targets",
+                        "data": [
+                            file_name for file_name, _ in validation_error["data"]
+                        ],
+                    }
+                )
+                continue
+            click.secho(error_message)
+            continue
+        if validation_error["type"] == "not_targeted_contracts":
+            data = "\n".join(
+                [
+                    f"  ◦ Address: {addr} Source File: {file_name} Contract Name: {contract_name}"
+                    for addr, file_name, contract_name in validation_error["data"]
+                ]
+            )
+            error_message = (
+                f"⚠️ Following contracts were not included into the seed state:\n{data}"
+            )
+            if prompt and click.confirm(
+                f"{QM} {error_message}\nAdd them to targets?", default=True
+            ):
+                suggested_fixes.extend(
+                    [
+                        {
+                            "type": "add_targets",
+                            "data": [
+                                file_name
+                                for _, file_name, _ in validation_error["data"]
+                            ],
+                        },
+                        {
+                            "type": "add_addresses",
+                            "data": [addr for addr, _, _ in validation_error["data"]],
+                        },
+                    ]
+                )
+                continue
+            click.secho(error_message)
+            continue
+    return suggested_fixes
 
 
 @click.command("run")
@@ -84,6 +239,13 @@ headers = {"Content-Type": "application/json"}
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
+@click.option(
+    "--no-prompts",
+    is_flag=True,
+    default=False,
+    help="Do not prompt for user input (to suggest an auto fix, for example). Instead, "
+    "fail if any of the validation errors are encountered. (CI/CD mode)",
+)
 def fuzz_run(
     targets,
     ide: Optional[str],
@@ -95,6 +257,7 @@ def fuzz_run(
     map_to_original_source,
     project,
     truffle_path: Optional[str],
+    no_prompts: bool,
 ):
     """Submit contracts to the Diligence Fuzzing API"""
 
@@ -112,7 +275,8 @@ def fuzz_run(
                 "project": project,
                 "truffle_executable_path": truffle_path,
             }
-        )
+        ),
+        no_prompts=no_prompts,
     )
 
     _corpus_target = options.corpus_target
@@ -140,12 +304,6 @@ def fuzz_run(
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
 
-        seed_state = rpc_client.get_seed_state(
-            options.deployed_contract_address,
-            options.additional_contracts_addresses,
-            _corpus_target,
-        )
-
         repo = IDERepository.get_instance()
         if options.ide:
             LOGGER.debug(f'"{options.ide}" IDE is specified')
@@ -160,13 +318,40 @@ def fuzz_run(
 
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
-            targets=options.targets,
             build_dir=options.build_directory or _IDEClass.get_default_build_dir(),
             sources_dir=options.sources_directory
             or _IDEClass.get_default_sources_dir(),
             map_to_original_source=options.map_to_original_source,
         )
         project_type: str = _IDEClass.get_name()
+
+        corpus_repo = CorpusRepository(rpc_client, artifacts, options, _corpus_target)
+        # if the no_prompts flag is set, we need to fail if there are any validation errors
+        suggested_fixes = handle_validation_errors(corpus_repo, prompt=not no_prompts)
+        if suggested_fixes:
+            corpus_repo.apply_auto_fix(suggested_fixes)
+            # after applying the fixes, we need to revalidate the corpus
+            # and if there are still errors, we need to abort and raise an error
+            # because we could end up in an infinite loop of fixes that don't work
+            handle_validation_errors(corpus_repo, prompt=False)
+        try:
+            seed_state = corpus_repo.seed_state
+        except NoTransactionFound:
+            raise click.exceptions.UsageError(
+                f"Unable to generate the seed state. "
+                f"No transactions were found in an ethereum node running at {options.rpc_url}"
+            )
+        except Exception as e:
+            LOGGER.warning(f"Could not generate seed state for address")
+            raise click.exceptions.UsageError(
+                (
+                    "Unable to generate the seed state. Are you sure you passed the correct contract address?"
+                )
+            ) from e
+        # narrow down the artifacts to the ones that are in the corpus specified by the target
+        artifacts = artifacts.instance_for_targets(
+            artifacts, corpus_repo.source_targets
+        )
 
         try:
             artifacts.validate()
@@ -176,8 +361,6 @@ def fuzz_run(
                 f"No contract being submitted. Please check your config (hint: build_directory path or targets paths) "
                 f"or recompile contracts"
             )
-
-        rpc_client.check_contracts(seed_state, artifacts, options.targets)
 
     return submit_campaign(options, project_type, artifacts, seed_state)
 

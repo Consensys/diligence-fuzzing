@@ -10,6 +10,7 @@ def prepare_rpc_client() -> RPCClient:
         no_build_directory=True,
         no_key=True,
         no_deployed_contract_address=True,
+        smart_mode=False,
     )
     return RPCClient(options.rpc_url, options.number_of_cores)
 

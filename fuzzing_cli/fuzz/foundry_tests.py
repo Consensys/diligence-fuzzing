@@ -142,21 +142,18 @@ def foundry_test(
     )
 
     options = FuzzingOptions(
-        **omit_none(
-            {
-                "ide": "foundry",
-                "build_directory": foundry_config["profile"]["default"]["out"],
-                "sources_directory": foundry_config["profile"]["default"]["src"],
-                "targets": targets,
-                "key": key,
-                "quick_check": True,
-                "enable_cheat_codes": True,
-                "dry_run": dry_run,
-                "foundry_tests": True,
-                "target_contracts": target_contracts,
-                "foundry_tests_list": tests_list,
-            }
-        )
+        ide="foundry",
+        build_directory=foundry_config["profile"]["default"]["out"],
+        sources_directory=foundry_config["profile"]["default"]["src"],
+        targets=targets,
+        quick_check=True,
+        enable_cheat_codes=True,
+        foundry_tests=True,
+        target_contracts=target_contracts,
+        foundry_tests_list=tests_list,
+        dry_run=dry_run,
+        smart_mode=False,
+        **omit_none({"key": key}),
     )
 
     repo = IDERepository.get_instance()

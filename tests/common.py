@@ -62,6 +62,7 @@ def generate_fuzz_config(
     chain_id: Optional[str] = None,
     enable_cheat_codes: Optional[bool] = None,
     string_chain_id=True,
+    smart_mode=False,
 ):
     config_file = "analyze:"
     if remappings:
@@ -141,6 +142,9 @@ def generate_fuzz_config(
 
     if time_limit:
         config_file += f"\n  time_limit: {time_limit}"
+
+    if not smart_mode:
+        config_file += f"\n  smart_mode: {smart_mode}"
 
     if chain_id is not None:
         if string_chain_id:

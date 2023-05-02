@@ -62,7 +62,7 @@ def test_get_contract():
             },
         ],
     }
-    ide = IDEMock(contracts, options, [], Path.cwd(), Path.cwd())
+    ide = IDEMock(contracts, options, Path.cwd(), Path.cwd(), [])
 
     for i in range(4):
         assert (

@@ -45,11 +45,11 @@ def truffle_project(tmp_path):
             "contracts/ABC.sol",
             "contracts/Migrations.sol",
         ],
-        "deployed_contract_address": "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+        "deployed_contract_address": "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         "additional_addresses": [
+            "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
             "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9",
             "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
-            "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         ],
     }
 
@@ -84,10 +84,10 @@ def hardhat_project(tmp_path):
             "contracts/ABC.sol",
             "contracts/Migrations.sol",
         ],
-        "deployed_contract_address": "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
+        "deployed_contract_address": "0x128B125f3D14338E71AA0C213B3FfC3D545C8c47",
         "additional_addresses": [
             "0x89cf0b64A1612d8AB6320FE8aCfb99E2A1654Dc5",
-            "0x128B125f3D14338E71AA0C213B3FfC3D545C8c47",
+            "0x81c5D21c4a70ADE85b39689DF5a14B5b5027C28e",
             "0xa5528c75E001Eff845A36577D14a7d3F6F5Ed4C4",
         ],
     }
@@ -158,11 +158,11 @@ def scribble_project(tmp_path):
         "build_directory": "build/contracts",
         "sources_directory": "contracts",
         "targets": ["contracts/VulnerableToken.sol"],
-        "deployed_contract_address": "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
+        "deployed_contract_address": "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         "additional_addresses": [
+            "0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
             "0x6a432C13a2E980a78F941c136ec804e7CB67E0D9",
             "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
-            "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         ],
     }
 

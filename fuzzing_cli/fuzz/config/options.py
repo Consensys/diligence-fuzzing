@@ -53,10 +53,10 @@ class FuzzingOptions(BaseSettings):
     number_of_cores: int = 1
     time_limit: Optional[str] = None
 
-    targets: Optional[List[str]] = None
+    targets: List[str] = []
     deployed_contract_address: Optional[str] = None
-    additional_contracts_addresses: Optional[Union[List[str], str]] = None
-    rpc_url: str = "http://localhost:7545"
+    additional_contracts_addresses: List[str] = []
+    rpc_url: str = "http://localhost:8545"
 
     campaign_name_prefix: str = "untitled"
     map_to_original_source: bool = False
@@ -73,7 +73,11 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
+    smart_mode: bool = False
 
+    no_prompts: bool = Field(
+        True, exclude=True, description="Disable all prompts. Useful for CI/CD."
+    )
     no_build_directory: bool = Field(False, exclude=True)
     no_key: bool = Field(False, exclude=True)
     no_deployed_contract_address: bool = Field(False, exclude=True)
@@ -105,6 +109,25 @@ class FuzzingOptions(BaseSettings):
     @property
     def refresh_token(self):
         return self._parsed_key[2]
+
+    @property
+    def addresses_under_test(self) -> List[str]:
+        addresses = []
+        if self.deployed_contract_address:
+            addresses.append(self.deployed_contract_address.lower())
+        if self.additional_contracts_addresses:
+            if isinstance(self.additional_contracts_addresses, str):
+                addresses.extend(
+                    [
+                        addr.strip().lower()
+                        for addr in self.additional_contracts_addresses.split(",")
+                    ]
+                )
+            else:
+                addresses.extend(
+                    [addr.lower() for addr in self.additional_contracts_addresses]
+                )
+        return addresses
 
     class Config:
         env_prefix = "fuzz_"
@@ -165,15 +188,23 @@ class FuzzingOptions(BaseSettings):
             return Path(path)
         return Path.cwd().joinpath(path)
 
-    @validator("additional_contracts_addresses")
+    @validator("deployed_contract_address", pre=True)
+    def _validate_deployed_contract_address(
+        cls, address: Optional[str] = None
+    ) -> Optional[str]:
+        if not address:
+            return None
+        return address.lower()
+
+    @validator("additional_contracts_addresses", pre=True)
     def _validate_contracts_addresses(
         cls, addresses: Optional[Union[List[str], str]]
     ) -> Optional[List[str]]:
         if not addresses:
-            return None
+            return []
         if type(addresses) == str:
-            return [addr.strip() for addr in addresses.split(",")]
-        return addresses
+            return [addr.strip().lower() for addr in addresses.split(",")]
+        return [addr.lower() for addr in addresses]
 
     @validator("key")
     def _validate_key(cls, key: Optional[str]) -> Optional[str]:
@@ -199,28 +230,59 @@ class FuzzingOptions(BaseSettings):
             raise ValueError(error_message)
         return key
 
-    @root_validator()
-    def validate(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @classmethod
+    def _smart_mode_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not values.get("smart_mode"):
+            return values
+
+        if values.get("deployed_contract_address") and values.get("targets"):
+            click.secho(
+                "Warning: Smart mode is enabled and both deployed contract address and targets are specified. You"
+                " should turn off smart mode to work in expert mode.",
+            )
+
+        return values
+
+    @classmethod
+    def _regular_mode_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if values.get("smart_mode"):
+            return values
+
         if not values.get("no_build_directory") and not values.get("build_directory"):
-            raise ValueError("Build directory not provided")
+            click.secho(
+                "Warning: Build directory not specified. Using IDE defaults. For a proper seed state check "
+                "please set one.",
+            )
+
         if not values.get("sources_directory"):
             click.secho(
                 "Warning: Sources directory not specified. Using IDE defaults. For a proper seed state check "
                 "please set one.",
             )
 
-        if not values.get("no_key") and not values.get("key"):
-            raise ValueError("API key not provided")
-
+        # If prompts are disabled, we need to make sure that all the required parameters are provided
+        # because we won't be able to ask the user for them.
         if (
-            not values.get("no_deployed_contract_address")
+            values.get("no_prompts")
+            and not values.get("no_deployed_contract_address")
             and not values.get("quick_check", False)
             and not values.get("deployed_contract_address")
         ):
             raise ValueError("Deployed contract address not provided.")
 
-        if not values.get("no_targets") and not values.get("targets"):
+        if (
+            values.get("no_prompts")
+            and not values.get("no_targets")
+            and not values.get("targets")
+        ):
             raise ValueError("Targets not provided.")
+
+        return values
+
+    @classmethod
+    def _common_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if not values.get("no_key") and not values.get("key"):
+            raise ValueError("API key not provided")
 
         if values.get("incremental") and not values.get("project"):
             raise ValueError(
@@ -236,6 +298,14 @@ class FuzzingOptions(BaseSettings):
             raise ValueError(
                 f"`chain_id` is not in hex format (0x..). Please provide correct hex value"
             )
+
+        return values
+
+    @root_validator()
+    def validate(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values = cls._common_validator(values)
+        values = cls._smart_mode_validator(values)
+        values = cls._regular_mode_validator(values)
         return values
 
 
