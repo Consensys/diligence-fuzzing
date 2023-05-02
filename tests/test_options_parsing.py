@@ -103,7 +103,6 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "truffle_executable_path": None,
         "quick_check": False,
         "foundry_tests": True,
-        "foundry_tests_list": None,
         "target_contracts": None,
         "dry_run": False,
     }
