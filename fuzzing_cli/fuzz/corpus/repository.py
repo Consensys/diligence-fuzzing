@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from os.path import commonpath
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import click
 
@@ -36,13 +36,50 @@ class CorpusRepository:
             self._contract_to_address_mapping,
             self._source_file_to_address_mapping,
         ) = self._construct_address_contract_mapping()
+        self._initialize()
+
+    def _initialize(
+        self,
+        addresses_under_test: Optional[List[str]] = None,
+        targets: Optional[List[str]] = None,
+    ) -> None:
         (
             self.contract_targets,
             self.source_targets,
-        ) = self._construct_targets()
+        ) = self._construct_targets(addresses_under_test, targets)
 
         self.validation_errors = []
         self._validate()
+
+    def apply_auto_fix(self, suggested_fixes: List[Dict[str, Any]]) -> None:
+        """
+        Apply the suggested fixes to the config file. Suggested fixes are of the following types:
+            - Add a new address target
+            - Add a new source target
+            - Remove an address target
+            - Remove a source target
+        """
+        addresses_under_test = self._options.addresses_under_test
+        targets = self._options.targets
+        for fix in suggested_fixes:
+            if fix["type"] == "add_addresses":
+                addresses_under_test.extend(fix["data"])
+                continue
+            if fix["type"] == "add_targets":
+                targets.extend(fix["data"])
+                continue
+            if fix["type"] == "remove_addresses":
+                addresses_under_test = [
+                    address
+                    for address in addresses_under_test
+                    if address not in fix["data"]
+                ]
+                continue
+            if fix["type"] == "remove_targets":
+                targets = [target for target in targets if target not in fix["data"]]
+                continue
+        # Re-initialize the repository with the new targets and addresses, and validate
+        self._initialize(addresses_under_test, targets)
 
     @property
     def _fuzzing_lessons(self) -> Tuple[Set[str], List[List[SeedSequenceTransaction]]]:
@@ -123,7 +160,8 @@ class CorpusRepository:
 
     @staticmethod
     def _path_inclusion_checker(paths: List[str]):
-        """Construct a function that checks if a given path is in the list of paths. The paths can be files or folders"""
+        """Construct a function that checks if a given path is in the list of paths.
+        The paths can be files or folders"""
         directory_paths: List[str] = []
         file_paths: List[str] = []
         for _path in paths:
@@ -145,8 +183,21 @@ class CorpusRepository:
 
         return inner_checker
 
-    def _construct_targets(self) -> Tuple[List[str], List[str]]:
-        if not self._options.addresses_under_test and not self._options.targets:
+    def _construct_targets(
+        self,
+        addresses_under_test: Optional[List[str]] = None,
+        targets: Optional[List[str]] = None,
+    ) -> Tuple[List[CONTRACT_ADDRESS], List[str]]:
+        """
+        Construct the targets from the addresses under test and the targets options
+        or from provided addresses under test and targets
+        """
+        if addresses_under_test is None:
+            addresses_under_test = self._options.addresses_under_test
+        if targets is None:
+            targets = self._options.targets
+
+        if not addresses_under_test and not targets:
             # no addresses under test and no targets, so we should get all the deployed contracts from an RPC node
             # and use them as the addresses under test and their source files as the targets
             # first address under test is the first contract address in the list of all deployed contracts
@@ -161,11 +212,11 @@ class CorpusRepository:
             )
             return self.all_deployed_contracts_addresses, targets
 
-        if not self._options.addresses_under_test and self._options.targets:
+        if not addresses_under_test and targets:
             # no addresses under test, so we should get all the deployed contracts from an RPC node
             # and use them as the addresses under test, however, we have targets, so we should select
             # the addresses under test that have the same source files as the targets. There could be
-            # case when the target is a contract that is not deployed, so we should skip it and later
+            # case when the target is a contract that is not deployed, so we should skip it, and later
             # it'll be handled by the validator
 
             check_path = self._path_inclusion_checker(self._options.targets)
@@ -176,9 +227,9 @@ class CorpusRepository:
                 for addr in addresses
             ]
 
-            return contract_targets, self._options.targets
+            return contract_targets, targets
 
-        if self._options.addresses_under_test and not self._options.targets:
+        if addresses_under_test and not targets:
             # we have addresses under test, but no targets, so we should use the addresses under test
             # as the targets
             targets = list(
@@ -188,10 +239,10 @@ class CorpusRepository:
                     if self._address_to_contract_mapping[addr] is not None
                 }
             )
-            return self._options.addresses_under_test, targets
+            return addresses_under_test, targets
 
         # This is the case when smart mode is off, or we have both addresses under test and targets
-        return self._options.addresses_under_test, self._options.targets
+        return addresses_under_test, targets
 
     @property
     def seed_state(self) -> Dict[str, any]:
@@ -237,8 +288,10 @@ class CorpusRepository:
         1. All contracts deployed at the addresses specified in the addresses_under_test are found on the RPC.
         2. All contract deployed on the RPC are found in artifacts of the project.
         3. All contracts deployed on the RPC are provided as targets and as addresses under test.
-        4. All contracts provided as addresses under test have a corresponding target (source file name) provided as well.
-        5. All contracts provided as targets (source file name) have a corresponding deployed contract's provided as an address under test.
+        4. All contracts provided as addresses under test have a corresponding target (source file name)
+           provided as well.
+        5. All contracts provided as targets (source file name) have a corresponding deployed contract's
+           provided as an address under test.
         6. All contracts provided as targets (source file name) has been deployed on the RPC.
         """
         unknown_contracts = []
@@ -278,7 +331,8 @@ class CorpusRepository:
                 )
 
         for source_file_name in self.source_targets:
-            # here we use path_check because target could be a directory, so we need to check if the source file is in the directory
+            # here we use path_check because target could be a directory,
+            # so we need to check if the source file is in the directory
             # if the target is a file, then path_check will just check if the source file is the same as the target
             source_file_name = self._artifacts.normalize_path(source_file_name)
             _path_check = self._path_inclusion_checker([source_file_name])
@@ -309,8 +363,8 @@ class CorpusRepository:
         not_targeted_contracts = []
         targets_in_use = {
             *self.contract_targets,
-            *contract_target_not_set,
-            *source_target_not_set,
+            *[addr for addr, _, _ in contract_target_not_set],
+            *[addr for addr, _ in source_target_not_set],
             *contracts_with_no_artifact,
         }
         for contract_address in self.all_deployed_contracts_addresses:
@@ -318,7 +372,8 @@ class CorpusRepository:
                 continue
             contract = self._get_contract_by_address(contract_address)
             if contract is None:
-                not_targeted_contracts.append((contract_address, None, None))
+                # This is the contract without the artifact which should be caught by the previous checks,
+                # so we skip it here
                 continue
             not_targeted_contracts.append(
                 (

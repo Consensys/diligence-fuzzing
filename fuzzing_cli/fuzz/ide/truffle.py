@@ -48,6 +48,8 @@ class TruffleArtifacts(IDEArtifacts):
 
         for source_file, contracts in self.build_files_by_source_file.items():
             for contract in contracts:
+                if contract["contractName"] not in self.project_sources:
+                    continue
                 for file_index, source_file_dep in enumerate(
                     self.project_sources[contract["contractName"]]
                 ):
@@ -71,6 +73,8 @@ class TruffleArtifacts(IDEArtifacts):
         for source_file, contracts in self.build_files_by_source_file.items():
             result_contracts[source_file] = []
             for contract in contracts:
+                if contract["contractName"] not in self.project_sources:
+                    continue
                 ignored_sources = self.get_ignored_sources(
                     generated_sources=contract.get("deployedGeneratedSources"),
                     source_map=contract["deployedSourceMap"],

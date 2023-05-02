@@ -43,7 +43,7 @@ def test_parameters_check(
         corpus_target=corpus_target,
     )
     runner = CliRunner()
-    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
+    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
 
     assert result.exit_code == 2
     assert (
@@ -100,13 +100,13 @@ def test_incremental_fuzzing(
         "get_all_blocks",
         Mock(return_value=get_test_case("testdata/ganache-all-blocks.json")),
     ), patch(
-        "fuzzing_cli.fuzz.run.handle_validation_errors", new=Mock(return_value=True)
+        "fuzzing_cli.fuzz.run.handle_validation_errors", new=Mock(return_value=[])
     ), patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock:
         start_faas_campaign_mock.return_value = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         runner = CliRunner()
-        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
 
     assert result.exit_code == 0
     assert (

@@ -73,8 +73,11 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
-    smart_mode: bool = True
+    smart_mode: bool = False
 
+    no_prompts: bool = Field(
+        True, exclude=True, description="Disable all prompts. Useful for CI/CD."
+    )
     no_build_directory: bool = Field(False, exclude=True)
     no_key: bool = Field(False, exclude=True)
     no_deployed_contract_address: bool = Field(False, exclude=True)
@@ -246,7 +249,10 @@ class FuzzingOptions(BaseSettings):
             return values
 
         if not values.get("no_build_directory") and not values.get("build_directory"):
-            raise ValueError("Build directory not provided")
+            click.secho(
+                "Warning: Build directory not specified. Using IDE defaults. For a proper seed state check "
+                "please set one.",
+            )
 
         if not values.get("sources_directory"):
             click.secho(
@@ -254,14 +260,21 @@ class FuzzingOptions(BaseSettings):
                 "please set one.",
             )
 
+        # If prompts are disabled, we need to make sure that all the required parameters are provided
+        # because we won't be able to ask the user for them.
         if (
-            not values.get("no_deployed_contract_address")
+            values.get("no_prompts")
+            and not values.get("no_deployed_contract_address")
             and not values.get("quick_check", False)
             and not values.get("deployed_contract_address")
         ):
             raise ValueError("Deployed contract address not provided.")
 
-        if not values.get("no_targets") and not values.get("targets"):
+        if (
+            values.get("no_prompts")
+            and not values.get("no_targets")
+            and not values.get("targets")
+        ):
             raise ValueError("Targets not provided.")
 
         return values

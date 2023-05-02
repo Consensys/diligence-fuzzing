@@ -327,7 +327,7 @@ def test_fuzz_empty_artifacts(api_key, tmp_path, ide: Dict[str, any]):
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
         runner = CliRunner()
-        result = runner.invoke(cli, ["run"])
+        result = runner.invoke(cli, ["run", "--no-prompts"])
 
     assert result.exit_code == 2
     assert (
@@ -441,25 +441,11 @@ def test_rpc_not_running(api_key, tmp_path):
     assert result.exit_code != 0
 
 
-def test_fuzz_no_build_dir(tmp_path):
-    runner = CliRunner()
-    write_config(
-        not_include=["build_directory"],
-    )
-
-    result = runner.invoke(
-        cli,
-        ["run", "contracts", "-k", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"],
-    )
-    assert "Error: Invalid config: Build directory not provided\n" in result.output
-    assert result.exit_code != 0
-
-
 def test_fuzz_no_deployed_address(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["deployed_contract_address"])
 
-    result = runner.invoke(cli, ["run", "contracts"])
+    result = runner.invoke(cli, ["run", "contracts", "--no-prompts"])
     assert (
         "Error: Invalid config: Deployed contract address not provided.\n"
         in result.output
@@ -471,7 +457,7 @@ def test_fuzz_no_target(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["targets"])
 
-    result = runner.invoke(cli, ["run"])
+    result = runner.invoke(cli, ["run", "--no-prompts"])
     assert "Error: Invalid config: Targets not provided.\n" in result.output
     assert result.exit_code != 0
 
