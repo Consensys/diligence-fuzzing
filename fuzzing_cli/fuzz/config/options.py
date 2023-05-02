@@ -69,7 +69,9 @@ class FuzzingOptions(BaseSettings):
 
     faas_url: str = Field("https://fuzzing.diligence.tools", exclude=True)
     foundry_tests: bool = False
-    foundry_tests_list: Optional[Dict[str, Dict[str, List[str]]]] = None
+    foundry_tests_list: Optional[Dict[str, Dict[str, List[str]]]] = Field(
+        None, exclude=True
+    )
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
