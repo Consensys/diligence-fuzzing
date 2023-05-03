@@ -7,9 +7,7 @@ from requests_mock import Mocker
 from fuzzing_cli.cli import cli
 from tests.common import write_config
 
-KEY_MALFORMED_ERROR = (
-    "API Key is malformed. The format is `<auth_data>::<refresh_token>`"
-)
+KEY_MALFORMED_ERROR = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. If you don't have an API key, please visit https://fuzzing.diligence.tools/keys to obtain one. If you don't have an active subscription, please visit https://fuzzing.diligence.tools/subscription to obtain a subscription."
 
 
 class ArtifactMock:
@@ -61,7 +59,10 @@ def test_no_keys(tmp_path, truffle_project):
     write_config(ide="truffle", not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "Error: Invalid config: API key not provided" in result.output
+    assert (
+        "Error: Invalid config: API key not provided. To use this tool, you must obtain an API key from https://fuzzing.diligence.tools/keys."
+        in result.output
+    )
     assert result.exit_code != 0
 
 
