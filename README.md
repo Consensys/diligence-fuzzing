@@ -47,7 +47,9 @@ $ python3 setup.py install
 # Basic Usage
 Fuzz is a command-line tool for smart contract fuzzing. It provides several modes of fuzzing, including smart mode, manual mode, and Foundry tests fuzzing.
 
-Sure, here's an updated version with clear headings for each step:
+## Create a configuration file
+
+To automatically generate a configuration file run `fuzz config generate`. You will then be guided through a process to get you going.
 
 ## Arm contracts
 
@@ -129,7 +131,7 @@ export FUZZ_API_KEY=<your_api_key>
 
 ### 3. Enable Smart Mode
 
-To enable Smart Mode, you need to set the `SMART_MODE` environment variable:
+Smart Mode will be enabled by default when you use the configuration generator. To enable Smart Mode manually, you need to set the `SMART_MODE` environment variable:
 
 ```bash
 export FUZZ_SMART_MODE=1
