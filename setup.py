@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 with open("README.md") as readme_file:
     readme = readme_file.read()
 
-with open("HISTORY.rst") as history_file:
+with open("HISTORY.md") as history_file:
     history = history_file.read()
 
 with open("requirements.txt", "r") as f:
@@ -47,7 +47,7 @@ setup(
     install_requires=requirements,
     license="Apache-2.0 License",
     long_description=readme + "\n\n" + history,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     include_package_data=True,
     keywords="diligence-fuzzing",
     name="diligence-fuzzing",
