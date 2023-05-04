@@ -2,10 +2,12 @@
 History
 =======
 
-0.11.1 (2023-04-18)
+0.11.1 (2023-05-04)
 --------------------
-- Fix API key handling
+- Add config sources (.env, ENV variables, config file) parsing
 - Add Foundry tests list to submitted campaign
+- Fix foundry tests build arguments to include metadata
+- Add Smart Mode and Auto Fixes to :code:`fuzz`
 
 0.11.0 (2023-04-07)
 --------------------
