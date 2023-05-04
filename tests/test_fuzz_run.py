@@ -148,7 +148,7 @@ def test_fuzz_run_fuzzing_lessons(
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args
     assert called_with[0][0]["corpus"] == {
-        "address-under-test": "0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
+        "address-under-test": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
         "other-addresses-under-test": None,
         "steps": [
             {
@@ -327,7 +327,7 @@ def test_fuzz_empty_artifacts(api_key, tmp_path, ide: Dict[str, any]):
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
         runner = CliRunner()
-        result = runner.invoke(cli, ["run"])
+        result = runner.invoke(cli, ["run", "--no-prompts"])
 
     assert result.exit_code == 2
     assert (
@@ -441,25 +441,13 @@ def test_rpc_not_running(api_key, tmp_path):
     assert result.exit_code != 0
 
 
-def test_fuzz_no_build_dir(tmp_path):
-    runner = CliRunner()
-    write_config(not_include=["build_directory"])
-
-    result = runner.invoke(cli, ["run", "contracts"])
-    assert (
-        "Build directory not provided. You need to set the `build_directory`"
-        in result.output
-    )
-    assert result.exit_code != 0
-
-
 def test_fuzz_no_deployed_address(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["deployed_contract_address"])
 
-    result = runner.invoke(cli, ["run", "contracts"])
+    result = runner.invoke(cli, ["run", "contracts", "--no-prompts"])
     assert (
-        "Deployed contract address not provided. You need to provide an address"
+        "Error: Invalid config: Deployed contract address not provided.\n"
         in result.output
     )
     assert result.exit_code != 0
@@ -469,8 +457,8 @@ def test_fuzz_no_target(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["targets"])
 
-    result = runner.invoke(cli, ["run"])
-    assert "Error: Target not provided." in result.output
+    result = runner.invoke(cli, ["run", "--no-prompts"])
+    assert "Error: Invalid config: Targets not provided.\n" in result.output
     assert result.exit_code != 0
 
 
@@ -570,6 +558,8 @@ def test_fuzz_submission_error(
         get_test_case("testdata/brownie_project/blocks.json"), codes
     ), patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ), requests_mock.Mocker() as m:
         m.register_uri(
             "POST", "http://localhost:9898", real_http=True
@@ -628,6 +618,8 @@ def test_fuzz_add_scribble_meta(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ):
         campaign_id = "cmp_517b504e67474ab6b26a92a58e0adbf9"
         start_faas_campaign_mock.return_value = campaign_id
@@ -672,3 +664,6 @@ def test_fuzz_add_scribble_meta(
                 )
 
         assert result.output == output
+
+    # cleanup
+    del os.environ["FUZZ_CONFIG_FILE"]

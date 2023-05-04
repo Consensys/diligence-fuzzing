@@ -23,7 +23,7 @@ class BrownieArtifacts(IDEArtifacts):
         map_to_original_source: bool = False,
     ):
         super(BrownieArtifacts, self).__init__(
-            options, targets, build_dir, sources_dir, map_to_original_source
+            options, build_dir, sources_dir, targets, map_to_original_source
         )
 
     @classmethod

@@ -3,7 +3,7 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -20,11 +20,11 @@ class DapptoolsArtifacts(IDEArtifacts):
         options: FuzzingOptions,
         build_dir: Path,
         sources_dir: Path,
-        targets=None,
+        targets: Optional[List[str]] = None,
         map_to_original_source=False,
     ):
         super(DapptoolsArtifacts, self).__init__(
-            options, targets, build_dir, sources_dir, map_to_original_source
+            options, build_dir, sources_dir, targets, map_to_original_source
         )
 
     @classmethod

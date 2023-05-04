@@ -263,6 +263,7 @@ def test_fuzz_run(
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
+            "--no-assert",
         ]
         + [f"{tmp_path}/{t}" for t in targets]
     )

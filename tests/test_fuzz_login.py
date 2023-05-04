@@ -5,12 +5,9 @@ from pytest import mark
 from requests_mock import Mocker
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 from tests.common import write_config
 
-KEY_MALFORMED_ERROR = (
-    "API Key is malformed. The format is `<auth_data>::<refresh_token>`"
-)
+KEY_MALFORMED_ERROR = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. If you don't have an API key, please visit https://fuzzing.diligence.tools/keys to obtain one. If you don't have an active subscription, please visit https://fuzzing.diligence.tools/subscription to obtain a subscription."
 
 
 class ArtifactMock:
@@ -25,6 +22,10 @@ class ArtifactMock:
     def validate(self):
         return None
 
+    @staticmethod
+    def instance_for_targets(instance, targets):
+        return instance
+
 
 class ArtifactsMock:
     def __init__(self, *args, **kwargs):
@@ -38,26 +39,40 @@ class ArtifactsMock:
         pass
 
 
+class CorpusRepoMock:
+    def __init__(self, *args, **kwargs):
+        self.validation_errors = []
+        self.source_targets = []
+
+    @property
+    def seed_state(self):
+        return {
+            "discovery-probability-threshold": 0.0,
+            "num-cores": 1,
+            "assertion-checking-mode": 1,
+            "analysis-setup": {},
+        }
+
+
 def test_no_keys(tmp_path, truffle_project):
     runner = CliRunner()
-    write_config(not_include=["api_key"])
+    write_config(ide="truffle", not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "API key was not provided." in result.output
+    assert (
+        "Error: Invalid config: API key not provided. To use this tool, you must obtain an API key from https://fuzzing.diligence.tools/keys."
+        in result.output
+    )
     assert result.exit_code != 0
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
-@mark.parametrize("as_env,", [False, True])
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
+@mark.parametrize("as_env", [False, True])
 def test_provide_api_key(as_env: bool, tmp_path, truffle_project, monkeypatch):
     runner = CliRunner()
     write_config()
@@ -81,15 +96,11 @@ def test_provide_api_key(as_env: bool, tmp_path, truffle_project, monkeypatch):
     assert "You can view campaign here:" in result.output
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
     "key",
@@ -112,26 +123,11 @@ def test_validate_api_key(key: str, tmp_path):
     assert KEY_MALFORMED_ERROR in result.output
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(
-    RPCClient,
-    attribute="get_seed_state",
-    new=Mock(
-        return_value={
-            "discovery-probability-threshold": 0.0,
-            "num-cores": 1,
-            "assertion-checking-mode": 1,
-            "analysis-setup": {},
-        }
-    ),
-)
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
 @mark.parametrize("return_error,", [True, False])
 def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
     requests_mock.real_http = True

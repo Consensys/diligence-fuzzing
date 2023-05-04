@@ -62,6 +62,7 @@ def generate_fuzz_config(
     chain_id: Optional[str] = None,
     enable_cheat_codes: Optional[bool] = None,
     string_chain_id=True,
+    smart_mode=False,
 ):
     config_file = "analyze:"
     if remappings:
@@ -142,18 +143,18 @@ def generate_fuzz_config(
     if time_limit:
         config_file += f"\n  time_limit: {time_limit}"
 
-    fuzzer_options = ""
+    if not smart_mode:
+        config_file += f"\n  smart_mode: {smart_mode}"
+
     if chain_id is not None:
         if string_chain_id:
-            fuzzer_options += f'\n    chain_id: "{chain_id}"'
+            config_file += f'\n  chain_id: "{chain_id}"'
         else:
-            fuzzer_options += (
-                f"\n    chain_id: {chain_id}"  # hex will be converted to number
+            config_file += (
+                f"\n  chain_id: {chain_id}"  # hex will be converted to number
             )
     if enable_cheat_codes is not None:
-        fuzzer_options += f"\n    enable_cheat_codes: {enable_cheat_codes}"
-    if fuzzer_options:
-        config_file += f"\n  fuzzer_options:{fuzzer_options}"
+        config_file += f"\n  enable_cheat_codes: {enable_cheat_codes}"
 
     return config_file
 
@@ -235,3 +236,24 @@ TEST_BYTECODES = [
         "hash": None,
     },
 ]
+
+
+def construct_output(
+    message=None, prompt=None, result=None, prompt_input="y", error=False
+):
+    error_message = message
+    if result:
+        result = f"{result}\n"
+    if message:
+        message = f"{message}\n"
+        error_message = message
+    if error:
+        error_message = f"Error: {message}"
+        result = ""
+    if prompt:
+        if prompt_input == "y":
+            return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n" + result
+        return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n{error_message}" + result
+    if error:
+        return error_message + result
+    return message + result

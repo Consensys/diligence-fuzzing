@@ -5,7 +5,7 @@
 
 from setuptools import find_packages, setup
 
-with open("README.rst") as readme_file:
+with open("README.md") as readme_file:
     readme = readme_file.read()
 
 with open("HISTORY.rst") as history_file:
@@ -56,6 +56,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/ConsenSys/diligence-fuzzing",
-    version="0.11.0",
+    version="0.11.1",
     zip_safe=False,
 )

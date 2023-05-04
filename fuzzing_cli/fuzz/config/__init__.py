@@ -1,3 +1,3 @@
-from .options import FuzzingOptions
+from .options import AnalyzeOptions, FuzzingOptions
 from .template import generate_yaml
-from .utils import update_config
+from .utils import omit_none, update_config

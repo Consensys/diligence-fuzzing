@@ -17,19 +17,30 @@ CONFIG_TEMPLATE = """analyze:
 fuzz:
   ide: {{ ide }}
 
-  # fuzzer_options:
-    # Change the chain ID that is used by the fuzzer. Default is 0x1 (1)
-    # chain_id: "0x2a" # (42)
-    # Enable/Disable "cheat codes" in fuzzer (as introduced by dapptools)
-    # enable_cheat_codes: true
+  # Change the chain ID that is used by the fuzzer. Default is 0x1 (1)
+  # chain_id: "0x2a" # (42)
+  # Enable/Disable "cheat codes" in fuzzer (as introduced by dapptools)
+  # enable_cheat_codes: true
 
   quick_check: {{ quick_check }}
 
+  smart_mode: {{ smart_mode }}
+
   # Tell the CLI where to find the compiled contracts and compilation artifacts
+  {% if build_directory %}
   build_directory: {{ build_directory }}
+  {% else %}
+  # Can be set manually but is automatic when smart mode is enabled.
+  # build_directory: your_build_dir
+  {% endif %}
 
   # Tell the CLI where to find the contracts source
+  {% if sources_directory %}
   sources_directory: {{ sources_directory }}
+  {% else %}
+  # Can be set manually but is automatic when smart mode is enabled.
+  # sources_directory: your_sources_dir
+  {% endif %}
 
   # The following address is going to be the main target for the fuzzing campaign
   # deployed_contract_address: "0x48b8050b4174f7871ce53AaF76BEAcA765037BFf"
@@ -63,6 +74,7 @@ fuzz:
     # - "contracts/Token.sol"
 {% endif %}
 """
+
 
 env = Environment()
 template = env.from_string(CONFIG_TEMPLATE)

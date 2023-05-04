@@ -119,10 +119,10 @@ class QuickCheck(IDEArtifacts):
     ):
         super(QuickCheck, self).__init__(
             options,
-            targets,
             Path(build_dir).absolute() if build_dir else Path.cwd().absolute(),
             Path(sources_dir).absolute() if sources_dir else Path.cwd().absolute(),
-            map_to_original_source,
+            targets=targets,
+            map_to_original_source=map_to_original_source,
         )
         self.targets = targets
         self.scribble_path = scribble_path

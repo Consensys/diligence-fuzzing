@@ -12,8 +12,7 @@ from click.testing import CliRunner
 from pytest_lazyfixture import lazy_fixture
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.config.utils import parse_config
-from fuzzing_cli.fuzz.generate_config import (
+from fuzzing_cli.fuzz.config.generate import (
     QM,
     determine_build_dir,
     determine_campaign_name,
@@ -23,6 +22,7 @@ from fuzzing_cli.fuzz.generate_config import (
     determine_sources_dir,
     determine_targets,
 )
+from fuzzing_cli.fuzz.config.utils import parse_config
 
 UP = "\x1b\x5b\x41"
 DOWN = "\x1b\x5b\x42"
@@ -32,9 +32,9 @@ RIGHT = "\x1b\x5b\x43"
 
 def test_generate_config(tmp_path, hardhat_project):
     os.chdir(tmp_path)
-    actions = ["y", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
+    actions = ["y", "n", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
     runner = CliRunner()
-    result = runner.invoke(cli, ["generate-config"], input="\n".join(actions))
+    result = runner.invoke(cli, ["config", "generate"], input="\n".join(actions))
     assert result.exit_code == 0
     with open(Path(tmp_path).joinpath(".fuzz.yml"), "r") as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
@@ -47,8 +47,32 @@ def test_generate_config(tmp_path, hardhat_project):
             "sources_directory": str(Path(tmp_path).joinpath("contracts")),
             "targets": [str(Path(tmp_path).joinpath("contracts"))],
             "rpc_url": "http://localhost:1111/",
+            "smart_mode": False,
             "number_of_cores": 4,
             "campaign_name_prefix": Path(tmp_path).name.lower().replace("-", "_"),
+            "quick_check": False,
+        },
+    }
+
+
+def test_generate_config_smart_mode(tmp_path, hardhat_project):
+    os.chdir(tmp_path)
+    actions = ["y", "y", "http://localhost:1111/", "4", "\n"]
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "generate"], input="\n".join(actions))
+    assert result.exit_code == 0
+    with open(Path(tmp_path).joinpath(".fuzz.yml"), "r") as f:
+        config = yaml.load(f, Loader=yaml.SafeLoader)
+    assert config == {
+        "analyze": None,
+        "fuzz": {
+            "ide": "hardhat",
+            "quick_check": False,
+            "rpc_url": "http://localhost:1111/",
+            "smart_mode": True,
+            "number_of_cores": 4,
+            "campaign_name_prefix": Path(tmp_path).name.lower().replace("-", "_"),
+            "quick_check": False,
         },
     }
 
@@ -56,7 +80,7 @@ def test_generate_config(tmp_path, hardhat_project):
 def test_sync_without_config(tmp_path):
     os.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(cli, ["generate-config", "--sync", "sample.yml"])
+    result = runner.invoke(cli, ["config", "generate", "--sync", "sample.yml"])
     assert result.exit_code == 2
     assert f"⚠️  Config file sample.yml does not exist" in result.output
 
@@ -72,7 +96,7 @@ def test_sync_without_config(tmp_path):
     ],
 )
 @patch(
-    "fuzzing_cli.fuzz.generate_config.determine_targets",
+    "fuzzing_cli.fuzz.config.generate.determine_targets",
     new=Mock(return_value=["test1.sol", "test2.sol"]),
 )
 def test_syncing(tmp_path, ide):
@@ -92,7 +116,7 @@ def test_syncing(tmp_path, ide):
         yaml.dump(config, f, default_flow_style=False)
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["generate-config", "--sync"])
+    result = runner.invoke(cli, ["config", "generate", "--sync"])
     assert result.exit_code == 0
 
     updated_config = parse_config(Path(tmp_path).joinpath(".fuzz.yml"))

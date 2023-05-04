@@ -148,7 +148,11 @@ class FaasClient:
             ] = self.options.enable_cheat_codes
 
         if self.options.foundry_tests:
+            # force enable cheat codes for foundry tests
+            api_payload["parameters"]["enable-cheat-codes"] = True
             api_payload["foundryTests"] = True
+            if self.options.foundry_tests_list is not None:
+                api_payload["foundryTestsList"] = self.options.foundry_tests_list
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
