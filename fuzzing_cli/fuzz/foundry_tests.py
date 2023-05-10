@@ -9,10 +9,14 @@ import click
 import toml
 
 from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.exceptions import (
+    ForgeCollectTestsError,
+    ForgeCompilationError,
+    ForgeConfigError,
+)
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
-from fuzzing_cli.fuzz.exceptions import ForgeConfigError, ForgeCompilationError, ForgeCollectTestsError
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -26,7 +30,6 @@ def parse_config() -> Dict[str, Any]:
     LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
     LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
-    
 
 
 def compile_tests(build_args):
@@ -41,7 +44,9 @@ def compile_tests(build_args):
     os.environ["FOUNDRY_CBOR_METADATA"] = "true"
 
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
     except Exception as e:
         raise ForgeCompilationError() from e
     LOGGER.debug("Invoking `forge build` command succeeded")
