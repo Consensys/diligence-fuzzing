@@ -12,16 +12,21 @@ from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
+from fuzzing_cli.fuzz.exceptions import ForgeConfigError, ForgeCompilationError, ForgeCollectTestsError
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 
 def parse_config() -> Dict[str, Any]:
     LOGGER.debug("Invoking `forge config` command")
-    result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    try:
+        result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    except Exception as e:
+        raise ForgeConfigError() from e
     LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
     LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
+    
 
 
 def compile_tests(build_args):
@@ -35,7 +40,10 @@ def compile_tests(build_args):
     os.environ["FOUNDRY_BYTECODE_HASH"] = "ipfs"
     os.environ["FOUNDRY_CBOR_METADATA"] = "true"
 
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except Exception as e:
+        raise ForgeCompilationError() from e
     LOGGER.debug("Invoking `forge build` command succeeded")
 
 
@@ -59,9 +67,12 @@ def collect_tests(
     LOGGER.debug(
         f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})"
     )
-    result = subprocess.run(
-        cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
+    try:
+        result = subprocess.run(
+            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+    except Exception as e:
+        raise ForgeCollectTestsError() from e
     LOGGER.debug(
         f"Invoking `forge test --list` command succeeded. Parsing the list ..."
     )
