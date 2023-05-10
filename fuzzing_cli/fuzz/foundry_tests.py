@@ -89,7 +89,7 @@ def cli():  # pragma: no-cover
     "--key",
     "-k",
     type=click.STRING,
-    help="API key, can be created on the FaaS Dashboard. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key .\n",
+    help="API key, it is **required** and can be created on the FaaS Dashboard. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key .\n",
 )
 @click.option(
     "--dry-run",
