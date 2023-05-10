@@ -1,44 +1,72 @@
 name: Fuzzing CLI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
     test:
         runs-on: ubuntu-20.04
         strategy:
             matrix:
-                python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8", "pypy3.9"]
+                python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.7", "pypy3.8", "pypy3.9" ]
         steps:
-            - uses: actions/checkout@v3
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v4
-              with:
-                  python-version: ${{ matrix.python-version }}
-            - name: Install Python dependencies
-              uses: py-actions/py-dependency-install@v4
-              with:
-                  path: "requirements_dev.txt"
-            - name: Setup tox for GH actions
-              run: pip install tox-gh-actions
-            - name: Test with tox
-              run: make test
+            -   uses: actions/checkout@v3
+            -   name: Set up Python ${{ matrix.python-version }}
+                uses: actions/setup-python@v4
+                with:
+                    python-version: ${{ matrix.python-version }}
+            -   name: Install Python dependencies
+                uses: py-actions/py-dependency-install@v4
+                with:
+                    path: "requirements_dev.txt"
+            -   name: Setup tox for GH actions
+                run: pip install tox-gh-actions
+            -   name: Test with tox
+                run: make test
 
     deploy:
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         needs: test
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - name: Set up Python
-              uses: actions/setup-python@v4
-              with:
-                  python-version: "3.10"
-            - name: Install Python dependencies
-              uses: py-actions/py-dependency-install@v4
-              with:
-                  path: "requirements_dev.txt"
-            - name: Build and publish
-              env:
-                  TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-                  TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-              run: make release
+            -   uses: actions/checkout@v3
+            -   name: Set up Python
+                uses: actions/setup-python@v4
+                with:
+                    python-version: "3.10"
+            -   name: Install Python dependencies
+                uses: py-actions/py-dependency-install@v4
+                with:
+                    path: "requirements_dev.txt"
+            -   name: Build and publish
+                env:
+                    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+                    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+                run: make release
+
+    notify-slack:
+        needs: deploy
+        runs-on: ubuntu-latest
+        if: github.ref == 'refs/heads/main'
+        steps:
+            -   uses: actions/checkout@v3
+                with:
+                    ref: ${{ github.event.pull_request.head.sha }}
+            -   id: non_merge_commit_message
+                run: echo "commit_message=$(git log --pretty=format:'%s' --no-merges -n 1)" >> $GITHUB_OUTPUT
+                shell: bash
+            -   name: Send slack Notification
+                uses: slackapi/slack-github-action@v1.23.0
+                with:
+                    payload: |
+                        {
+                          "project": "${{ github.repository }}",
+                          "env": "main",
+                          "version": "",
+                          "actor": "${{ github.triggering_actor }}",
+                          "commit_sha": "${{ github.sha }}",
+                          "commit_message": "${{ steps.non_merge_commit_message.outputs.commit_message }}",
+                          "commit_link": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}",
+                          "message": ""
+                        }
+                env:
+                    SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
