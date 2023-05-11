@@ -46,7 +46,7 @@ jobs:
     notify-slack:
         needs: test
         runs-on: ubuntu-latest
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         steps:
             -   uses: actions/checkout@v3
                 with:
