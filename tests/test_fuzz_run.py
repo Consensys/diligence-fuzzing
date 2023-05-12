@@ -504,7 +504,7 @@ def test_fuzz_no_target(api_key, tmp_path):
             None,
             None,
             RequestException(),
-            "Error: RequestError: Error starting FaaS campaign\nDetail: RequestException()\n",
+            "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\nDetail: RequestException()\n",
         ),
     ],
 )
@@ -520,23 +520,23 @@ def test_fuzz_submission_error(
 ):
     if error_output == "<JSONDecodeError>":
         error_output = (
-            "Error: RequestError: Error starting FaaS campaign\n"
+            "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
             "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
         )
         _platform, py_version = get_python_version()
         if _platform == "CPython" and py_version == "3.6":
             error_output = (
-                "Error: RequestError: Error starting FaaS campaign\n"
+                "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                 "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
             )
         elif _platform == "PyPy":
             error_output = (
-                "Error: RequestError: Error starting FaaS campaign\n"
+                "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                 "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)')\n"
             )
             if py_version == "3.6":
                 error_output = (
-                    "Error: RequestError: Error starting FaaS campaign\n"
+                    "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                     "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)',)\n"
                 )
 
