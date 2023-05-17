@@ -9,6 +9,11 @@ import click
 import toml
 
 from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.exceptions import (
+    ForgeCollectTestsError,
+    ForgeCompilationError,
+    ForgeConfigError,
+)
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
 from fuzzing_cli.fuzz.run import submit_campaign
@@ -18,7 +23,10 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 def parse_config() -> Dict[str, Any]:
     LOGGER.debug("Invoking `forge config` command")
-    result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    try:
+        result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+    except Exception as e:
+        raise ForgeConfigError() from e
     LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
     LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
@@ -35,7 +43,12 @@ def compile_tests(build_args):
     os.environ["FOUNDRY_BYTECODE_HASH"] = "ipfs"
     os.environ["FOUNDRY_CBOR_METADATA"] = "true"
 
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+    except Exception as e:
+        raise ForgeCompilationError() from e
     LOGGER.debug("Invoking `forge build` command succeeded")
 
 
@@ -59,9 +72,12 @@ def collect_tests(
     LOGGER.debug(
         f"Invoking `forge test --list` command to list tests ({json.dumps(cmd)})"
     )
-    result = subprocess.run(
-        cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
+    try:
+        result = subprocess.run(
+            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+    except Exception as e:
+        raise ForgeCollectTestsError() from e
     LOGGER.debug(
         f"Invoking `forge test --list` command succeeded. Parsing the list ..."
     )
@@ -89,7 +105,7 @@ def cli():  # pragma: no-cover
     "--key",
     "-k",
     type=click.STRING,
-    help="API key, can be created on the FaaS Dashboard. ",
+    help="API key, it is **required** and can be created on the FaaS Dashboard. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key .\n",
 )
 @click.option(
     "--dry-run",

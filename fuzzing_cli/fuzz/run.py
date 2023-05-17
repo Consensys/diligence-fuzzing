@@ -243,7 +243,7 @@ def handle_validation_errors(
     "--key",
     type=click.STRING,
     default=None,
-    help="API key, can be created on the FaaS Dashboard. ",
+    help="API key, can be created on the FaaS Dashboard. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key ",
 )
 @click.option(
     "-p",

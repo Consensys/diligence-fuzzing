@@ -95,7 +95,10 @@ class FaasClient:
         except Exception as e:
             if isinstance(e, BadStatusCode):
                 raise e
-            raise RequestError("Error starting FaaS campaign", detail=repr(e))
+            raise RequestError(
+                "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
+                detail=repr(e),
+            )
 
     def create_faas_campaign(
         self, campaign_data: IDEArtifacts, seed_state: Dict[str, any]
