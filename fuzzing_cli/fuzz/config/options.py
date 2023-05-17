@@ -210,7 +210,7 @@ class FuzzingOptions(BaseSettings):
 
     @validator("key")
     def _validate_key(cls, key: Optional[str]) -> Optional[str]:
-        error_message = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. If you don't have an API key, please visit https://fuzzing.diligence.tools/keys to obtain one. If you don't have an active subscription, please visit https://fuzzing.diligence.tools/subscription to obtain a subscription."
+        error_message = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. You need an API key and active subscriptions. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key"
         # format is "<auth_data>::<refresh_token>"
         if not key:
             return None
@@ -289,7 +289,7 @@ class FuzzingOptions(BaseSettings):
     def _common_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if not values.get("no_key") and not values.get("key"):
             raise ValueError(
-                "API key not provided. To use this tool, you must obtain an API key from https://fuzzing.diligence.tools/keys."
+                "API key not provided. You can set the API key using the FUZZ_API_KEY environment variable or the -k configuration parameter. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key"
             )
 
         if values.get("incremental") and not values.get("project"):

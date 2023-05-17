@@ -271,13 +271,28 @@ class CorpusRepository:
         ]
         path_check = self._path_inclusion_checker(processed_source_targets)
 
+        # These are the contracts that are deployed on the RPC, but we can't find them using the
+        # `rpc.get_all_deployed_contracts_addresses`. This can happen if the contract was deployed
+        # from another contract (factory contract).
+        discovered_contracts = {}
+        discovered_contract_to_address_mapping = {}
+
         for contract_address in self.contract_targets:
             # 1. All contracts deployed at the addresses specified in the addresses_under_test are found on the RPC.
             if contract_address not in self.all_deployed_contracts_addresses:
+                contract = self._get_contract_by_address(contract_address)
+                if contract:
+                    discovered_contracts[contract_address] = contract
+                    discovered_contract_to_address_mapping[
+                        self._contract_key(contract)
+                    ] = contract_address
+                    continue
                 unknown_contracts.append(contract_address)
                 continue
 
-            contract = self._address_to_contract_mapping.get(contract_address, None)
+            contract = self._address_to_contract_mapping.get(
+                contract_address, None
+            ) or discovered_contracts.get(contract_address, None)
             # 2. All contract deployed on the RPC are found in artifacts of the project.
             if contract is None:
                 LOGGER.debug(
@@ -311,6 +326,8 @@ class CorpusRepository:
                     continue
                 contract_address = self._contract_to_address_mapping.get(
                     self._contract_key(contract), None
+                ) or discovered_contract_to_address_mapping.get(
+                    self._contract_key(contract), None
                 )
                 # 6. All contracts provided as targets (source file name) has been deployed on the RPC.
                 if contract_address is None:
@@ -319,11 +336,8 @@ class CorpusRepository:
                 # 5. All contracts provided as targets (source file name) have a corresponding
                 # deployed contract's address provided as an address under test.
                 if contract_address not in self.contract_targets:
-                    contract_name = self._address_to_contract_mapping[contract_address][
-                        "contractName"
-                    ]
                     contract_target_not_set.append(
-                        (contract_address, source_file_name, contract_name)
+                        (contract_address, source_file_name, contract["contractName"])
                     )
                     continue
 
@@ -335,7 +349,9 @@ class CorpusRepository:
             *[addr for addr, _ in source_target_not_set],
             *contracts_with_no_artifact,
         }
-        for contract_address in self.all_deployed_contracts_addresses:
+        for contract_address in self.all_deployed_contracts_addresses + list(
+            discovered_contracts.keys()
+        ):
             if contract_address in targets_in_use:
                 continue
             contract = self._get_contract_by_address(contract_address)

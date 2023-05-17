@@ -1,5 +1,10 @@
 # History
 
+0.11.2 (2023-05-17)
+--------------------
+- Add more verbose error messages
+- Fix factory deployed contracts discovery
+
 0.11.1 (2023-05-04)
 --------------------
 - Add config sources (.env, ENV variables, config file) parsing
