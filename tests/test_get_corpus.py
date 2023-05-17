@@ -206,6 +206,9 @@ def test_no_latest_block(api_key, tmp_path, block, foundry_project):
         m.register_uri(
             "POST", "http://localhost:9898", status_code=200, json={"result": block}
         )
+        m.register_uri(
+            "POST", "http://localhost:9898", status_code=200, json={"result": None}
+        )
 
         runner = CliRunner()
         result = runner.invoke(
