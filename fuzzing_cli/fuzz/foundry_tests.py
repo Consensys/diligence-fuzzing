@@ -32,6 +32,12 @@ def parse_config() -> Dict[str, Any]:
     return toml.loads(result.stdout.decode())
 
 
+def run_build_command(cmd):
+    return subprocess.run(
+        cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+
+
 def compile_tests(build_args):
     cmd = ["forge", "build", "--build-info", "--force", *build_args]
     LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
@@ -44,11 +50,20 @@ def compile_tests(build_args):
     os.environ["FOUNDRY_CBOR_METADATA"] = "true"
 
     try:
-        subprocess.run(
-            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-        )
+        run_build_command(cmd)
     except Exception as e:
-        raise ForgeCompilationError() from e
+        # Here we try to compile with FOUNDRY_OPTIMIZER=true. This is because of a solidity bug where it sometimes fails to compile with FOUNDRY_OPTIMIZER=false.
+        # More at https://github.com/ethereum/solidity/issues/12980#issuecomment-1562813429
+        LOGGER.warning(
+            "⚠️ Compilation failed with FOUNDRY_OPTIMIZER=false. Retrying with FOUNDRY_OPTIMIZER=true. This may result in lower quality results for the fuzzing campaign because compiler optimization affects source maps."
+        )
+        try:
+            os.environ["FOUNDRY_OPTIMIZER"] = "true"
+            os.environ["FOUNDRY_BYTECODE_HASH"] = "ipfs"
+            os.environ["FOUNDRY_CBOR_METADATA"] = "true"
+            run_build_command(cmd)
+        except Exception as e:
+            raise ForgeCompilationError() from e
     LOGGER.debug("Invoking `forge build` command succeeded")
 
 
