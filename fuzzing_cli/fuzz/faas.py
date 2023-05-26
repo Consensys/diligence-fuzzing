@@ -71,9 +71,14 @@ class FaasClient:
             req_url = urljoin(
                 self.options.faas_url, "api/campaigns/?start_immediately=true"
             )
+            response_status_code = -1
             response = requests.post(req_url, json=payload, headers=self.headers)
+            # We need to store the response status code before we call response.json() because .json() may raise an exception
+            # and we want to be able to access the status code in the exception handler to handle the 502s.
+            response_status_code = response.status_code
             response_data = response.json()
             if response.status_code != requests.codes.ok:
+                
                 if (
                     response.status_code == 403
                     and response_data["detail"]
@@ -93,6 +98,13 @@ class FaasClient:
                 )
             return response_data["id"]
         except Exception as e:
+            if(response_status_code == 502):
+                # This is just a hotfix for the 502 error, which we think is caused by the payload being too large. However,the campaign is still
+                # created, just not started. Even stranger, upon a second request, the campaign is started. So there might be caching involved.
+                raise RequestError(
+                    "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
+                    detail="Server side error, it is possible that the campaign payload is too large.",
+                )
             if isinstance(e, BadStatusCode):
                 raise e
             raise RequestError(
