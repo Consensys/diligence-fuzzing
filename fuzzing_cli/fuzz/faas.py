@@ -78,7 +78,6 @@ class FaasClient:
             response_status_code = response.status_code
             response_data = response.json()
             if response.status_code != requests.codes.ok:
-                
                 if (
                     response.status_code == 403
                     and response_data["detail"]
@@ -98,7 +97,7 @@ class FaasClient:
                 )
             return response_data["id"]
         except Exception as e:
-            if(response_status_code == 502):
+            if response_status_code == 502:
                 # This is just a hotfix for the 502 error, which we think is caused by the payload being too large. However,the campaign is still
                 # created, just not started. Even stranger, upon a second request, the campaign is started. So there might be caching involved.
                 raise RequestError(
