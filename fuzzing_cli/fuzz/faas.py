@@ -4,6 +4,7 @@ import random
 import string
 from typing import Dict, Optional
 from urllib.parse import urljoin
+import os
 
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -178,7 +179,11 @@ class FaasClient:
             )
 
         if self.options.dry_run:  # pragma: no cover
-            print(json.dumps(api_payload, indent=4))
+            # if the env var FUZZ_DRY_RUN_NO_PRINT is set, don't print the payload
+            if os.environ.get("FUZZ_DRY_RUN_NO_PRINT") is None:
+                print(json.dumps(api_payload, indent=4))
+            else:
+                print("Dry run enabled, not printing payload.")
             return "campaign not started due to --dry-run option"
 
         campaign_id = self.start_faas_campaign(api_payload)

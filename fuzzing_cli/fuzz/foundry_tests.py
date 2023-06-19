@@ -10,6 +10,7 @@ import toml
 
 from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
+    ForgeNoTestsFoundError,
     ForgeCollectTestsError,
     ForgeCompilationError,
     ForgeConfigError,
@@ -100,6 +101,9 @@ def collect_tests(
     tests: Dict[str, Dict[str, List[str]]] = json.loads(
         result.stdout.decode().splitlines()[-1]
     )
+    # if there are no tests, we return an empty list and throw an error
+    if not tests:
+        raise ForgeNoTestsFoundError()
     for test_path, test_contracts in tests.items():
         targets.append(test_path)
         if match_contract:
