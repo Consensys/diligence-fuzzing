@@ -102,6 +102,7 @@ def collect_tests(
         result.stdout.decode().splitlines()[-1]
     )
     # if there are no tests, we return an empty list and throw an error
+    
     if not tests:
         raise ForgeNoTestsFoundError()
     for test_path, test_contracts in tests.items():
