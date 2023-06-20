@@ -7,15 +7,17 @@ list_output = """
     No files changed, compilation skipped
     {"test/Counter.t.sol":{"CounterTest":["testIncrement","testSetNumber"]}}"""
 
+list_output_2 = """[⠔] Compiling...
+        No files changed, compilation skipped
+        {"test/Counter.t.sol":{"CounterTest":["testIncrement","testSetNumber"]},"test/VulnerableToken.t.sol":{"VulnerableTokenTest":["testTransfer"]}}"""
 
 list_args = {
     '--match-path "test/Counter*"': list_output,
     '--match-path "test/Counter*" --match-contract "Counter*"': list_output,
     "--match-path test/Counter* --match-contract Counter*": list_output,
     '--match-contract "Counter*"': list_output,
-    "--match-path test/*": """[⠔] Compiling...
-        No files changed, compilation skipped
-        {"test/Counter.t.sol":{"CounterTest":["testIncrement","testSetNumber"]},"test/VulnerableToken.t.sol":{"VulnerableTokenTest":["testTransfer"]}}""",
+    "--match-path test/*":list_output_2,
+    '': list_output_2,
 }
 
 

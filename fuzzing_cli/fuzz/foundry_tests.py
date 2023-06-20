@@ -76,8 +76,6 @@ def collect_tests(
     targets: List[str] = []
     target_contracts: Optional[Dict[str, Set[str]]] = None
     cmd = ["forge", "test", "--list", "--json"]
-    if match_path is None and match_contract is None:
-        cmd += ["--match-path", f"{test_dir}/*"]
 
     if match_path:
         cmd += ["--match-path", match_path]
@@ -95,14 +93,13 @@ def collect_tests(
     except Exception as e:
         raise ForgeCollectTestsError() from e
     LOGGER.debug(
-        f"Invoking `forge test --list` command succeeded. Parsing the list ..."
+        f"Invoking `forge test --list --json` command succeeded. Parsing the list ..."
     )
     LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
     tests: Dict[str, Dict[str, List[str]]] = json.loads(
         result.stdout.decode().splitlines()[-1]
     )
     # if there are no tests, we return an empty list and throw an error
-    
     if not tests:
         raise ForgeNoTestsFoundError()
     for test_path, test_contracts in tests.items():
