@@ -10,6 +10,7 @@ import toml
 
 from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
+    ForgeNotFoundryDirectory,
     ForgeNoTestsFoundError,
     ForgeCollectTestsError,
     ForgeCompilationError,
@@ -95,10 +96,17 @@ def collect_tests(
     LOGGER.debug(
         f"Invoking `forge test --list --json` command succeeded. Parsing the list ..."
     )
-    LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
-    tests: Dict[str, Dict[str, List[str]]] = json.loads(
-        result.stdout.decode().splitlines()[-1]
-    )
+    try:
+        LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
+        tests: Dict[str, Dict[str, List[str]]] = json.loads(
+            result.stdout.decode().splitlines()[-1]
+        )
+    # we catch the exception json.decoder.JSONDecodeError
+    except json.decoder.JSONDecodeError as e:
+        # we check if this directory has a foundry.toml file
+        if not (test_dir / "foundry.toml").exists():
+            raise ForgeNotFoundryDirectory() from e
+
     # if there are no tests, we return an empty list and throw an error
     if not tests:
         raise ForgeNoTestsFoundError()

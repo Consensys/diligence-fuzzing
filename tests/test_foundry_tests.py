@@ -122,7 +122,6 @@ def test_foundry_tests(
         if build_args:
             cmd += build_args
         result = runner.invoke(cli, cmd)
-    print("result:", result.output)
     assert result.exit_code == 0
     assert (
         f"You can view campaign here: http://localhost:9899/campaigns/{campaign_id}"
@@ -166,5 +165,4 @@ def test_foundry_tests(
                 "CounterTest": ["testIncrement", "testSetNumber"],
             },
         }
-    print("payload:", payload["foundryTestsList"])
     assert payload["foundryTestsList"] == foundry_tests_list
