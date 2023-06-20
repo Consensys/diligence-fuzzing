@@ -103,9 +103,14 @@ def collect_tests(
         )
     # we catch the exception json.decoder.JSONDecodeError
     except json.decoder.JSONDecodeError as e:
-        # we check if this directory has a foundry.toml file
-        if not (test_dir / "foundry.toml").exists():
-            raise ForgeNotFoundryDirectory() from e
+        # we look at all the files in the current folder
+        files = os.listdir(".")
+        # and check if there is a foundry.toml file
+        if not "foundry.toml" in files:
+            raise ForgeNotFoundryDirectory()
+        # if its a foundry directory, we return the error of tests not found.
+        else:
+            raise ForgeNoTestsFoundError()
 
     # if there are no tests, we return an empty list and throw an error
     if not tests:
