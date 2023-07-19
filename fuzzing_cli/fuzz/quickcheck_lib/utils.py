@@ -3,7 +3,6 @@ from Crypto.Hash import keccak
 
 
 def mk_contract_address(sender: str, nonce: int, prefix=False) -> str:
-    # TODO: maybe add another method to derive contract address?
     """
     A contract address is derived from the sender address and the nonce using keccak256.
 

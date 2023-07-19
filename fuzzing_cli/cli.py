@@ -49,9 +49,8 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     # set loggers to debug mode
     if debug:
-        logging.basicConfig(level=logging.DEBUG)
-        for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).setLevel(logging.DEBUG)
+        LOGGER.setLevel(logging.DEBUG)
+        LOGGER.addHandler(logging.StreamHandler())
 
     LOGGER.debug("Initializing configuration context")
     if Path(config).is_file():
