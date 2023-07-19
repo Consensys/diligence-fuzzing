@@ -162,20 +162,25 @@ def foundry_test(
     click.echo("🛠️  Parsing foundry config")
     foundry_config = parse_config()
 
+    # depending on the FOUNDRY_PROFILE env var, the profile name may be different,
+    # and it will be the only key in the profile dict, so we need to get the first key
+    profile_name = list(foundry_config["profile"].keys())[0]
+
     click.echo("🛠️  Compiling tests")
     compile_tests([] if build_args is None else build_args.split(" "))
 
     click.echo("🛠️  Collecting tests")
+
     targets, target_contracts, tests_list = collect_tests(
-        test_dir=Path(foundry_config["profile"]["default"]["test"]),
+        test_dir=Path(foundry_config["profile"][profile_name]["test"]),
         match_path=match_path,
         match_contract=match_contract,
     )
 
     options = FuzzingOptions(
         ide="foundry",
-        build_directory=foundry_config["profile"]["default"]["out"],
-        sources_directory=foundry_config["profile"]["default"]["src"],
+        build_directory=foundry_config["profile"][profile_name]["out"],
+        sources_directory=foundry_config["profile"][profile_name]["src"],
         targets=targets,
         quick_check=True,
         enable_cheat_codes=True,
