@@ -129,7 +129,8 @@ class CorpusRepository:
             return None
         return contract
 
-    @functools.cached_property
+    @property
+    @functools.lru_cache(maxsize=1)
     def all_deployed_contracts_addresses(self) -> List[str]:
         """Get all the deployed contracts addresses from an RPC node excluding transactions from the fuzzing lessons"""
         blocks_to_skip, _ = self._fuzzing_lessons

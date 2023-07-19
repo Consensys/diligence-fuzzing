@@ -11,7 +11,7 @@ class StructLog(TypedDict):
     pc: int
     stack: List[str]
     error: Optional[str]
-    memory: Optional[list[str]]
+    memory: Optional[List[str]]
     storage: Optional[Dict[str, Any]]
 
 
