@@ -17,19 +17,19 @@ from tests.common import get_test_case, write_config
             None,
             True,
             None,
-            "`incremental` config parameter is set to true without specifying `project`. "
-            "Please provide the `project` in your .fuzz.yml config file.",
+            "Invalid config: `incremental` config parameter is set to true without specifying `project`.",
         ),
         (
             "test-project-1",
             True,
             "cmp_123",
-            "Both `incremental` and `corpus_target` are set. "
-            "Please set only one option in your config file",
+            "Invalid config: Both `incremental` and `corpus_target` are set. "
+            "Please set only one option.",
         ),
     ],
 )
 def test_parameters_check(
+    api_key,
     tmp_path,
     project: Optional[str],
     incremental: Optional[bool],
@@ -43,11 +43,11 @@ def test_parameters_check(
         corpus_target=corpus_target,
     )
     runner = CliRunner()
-    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
+    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
 
     assert result.exit_code == 2
     assert (
-        f"Usage: cli run [OPTIONS] [TARGET]...\nTry 'cli run --help' for help.\n\nError: {error_detail}\n"
+        f"Usage: cli run [OPTIONS] [TARGETS]...\nTry 'cli run --help' for help.\n\nError: {error_detail}\n"
         == result.output
     )
 
@@ -79,6 +79,7 @@ def test_parameters_check(
     ],
 )
 def test_incremental_fuzzing(
+    api_key,
     tmp_path,
     project: Optional[str],
     incremental: Optional[bool],
@@ -98,14 +99,14 @@ def test_incremental_fuzzing(
         RPCClient,
         "get_all_blocks",
         Mock(return_value=get_test_case("testdata/ganache-all-blocks.json")),
-    ), patch.object(
-        RPCClient, "check_contracts", Mock(return_value=True)
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors", new=Mock(return_value=[])
     ), patch.object(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock:
         start_faas_campaign_mock.return_value = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         runner = CliRunner()
-        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
 
     assert result.exit_code == 0
     assert (
@@ -114,4 +115,4 @@ def test_incremental_fuzzing(
     )
     start_faas_campaign_mock.assert_called_once()
     request_payload = start_faas_campaign_mock.call_args[0][0]
-    assert request_payload["corpus"]["target"] == corpus_target_result
+    assert request_payload["corpus"].get("target") == corpus_target_result

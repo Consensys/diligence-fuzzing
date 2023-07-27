@@ -3,10 +3,9 @@ import os
 import tempfile
 from functools import lru_cache
 from json import JSONDecodeError
-from os.path import abspath
 from pathlib import Path
 from subprocess import PIPE, CompletedProcess, TimeoutExpired, run
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -18,20 +17,17 @@ class TruffleArtifacts(IDEArtifacts):
     def __init__(
         self,
         options: FuzzingOptions,
-        targets: List[str],
         build_dir: Path,
         sources_dir: Path,
+        targets: Optional[List[str]] = None,
         map_to_original_source: bool = False,
     ):
         super(TruffleArtifacts, self).__init__(
-            options, targets, build_dir, sources_dir, map_to_original_source
+            options, build_dir, sources_dir, targets, map_to_original_source
         )
         project_dir = str(Path.cwd().absolute())
         self.build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         self.project_sources = self._get_project_sources(project_dir)
-        # targets could be specified using relative path. But sourcePath in truffle artifacts
-        # will use absolute paths, so we need to use absolute paths in targets as well
-        self._include = [abspath(fp) for fp in self._include]
 
     @classmethod
     def get_name(cls) -> str:
@@ -43,27 +39,47 @@ class TruffleArtifacts(IDEArtifacts):
         files = list(os.walk(root_dir))[0][2]
         return "truffle-config.js" in files
 
-    @property
-    def contracts(self, only_included: bool = True) -> List[Contract]:
-        return self.fetch_data()[0]
-
-    @property
-    def sources(self) -> Dict[str, Source]:
-        return self.fetch_data()[1]
-
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         result_contracts = {}
         result_sources = {}
+
+        source_ids: List[int] = []
+
+        for source_file, contracts in self.build_files_by_source_file.items():
+            for contract in contracts:
+                if contract["contractName"] not in self.project_sources:
+                    continue
+                for file_index, source_file_dep in enumerate(
+                    self.project_sources[contract["contractName"]]
+                ):
+                    if source_file_dep in result_sources.keys():
+                        continue
+
+                    if source_file_dep not in self.build_files_by_source_file:
+                        LOGGER.debug(f"{source_file} not found.")
+                        continue
+
+                    # We can select any dict on the build_files_by_source_file[source_file] array
+                    # because the .source and .ast values will be the same in all.
+                    target_file = self.build_files_by_source_file[source_file_dep][0]
+                    result_sources[source_file_dep] = {
+                        "fileIndex": file_index,
+                        "source": target_file["source"],
+                        "ast": target_file["ast"],
+                    }
+                    source_ids.append(file_index)
+
         for source_file, contracts in self.build_files_by_source_file.items():
             result_contracts[source_file] = []
             for contract in contracts:
-                ignored_sources = set()
-                for generatedSource in contract.get("deployedGeneratedSources", []):
-                    if generatedSource["language"].lower() == "yul" and type(
-                        generatedSource["id"] is int
-                    ):
-                        ignored_sources.add(generatedSource["id"])
+                if contract["contractName"] not in self.project_sources:
+                    continue
+                ignored_sources = self.get_ignored_sources(
+                    generated_sources=contract.get("deployedGeneratedSources"),
+                    source_map=contract["deployedSourceMap"],
+                    source_ids=source_ids,
+                )
                 # We get the build items from truffle and rename them into the properties used by the FaaS
                 try:
                     result_contracts[source_file] += [
@@ -88,24 +104,6 @@ class TruffleArtifacts(IDEArtifacts):
                         f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
                     )
 
-                for file_index, source_file_dep in enumerate(
-                    self.project_sources[contract["contractName"]]
-                ):
-                    if source_file_dep in result_sources.keys():
-                        continue
-
-                    if source_file_dep not in self.build_files_by_source_file:
-                        LOGGER.debug(f"{source_file} not found.")
-                        continue
-
-                    # We can select any dict on the build_files_by_source_file[source_file] array
-                    # because the .source and .ast values will be the same in all.
-                    target_file = self.build_files_by_source_file[source_file_dep][0]
-                    result_sources[source_file_dep] = {
-                        "fileIndex": file_index,
-                        "source": target_file["source"],
-                        "ast": target_file["ast"],
-                    }
         return result_contracts, result_sources
 
     def query_truffle_db(self, query: str, project_dir: str) -> Dict[str, Any]:

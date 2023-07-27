@@ -23,7 +23,7 @@ class BrownieArtifacts(IDEArtifacts):
         map_to_original_source: bool = False,
     ):
         super(BrownieArtifacts, self).__init__(
-            options, targets, build_dir, sources_dir, map_to_original_source
+            options, build_dir, sources_dir, targets, map_to_original_source
         )
 
     @classmethod
@@ -44,47 +44,55 @@ class BrownieArtifacts(IDEArtifacts):
     def get_default_sources_dir() -> Path:
         return Path.cwd().joinpath("contracts")
 
-    @property
-    def contracts(self) -> List[Contract]:
-        return self.fetch_data()[0]
-
-    @property
-    def sources(self) -> Dict[str, Source]:
-        return self.fetch_data()[1]
-
-    @staticmethod
-    def get_compiler_generated_source_ids(
-        source_map: str, sources: Dict[str, str]
-    ) -> List[int]:
-        # this method is necessary because brownie does not preserve `generatedSources` for deployedBytecode
-        # from solidity compiler's output (i.e. `deployedGeneratedSources`)
-        sm = source_map.split(";")
-        allFileIds = set()
-        for c in sm:
-            component = c.split(":")
-            if len(component) < 3 or component[2] == "":
-                continue
-            allFileIds.add(component[2])
-        return sorted(
-            [int(fileId) for fileId in allFileIds if fileId not in sources.keys()]
-        )
-
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        """ example build_files_by_source_file
-            {
-                'contracts/Token.sol':
-                    {
-                        'abi':... ,
-                        'ast':... ,
-                        'source':...,
-                        ''
-                    }
-            }
+        """example build_files_by_source_file
+        {
+            'contracts/Token.sol':
+                {
+                    'abi':... ,
+                    'ast':... ,
+                    'source':...,
+                    ''
+                }
+        }
         """
         build_files_by_source_file = self._get_build_artifacts(self.build_dir)
         result_contracts = {}
         result_sources = {}
+
+        source_ids: List[int] = []
+
+        for source_file, contracts in build_files_by_source_file.items():
+            for contract in contracts:
+                for file_index, source_file_dep in contract["allSourcePaths"].items():
+                    if source_file_dep in result_sources.keys():
+                        continue
+
+                    if source_file_dep not in build_files_by_source_file:
+                        LOGGER.debug(f"{source_file} not found.")
+                        continue
+
+                    # We can select any dict on the build_files_by_source_file[source_file] array
+                    # because the .source and .ast values will be the same in all
+                    file_index = int(file_index)
+                    target_file = build_files_by_source_file[source_file_dep][0]
+                    result_sources[source_file_dep] = {
+                        "fileIndex": file_index,
+                        "source": target_file["source"],
+                        "ast": target_file["ast"],
+                    }
+                    source_ids.append(file_index)
+
+                    if (
+                        self.map_to_original_source
+                        and Path(source_file_dep + ".original").is_file()
+                    ):
+                        # we check if the current source file has a non instrumented version
+                        # if it does, we include that one as the source code
+                        result_sources[source_file_dep][
+                            "source"
+                        ] = get_content_from_file(source_file_dep + ".original")
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():
@@ -101,9 +109,10 @@ class BrownieArtifacts(IDEArtifacts):
                             "bytecode": contract["bytecode"],
                             "contractName": contract["contractName"],
                             "mainSourceFile": contract["sourcePath"],
-                            "ignoredSources": self.get_compiler_generated_source_ids(
+                            "ignoredSources": self.get_ignored_sources(
+                                generated_sources=None,
                                 source_map=contract["deployedSourceMap"],
-                                sources=contract["allSourcePaths"],
+                                source_ids=source_ids,
                             ),
                         }
                     ]
@@ -111,31 +120,4 @@ class BrownieArtifacts(IDEArtifacts):
                     raise BuildArtifactsError(
                         f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
                     )
-
-                for file_index, source_file_dep in contract["allSourcePaths"].items():
-                    if source_file_dep in result_sources.keys():
-                        continue
-
-                    if source_file_dep not in build_files_by_source_file:
-                        LOGGER.debug(f"{source_file} not found.")
-                        continue
-
-                    # We can select any dict on the build_files_by_source_file[source_file] array
-                    # because the .source and .ast values will be the same in all.
-                    target_file = build_files_by_source_file[source_file_dep][0]
-                    result_sources[source_file_dep] = {
-                        "fileIndex": file_index,
-                        "source": target_file["source"],
-                        "ast": target_file["ast"],
-                    }
-
-                    if (
-                        self.map_to_original_source
-                        and Path(source_file_dep + ".original").is_file()
-                    ):
-                        # we check if the current source file has a non instrumented version
-                        # if it does, we include that one as the source code
-                        result_sources[source_file_dep][
-                            "source"
-                        ] = get_content_from_file(source_file_dep + ".original")
         return result_contracts, result_sources

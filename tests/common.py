@@ -53,12 +53,16 @@ def generate_fuzz_config(
     absolute_sources_directory: bool = True,
     remappings: List[str] = [],
     solc_version: Optional[str] = None,
-    no_assert: Optional[bool] = None,
+    _assert: Optional[bool] = None,
     scribble_path: Optional[str] = None,
     quick_check: Optional[bool] = None,
     faas_url: Optional[str] = None,
     suggested_seed_seqs: Optional[List[Mapping[str, any]]] = None,
     time_limit: Optional[str] = None,
+    chain_id: Optional[str] = None,
+    enable_cheat_codes: Optional[bool] = None,
+    string_chain_id=True,
+    smart_mode=False,
 ):
     config_file = "analyze:"
     if remappings:
@@ -66,8 +70,8 @@ def generate_fuzz_config(
         config_file += f"\n  remappings:\n{_data}"
     if solc_version:
         config_file += f"\n  solc-version: {solc_version}"
-    if no_assert is not None:
-        config_file += f"\n  no-assert: {str(no_assert).lower()}"
+    if _assert is not None:
+        config_file += f"\n  assert: {str(_assert).lower()}"
     if scribble_path is not None:
         config_file += f"\n  scribble-path: {scribble_path}"
 
@@ -84,10 +88,6 @@ def generate_fuzz_config(
         config_file += f'\n  rpc_url: "http://localhost:9898"'
     if "faas_url" not in not_include:
         config_file += f'\n  faas_url: "http://localhost:9899"'
-    if "api_key" not in not_include:
-        config_file += (
-            f'\n  key:\n    "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
-        )
     if "build_directory" not in not_include:
         if absolute_build_directory:
             config_file += f"\n  build_directory: {base_path}/{build_directory}"
@@ -142,6 +142,19 @@ def generate_fuzz_config(
 
     if time_limit:
         config_file += f"\n  time_limit: {time_limit}"
+
+    if not smart_mode:
+        config_file += f"\n  smart_mode: {smart_mode}"
+
+    if chain_id is not None:
+        if string_chain_id:
+            config_file += f'\n  chain_id: "{chain_id}"'
+        else:
+            config_file += (
+                f"\n  chain_id: {chain_id}"  # hex will be converted to number
+            )
+    if enable_cheat_codes is not None:
+        config_file += f"\n  enable_cheat_codes: {enable_cheat_codes}"
 
     return config_file
 
@@ -203,3 +216,44 @@ def get_python_version() -> Tuple[str, str]:
         platform.python_implementation(),
         f"{sys.version_info.major}.{sys.version_info.minor}",
     )
+
+
+TEST_BYTECODES = [
+    {  # bzzr0
+        "bytecode": "0x608060456fea165627a7a723058209bfcd191ae208d998c6143fb5aecdac995d4c395ef81a338751f04f1ed36c7a50029",
+        "hash": "9bfcd191ae208d998c6143fb5aecdac995d4c395ef81a338751f04f1ed36c7a5",
+    },
+    {  # ipfs
+        "bytecode": "0x6080604ea264697066735822122067d3638c35c905f4b739a2f36a87ce99b451f2489918e2ebe44988499e3bd5cd64736f6c63430006070033",
+        "hash": "122067d3638c35c905f4b739a2f36a87ce99b451f2489918e2ebe44988499e3bd5cd",
+    },
+    {  # bzzr1
+        "bytecode": "0x6080604ea265627a7a72315820417f7029e78a354a21daf47d64a5cbbab03cb009591c1efd0bd5412b2fa56d0a64736f6c63430005100032",
+        "hash": "417f7029e78a354a21daf47d64a5cbbab03cb009591c1efd0bd5412b2fa56d0a",
+    },
+    {  # no metadata
+        "bytecode": "0x608060428201905080821115610a4457610a436109b3565b5b9291505056fea164736f6c6343000811000a",
+        "hash": None,
+    },
+]
+
+
+def construct_output(
+    message=None, prompt=None, result=None, prompt_input="y", error=False
+):
+    error_message = message
+    if result:
+        result = f"{result}\n"
+    if message:
+        message = f"{message}\n"
+        error_message = message
+    if error:
+        error_message = f"Error: {message}"
+        result = ""
+    if prompt:
+        if prompt_input == "y":
+            return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n" + result
+        return f"[?] {message}{prompt}? [Y/n]: {prompt_input}\n{error_message}" + result
+    if error:
+        return error_message + result
+    return message + result

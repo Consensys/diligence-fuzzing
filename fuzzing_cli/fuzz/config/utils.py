@@ -31,3 +31,7 @@ def parse_config(config_path: Path) -> Dict[str, any]:
     with config_path.open("r") as f:
         config = yaml.load(f)
     return config
+
+
+def omit_none(d: Dict[str, any]) -> Dict[str, any]:
+    return {k: v for k, v in d.items() if v is not None}

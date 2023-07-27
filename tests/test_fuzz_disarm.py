@@ -33,7 +33,7 @@ def test_fuzz_disarm(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == f"{out}\n\n"
+    assert result.output == f"{out}\n"
     assert len(fake_process.calls) == 1
     process_command = fake_process.calls[0]
     assert process_command == cmd
@@ -54,10 +54,7 @@ def test_fuzz_disarm_no_targets(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 2
-    assert (
-        "Target not provided. You need to provide a target as the last parameter of the `fuzz disarm` command."
-        in result.output
-    )
+    assert "Invalid config: Targets not provided." in result.output
     assert len(fake_process.calls) == 0
 
 
@@ -126,9 +123,8 @@ def test_fuzz_disarm_unknown_scribble_path(
 
     assert (
         f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
-        f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command"
-        f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
-        in result.output
+        f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command "
+        f"or set one in config" in result.output
     )
     assert result.exit_code == 2
 
@@ -147,7 +143,7 @@ def test_fuzz_disarm_folder_targets(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == "success\n\n"
+    assert result.output == "success\n"
     assert len(fake_process.calls) == 1
     assert_is_equal(
         fake_process.calls[0],

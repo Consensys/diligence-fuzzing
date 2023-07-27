@@ -10,7 +10,7 @@ from tests.common import assert_is_equal, write_config
 
 
 @pytest.mark.parametrize(
-    "remappings, solc_version, no_assert",
+    "remappings, solc_version, _assert",
     [
         (None, None, None),
         (
@@ -33,7 +33,7 @@ def test_fuzz_arm(
     fake_process,
     remappings: Optional[List[str]],
     solc_version: Optional[str],
-    no_assert: Optional[bool],
+    _assert: Optional[bool],
     params_in_config: bool,
 ):
     cmd = [
@@ -51,7 +51,7 @@ def test_fuzz_arm(
             **scribble_project,
             remappings=remappings,
             solc_version=solc_version,
-            no_assert=no_assert,
+            _assert=_assert,
         )
     else:
         write_config(
@@ -73,12 +73,12 @@ def test_fuzz_arm(
             command.extend(["--remap-import", r])
     if solc_version and not params_in_config:
         command.extend(["--solc-version", solc_version])
-    if no_assert and not params_in_config:
-        command.extend(["--no-assert"])
+    if _assert and not params_in_config:
+        command.extend(["--assert"])
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == f"{out}\n\n"
+    assert result.output == f"{out}\n"
     assert len(fake_process.calls) == 1
     process_command = fake_process.calls[0]
     assert process_command[0:4] == cmd[0:4]
@@ -93,10 +93,10 @@ def test_fuzz_arm(
     else:
         assert "--compiler-version" not in process_command
 
-    if no_assert:
-        assert "--no-assert" in process_command
-    else:
+    if _assert:
         assert "--no-assert" not in process_command
+    else:
+        assert "--no-assert" in process_command
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
@@ -114,10 +114,7 @@ def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 2
-    assert (
-        "Target not provided. You need to provide a target as the last parameter of the `fuzz arm` command."
-        in result.output
-    )
+    assert "Invalid config: Targets not provided." in result.output
     assert len(fake_process.calls) == 0
 
 
@@ -190,9 +187,8 @@ def test_fuzz_arm_unknown_scribble_path(
 
     assert (
         f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
-        f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command"
-        f"or set the `scribble-path` under the `analyze` key in your fuzzing config file"
-        in result.output
+        f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
+        f"or set one in config" in result.output
     )
     assert result.exit_code == 2
 
@@ -211,7 +207,7 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
     result = runner.invoke(cli, command)
 
     assert result.exit_code == 0
-    assert result.output == "success\n\n"
+    assert result.output == "success\n"
     assert len(fake_process.calls) == 1
     assert_is_equal(
         fake_process.calls[0],
@@ -221,6 +217,7 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
+            "--no-assert",
             f"{tmp_path}/contracts/Migrations.sol",
             f"{tmp_path}/contracts/VulnerableToken.sol",
         ],

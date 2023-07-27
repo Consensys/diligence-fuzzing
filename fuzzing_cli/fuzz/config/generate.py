@@ -1,16 +1,17 @@
 from os.path import commonpath, relpath
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import click
 import inquirer
 from click import BadParameter, UsageError, style
 from ruamel.yaml import YAML
 
-from fuzzing_cli.fuzz.config import update_config
-from fuzzing_cli.fuzz.config.template import generate_yaml
 from fuzzing_cli.fuzz.ide import IDERepository
 from fuzzing_cli.util import sol_files_by_directory
+
+from .template import generate_yaml
+from .utils import update_config
 
 yaml = YAML()
 yaml.indent(offset=2)
@@ -46,6 +47,14 @@ def determine_ide(confirm=False) -> str:
         ide_name = _IDEClass.get_name()
 
     return ide_name
+
+
+def determine_smart_mode(confirm: bool = False) -> str:
+    use_smart_mode: bool = click.confirm(
+        f"{QM} Enable Smart Mode? This will have the CLI automatically determine your source target and contract addresses. (recommended for beginners)",
+        default=True,
+    )
+    return use_smart_mode
 
 
 def __select_targets(targets: List[str]) -> List[str]:
@@ -179,7 +188,9 @@ def determine_campaign_name() -> str:
     return name
 
 
-def determine_sources_dir(targets: List[str]) -> str:
+def determine_sources_dir(targets: List[str]) -> Optional[str]:
+    if len(targets) == 0:
+        return None
     if len(targets) == 1:
         if Path(targets[0]).is_dir():
             # looks like contracts directory
@@ -191,16 +202,40 @@ def determine_sources_dir(targets: List[str]) -> str:
 
 
 def recreate_config(config_file: str):
+    """Recreate a configuration file from its backup file.
+
+    Args:
+        config_file: The path to the configuration file to recreate.
+    """
+    # Determine IDE
     ide = determine_ide()
-    targets = determine_targets(ide)
-    build_dir = determine_build_dir(ide)
+    # Determine smart mode
+    smart_mode = determine_smart_mode()
+    if smart_mode:
+        # If smart mode, set targets and build_dir to None
+        # so that they are not written to the config file.
+        # Instead, they will be determined at runtime, which
+        # is the point of smart mode.
+        targets = None
+        build_dir = None
+        sources_directory = None
+    else:
+        # If not smart mode, determine targets and build_dir
+        targets = determine_targets(ide)
+        build_dir = determine_build_dir(ide)
+        # Determine sources directory
+        sources_directory = determine_sources_dir(targets)
+
+    # These run always
+    # Determine RPC URL
     rpc_url = determine_rpc_url()
+    # Determine CPU cores
+    # Todo: we should probably not ask for this and just always set the max
+    # number of cores on their plan.
     number_of_cores = determine_cpu_cores()
-    campaign_name_prefix = determine_campaign_name()
-
+    # Determine campaign name
     config_path = Path().cwd().joinpath(config_file)
-
-    sources_directory = determine_sources_dir(targets)
+    campaign_name_prefix = determine_campaign_name()
 
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
@@ -217,6 +252,7 @@ def recreate_config(config_file: str):
                     "rpc_url": rpc_url,
                     "number_of_cores": number_of_cores,
                     "campaign_name_prefix": campaign_name_prefix,
+                    "smart_mode": smart_mode,
                     "no-assert": True,
                     "quick_check": False,
                 }
@@ -228,6 +264,12 @@ def recreate_config(config_file: str):
 
 
 def sync_config(config_file: Path):
+    """
+    here we sync config file with the current state of the project
+
+    Parameters:
+        config_file (Path): path to the config file
+    """
     ide = determine_ide(confirm=True)
     targets = determine_targets(ide)
 
@@ -236,35 +278,3 @@ def sync_config(config_file: Path):
     )
     update_config(config_file, {"fuzz": {"targets": targets}})
     click.echo("Done 🎉")
-
-
-@click.command("generate-config")
-@click.option("--sync", help="Option to update targets", is_flag=True, default=False)
-@click.argument("config-file", type=click.Path(), default=".fuzz.yml", nargs=1)
-@click.pass_obj
-def fuzz_generate_config(ctx, config_file, sync: bool) -> None:
-    """Generate config file for fuzzing
-
-    CONFIG_FILE config file name (default is .fuzz.yml)
-    """
-    cfs = style(config_file, fg="yellow")
-    if sync:
-        config_file = Path.cwd().joinpath(config_file)
-        if not config_file.exists() or not config_file.is_file():
-            command = style(
-                f"fuzz generate-config {config_file}", italic=True, fg="green"
-            )
-            raise click.UsageError(
-                f"⚠️  Config file {cfs} does not exist. "
-                f"Please create one either manually or using {command} command"
-            )
-        return sync_config(config_file)
-    if Path(config_file).exists():
-        command = style(
-            f"fuzz generate-config {config_file} --sync", italic=True, fg="green"
-        )
-        raise click.UsageError(
-            f"⚠️  Config file {cfs} already exists. "
-            f"Please specify another file or run {command} to update one."
-        )
-    recreate_config(config_file)

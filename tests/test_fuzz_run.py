@@ -110,7 +110,7 @@ suggested_seed_seqs = [
     ],
 )
 def test_fuzz_run_fuzzing_lessons(
-    tmp_path, hardhat_fuzzing_lessons_project, lessons, seed_seqs
+    api_key, tmp_path, hardhat_fuzzing_lessons_project, lessons, seed_seqs
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -148,10 +148,14 @@ def test_fuzz_run_fuzzing_lessons(
     start_faas_campaign_mock.assert_called_once()
     called_with = start_faas_campaign_mock.call_args
     assert called_with[0][0]["corpus"] == {
-        "address-under-test": "0xc2E17c0b175402d669Baa4DBDF3C5Ea3CF010cAC",
+        "address-under-test": "0xc2e17c0b175402d669baa4dbdf3c5ea3cf010cac",
         "other-addresses-under-test": None,
         "steps": [
             {
+                "blockCoinbase": "0x0000000000000000000000000000000000000000",
+                "blockDifficulty": "0x0",
+                "blockGasLimit": "0x6691b7",
+                "blockTimestamp": "0x62bd726f",
                 "hash": "0x6b19d9163af45714d6fe366f686e1f53484933f0830b2ab493aa9a3cc823ce55",
                 "nonce": "0x0",
                 "blockHash": "0x7f192cf6f8aec7c36f369a80dd81e3823511462e3ec3191758d51fea4f5d9e82",
@@ -179,6 +183,7 @@ def test_fuzz_run_fuzzing_lessons(
         lazy_fixture("truffle_project"),
         lazy_fixture("brownie_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
 @pytest.mark.parametrize("absolute_targets", [True, False])
@@ -186,6 +191,7 @@ def test_fuzz_run_fuzzing_lessons(
 @pytest.mark.parametrize("absolute_sources_dir", [True, False])
 @pytest.mark.parametrize("folder_target", [True, False])
 def test_fuzz(
+    api_key,
     tmp_path,
     ide: Dict[str, any],
     absolute_targets: bool,
@@ -282,15 +288,23 @@ def test_fuzz(
         lazy_fixture("truffle_project"),
         lazy_fixture("brownie_project"),
         lazy_fixture("dapptools_project"),
+        lazy_fixture("foundry_project"),
     ],
 )
-def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
+def test_fuzz_empty_artifacts(api_key, tmp_path, ide: Dict[str, any]):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
         **{**ide, "build_directory": "wrong_directory"},
     )
     os.makedirs(tmp_path.joinpath("wrong_directory"))
+    if ide["ide"] == "foundry" or ide["ide"] == "hardhat":
+        build_info = tmp_path.joinpath("wrong_directory", "build-info")
+        os.makedirs(build_info)
+        with open(build_info.joinpath("test.json"), "w") as f:
+            f.write(
+                '{"input": {"sources": {}}, "output": {"sources": {}, "contracts": {}}}'
+            )
 
     IDE_NAME = ide["ide"]
 
@@ -313,12 +327,12 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
         campaign_id = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         start_faas_campaign_mock.return_value = campaign_id
         runner = CliRunner()
-        result = runner.invoke(cli, ["run"])
+        result = runner.invoke(cli, ["run", "--no-prompts"])
 
     assert result.exit_code == 2
     assert (
         f"Error: No contract being submitted. "
-        f"Please check your config (hint: build_directory path or targets paths)\n"
+        f"Please check your config (hint: build_directory path or targets paths) or recompile contracts\n"
         in result.output
     )
 
@@ -327,18 +341,33 @@ def test_fuzz_empty_artifacts(tmp_path, ide: Dict[str, any]):
 
 @pytest.mark.parametrize("ide", [lazy_fixture("hardhat_project")])
 @pytest.mark.parametrize(
-    "corpus_target, time_limit, project",
+    "corpus_target, time_limit, project, chain_id, enable_cheat_codes, string_chain_id",
     [
-        (None, None, None),
-        ("cmp_9e931b147e7143a8b53041c708d5474e", "15mins", "Test Project 1"),
+        (None, None, None, None, None, True),
+        (
+            "cmp_9e931b147e7143a8b53041c708d5474e",
+            "15mins",
+            "Test Project 1",
+            "0x2a",
+            True,
+            True,
+        ),
+        (None, None, None, "0x11", False, False),
+        (None, None, None, "0x22", None, False),
+        (None, None, None, 42, None, False),
+        (None, None, None, "", None, True),
     ],
 )
 def test_fuzz_parameters(
+    api_key,
     tmp_path,
     ide: Dict[str, any],
     corpus_target: Optional[str],
     time_limit: Optional[str],
     project: Optional[str],
+    chain_id: Optional[Union[str, int]],
+    enable_cheat_codes: Optional[bool],
+    string_chain_id: bool,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -346,6 +375,9 @@ def test_fuzz_parameters(
         **ide,
         time_limit=time_limit,
         project=project,
+        chain_id=chain_id,
+        enable_cheat_codes=enable_cheat_codes,
+        string_chain_id=string_chain_id,
     )
 
     IDE_NAME = ide["ide"]
@@ -383,8 +415,17 @@ def test_fuzz_parameters(
     assert payload.get("timeLimit", None) == (900 if time_limit else None)
     assert payload.get("project", None) == project or None
 
+    _chain_id = chain_id
+    if type(_chain_id) == int:
+        _chain_id = hex(_chain_id)
 
-def test_rpc_not_running(tmp_path):
+    assert payload["parameters"].get("chain-id") == (_chain_id or None)
+    assert payload["parameters"].get("enable-cheat-codes") == (
+        None if enable_cheat_codes is None else enable_cheat_codes
+    )
+
+
+def test_rpc_not_running(api_key, tmp_path):
     write_config(base_path=str(tmp_path))
 
     with patch.object(requests, "request") as mocker:
@@ -400,36 +441,24 @@ def test_rpc_not_running(tmp_path):
     assert result.exit_code != 0
 
 
-def test_fuzz_no_build_dir(tmp_path):
-    runner = CliRunner()
-    write_config(not_include=["build_directory"])
-
-    result = runner.invoke(cli, ["run", "contracts"])
-    assert (
-        "Build directory not provided. You need to set the `build_directory`"
-        in result.output
-    )
-    assert result.exit_code != 0
-
-
-def test_fuzz_no_deployed_address(tmp_path):
+def test_fuzz_no_deployed_address(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["deployed_contract_address"])
 
-    result = runner.invoke(cli, ["run", "contracts"])
+    result = runner.invoke(cli, ["run", "contracts", "--no-prompts"])
     assert (
-        "Deployed contract address not provided. You need to provide an address"
+        "Error: Invalid config: Deployed contract address not provided.\n"
         in result.output
     )
     assert result.exit_code != 0
 
 
-def test_fuzz_no_target(tmp_path):
+def test_fuzz_no_target(api_key, tmp_path):
     runner = CliRunner()
     write_config(not_include=["targets"])
 
-    result = runner.invoke(cli, ["run"])
-    assert "Error: Target not provided." in result.output
+    result = runner.invoke(cli, ["run", "--no-prompts"])
+    assert "Error: Invalid config: Targets not provided.\n" in result.output
     assert result.exit_code != 0
 
 
@@ -475,11 +504,12 @@ def test_fuzz_no_target(tmp_path):
             None,
             None,
             RequestException(),
-            "Error: RequestError: Error starting FaaS campaign\nDetail: RequestException()\n",
+            "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\nDetail: RequestException()\n",
         ),
     ],
 )
 def test_fuzz_submission_error(
+    api_key,
     tmp_path,
     brownie_project,
     status_code: int,
@@ -490,23 +520,23 @@ def test_fuzz_submission_error(
 ):
     if error_output == "<JSONDecodeError>":
         error_output = (
-            "Error: RequestError: Error starting FaaS campaign\n"
+            "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
             "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')\n"
         )
         _platform, py_version = get_python_version()
         if _platform == "CPython" and py_version == "3.6":
             error_output = (
-                "Error: RequestError: Error starting FaaS campaign\n"
+                "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                 "Detail: JSONDecodeError('Expecting value: line 1 column 1 (char 0)',)\n"
             )
         elif _platform == "PyPy":
             error_output = (
-                "Error: RequestError: Error starting FaaS campaign\n"
+                "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                 "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)')\n"
             )
             if py_version == "3.6":
                 error_output = (
-                    "Error: RequestError: Error starting FaaS campaign\n"
+                    "Error: RequestError: Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .\n"
                     "Detail: JSONDecodeError('Error when decoding Infinity: line 1 column 2 (char 1)',)\n"
                 )
 
@@ -528,6 +558,8 @@ def test_fuzz_submission_error(
         get_test_case("testdata/brownie_project/blocks.json"), codes
     ), patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ), requests_mock.Mocker() as m:
         m.register_uri(
             "POST", "http://localhost:9898", real_http=True
@@ -561,7 +593,7 @@ def test_fuzz_submission_error(
 
 @pytest.mark.parametrize("scribble_meta", [True, False, "exc"])
 def test_fuzz_add_scribble_meta(
-    tmp_path, hardhat_project, scribble_meta: Union[bool, str]
+    api_key, tmp_path, hardhat_project, scribble_meta: Union[bool, str]
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **hardhat_project
@@ -570,7 +602,7 @@ def test_fuzz_add_scribble_meta(
         with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
             json.dump({"some_property": "some_value"}, f)
 
-    if scribble_meta is "exc":
+    if scribble_meta == "exc":
         with open(f"{tmp_path}/{SCRIBBLE_ARMING_META_FILE}", "w") as f:
             f.write("wrong_json")
 
@@ -586,6 +618,8 @@ def test_fuzz_add_scribble_meta(
         FaasClient, "start_faas_campaign"
     ) as start_faas_campaign_mock, patch.object(
         FaasClient, "generate_campaign_name", new=Mock(return_value="test-campaign-1")
+    ), patch(
+        "fuzzing_cli.fuzz.run.handle_validation_errors"
     ):
         campaign_id = "cmp_517b504e67474ab6b26a92a58e0adbf9"
         start_faas_campaign_mock.return_value = campaign_id
@@ -630,3 +664,6 @@ def test_fuzz_add_scribble_meta(
                 )
 
         assert result.output == output
+
+    # cleanup
+    del os.environ["FUZZ_CONFIG_FILE"]

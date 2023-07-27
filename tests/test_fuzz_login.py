@@ -5,12 +5,9 @@ from pytest import mark
 from requests_mock import Mocker
 
 from fuzzing_cli.cli import cli
-from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 from tests.common import write_config
 
-KEY_MALFORMED_ERROR = (
-    "API Key is malformed. The format is `<auth_data>::<refresh_token>`"
-)
+KEY_MALFORMED_ERROR = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. You need an API key and active subscriptions. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key"
 
 
 class ArtifactMock:
@@ -25,8 +22,12 @@ class ArtifactMock:
     def validate(self):
         return None
 
+    @staticmethod
+    def instance_for_targets(instance, targets):
+        return instance
 
-class TestArtifacts:
+
+class ArtifactsMock:
     def __init__(self, *args, **kwargs):
         pass
 
@@ -38,62 +39,71 @@ class TestArtifacts:
         pass
 
 
+class CorpusRepoMock:
+    def __init__(self, *args, **kwargs):
+        self.validation_errors = []
+        self.source_targets = []
+
+    @property
+    def seed_state(self):
+        return {
+            "discovery-probability-threshold": 0.0,
+            "num-cores": 1,
+            "assertion-checking-mode": 1,
+            "analysis-setup": {},
+        }
+
+
 def test_no_keys(tmp_path, truffle_project):
     runner = CliRunner()
-    write_config(not_include=["api_key"])
+    write_config(ide="truffle", not_include=["api_key"])
     result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
-    assert "API key was not provided." in result.output
+    assert (
+        "Error: Invalid config: API key not provided. You can set the API key using the FUZZ_API_KEY environment variable or the -k configuration parameter. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key"
+        in result.output
+    )
     assert result.exit_code != 0
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
-@mark.parametrize("in_config,", [False, True])
-@mark.parametrize("key_type,", ["api_key", "refresh_token"])
-def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_project):
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
+@mark.parametrize("as_env", [False, True])
+def test_provide_api_key(as_env: bool, tmp_path, truffle_project, monkeypatch):
     runner = CliRunner()
-    if not in_config:
-        write_config(not_include=["api_key"])
+    write_config()
+    if not as_env:
+        monkeypatch.delenv("FUZZ_API_KEY", raising=False)
         result = runner.invoke(
             cli,
             [
                 "run",
                 f"{tmp_path}/contracts",
-                f"--{key_type.replace('_', '-')}",
+                f"--key",
                 "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
             ],
         )
     else:
-        if key_type == "api_key":
-            write_config()
-        else:
-            write_config(not_include=["api_key"], add_refresh_token=True)
+        monkeypatch.setenv(
+            "FUZZ_API_KEY", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
+        )
         result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
     assert result.exit_code == 0
     assert "You can view campaign here:" in result.output
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(RPCClient, attribute="get_seed_state", new=Mock(return_value={}))
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
 @patch(target="fuzzing_cli.fuzz.run.FaasClient", new=MagicMock())
 @mark.parametrize(
-    "refresh_token",
+    "key",
     [
         "test",
         "Y2xpZW50X2lkOjphdXRoX2VuZHBvaW50",  # |client_id::auth_endpoint|
@@ -105,36 +115,19 @@ def test_provide_api_key(in_config: bool, key_type: str, tmp_path, truffle_proje
         "Ojpsd3d1aHM0bzU3Vlc3cll5Tm45SkpZdFd6dklpMkxMQg::refresh_token",  # wrongly padded base64 string
     ],
 )
-def test_wrong_refresh_token(refresh_token: str, tmp_path):
+def test_validate_api_key(key: str, tmp_path):
     runner = CliRunner()
-    write_config(not_include=["api_key"])
-    result = runner.invoke(
-        cli, ["run", f"{tmp_path}/contracts", "--refresh-token", refresh_token]
-    )
+    write_config()
+    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "-k", key])
     assert result.exit_code == 2
     assert KEY_MALFORMED_ERROR in result.output
 
 
-@patch.object(
-    RPCClient, attribute="validate_seed_state", new=Mock(return_value=({}, []))
-)
-@patch.object(
-    RPCClient,
-    attribute="get_seed_state",
-    new=Mock(
-        return_value={
-            "discovery-probability-threshold": 0.0,
-            "num-cores": 1,
-            "assertion-checking-mode": 1,
-            "analysis-setup": {},
-        }
-    ),
-)
 @patch(
     target="fuzzing_cli.fuzz.ide.repository.IDERepository.detect_ide",
     new=Mock(return_value=ArtifactMock),
 )
-@patch.object(RPCClient, "check_contracts", Mock(return_value=True))
+@patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
 @mark.parametrize("return_error,", [True, False])
 def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
     requests_mock.real_http = True
@@ -156,13 +149,13 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
             json={"id": "test-campaign-id"},
         )
     runner = CliRunner()
-    write_config(not_include=["api_key"])
+    write_config()
     result = runner.invoke(
         cli,
         [
             "run",
             f"{tmp_path}/contracts",
-            "--refresh-token",
+            "--key",
             "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::test-rt",
         ],
     )

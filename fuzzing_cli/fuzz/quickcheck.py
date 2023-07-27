@@ -7,7 +7,7 @@ import click
 from click import UsageError, style
 
 from fuzzing_cli.fuzz.config import generate_yaml
-from fuzzing_cli.fuzz.generate_config import (
+from fuzzing_cli.fuzz.config.generate import (
     determine_campaign_name,
     determine_cpu_cores,
     determine_ide,

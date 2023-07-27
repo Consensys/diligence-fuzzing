@@ -117,5 +117,5 @@ def str_to_time(s, unit="us"):
 
 
 def str_to_sec(s) -> float:
-    """ convert strings like "30d 12h" "1h 30m" "30m 5s" to seconds"""
+    """convert strings like "30d 12h" "1h 30m" "30m 5s" to seconds"""
     return str_to_time(s, "s")

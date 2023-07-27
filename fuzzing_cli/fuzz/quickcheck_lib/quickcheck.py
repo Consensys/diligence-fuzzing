@@ -71,16 +71,6 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
 def prepare_seed_state(
     contracts: List[Contract], number_of_cores: int, corpus_target: Optional[str] = None
 ) -> Dict[str, any]:
-    accounts = {}
-    for idx, contract in enumerate(contracts):
-        contract_address = mk_contract_address(BASE_ADDRESS, idx)
-        accounts[contract_address] = {
-            "nonce": idx,
-            "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "code": contract.get("deployedBytecode"),
-            "storage": {"0x0": "0x1"},
-        }
-
     setup = {
         "steps": [
             {
@@ -94,7 +84,7 @@ def prepare_seed_state(
                 "nonce": "0x0",
                 "r": "0xf",
                 "s": "0xf",
-                "to": None,
+                "to": "",
                 "transactionIndex": "0x0",
                 "v": "0xf",
                 "value": "0x0",
@@ -129,10 +119,10 @@ class QuickCheck(IDEArtifacts):
     ):
         super(QuickCheck, self).__init__(
             options,
-            targets,
             Path(build_dir).absolute() if build_dir else Path.cwd().absolute(),
             Path(sources_dir).absolute() if sources_dir else Path.cwd().absolute(),
-            map_to_original_source,
+            targets=targets,
+            map_to_original_source=map_to_original_source,
         )
         self.targets = targets
         self.scribble_path = scribble_path

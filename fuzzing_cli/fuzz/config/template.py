@@ -12,18 +12,35 @@ CONFIG_TEMPLATE = """analyze:
   # solc-version: "0.6.12"
   {% if solc_version %}solc-version: "{{ solc_version }}"{% endif %}
   {% if scribble_path %}scribble-path: {{ scribble_path }}{% endif %}
-  {% if no_assert %}no-assert: {{ no_assert }}{% endif %}
+  {% if assert %}assert: {{ assert }}{% endif %}
 
 fuzz:
   ide: {{ ide }}
 
+  # Change the chain ID that is used by the fuzzer. Default is 0x1 (1)
+  # chain_id: "0x2a" # (42)
+  # Enable/Disable "cheat codes" in fuzzer (as introduced by dapptools)
+  # enable_cheat_codes: true
+
   quick_check: {{ quick_check }}
 
+  smart_mode: {{ smart_mode }}
+
   # Tell the CLI where to find the compiled contracts and compilation artifacts
+  {% if build_directory %}
   build_directory: {{ build_directory }}
+  {% else %}
+  # Can be set manually but is automatic when smart mode is enabled.
+  # build_directory: your_build_dir
+  {% endif %}
 
   # Tell the CLI where to find the contracts source
+  {% if sources_directory %}
   sources_directory: {{ sources_directory }}
+  {% else %}
+  # Can be set manually but is automatic when smart mode is enabled.
+  # sources_directory: your_sources_dir
+  {% endif %}
 
   # The following address is going to be the main target for the fuzzing campaign
   # deployed_contract_address: "0x48b8050b4174f7871ce53AaF76BEAcA765037BFf"
@@ -42,9 +59,6 @@ fuzz:
   # Set a default project to which your campaigns will be attached to
   # project: "my project name"
 
-  # Set the API key, which can be obtained from the Diligence Fuzzing Dashboard
-  # key: "bHd3...ddsds"
-
   # Point to your ganache node which holds the seed 🌱
   rpc_url: {{ rpc_url }}
 
@@ -60,6 +74,7 @@ fuzz:
     # - "contracts/Token.sol"
 {% endif %}
 """
+
 
 env = Environment()
 template = env.from_string(CONFIG_TEMPLATE)

@@ -1,5 +1,6 @@
 from .brownie import BrownieArtifacts
 from .dapptools import DapptoolsArtifacts
+from .foundry import FoundryArtifacts
 from .generic import IDEArtifacts
 from .hardhat import HardhatArtifacts
 from .repository import IDERepository
@@ -13,5 +14,6 @@ repo.register_ide(TruffleArtifacts)
 repo.register_ide(HardhatArtifacts)
 repo.register_ide(BrownieArtifacts)
 repo.register_ide(DapptoolsArtifacts)
+repo.register_ide(FoundryArtifacts)
 
 IDERepository.set_instance(repo)

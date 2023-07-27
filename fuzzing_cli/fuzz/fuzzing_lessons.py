@@ -1,5 +1,3 @@
-from typing import Dict
-
 import click
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
@@ -7,15 +5,18 @@ from fuzzing_cli.fuzz.lessons import FuzzingLessons
 from fuzzing_cli.fuzz.rpc.rpc import RPCClient
 
 
-def prepare_rpc_client(ctx: Dict[str, any]) -> RPCClient:
-    fuzz_config = ctx.get("fuzz")
-    options = FuzzingOptions.parse_obj(fuzz_config)
+def prepare_rpc_client() -> RPCClient:
+    options = FuzzingOptions(
+        no_build_directory=True,
+        no_key=True,
+        no_deployed_contract_address=True,
+        smart_mode=False,
+    )
     return RPCClient(options.rpc_url, options.number_of_cores)
 
 
 @click.group("lesson")
-@click.pass_obj
-def cli(ctx):
+def cli():
     """Manage fuzzing lessons"""
     pass
 
@@ -28,21 +29,19 @@ def cli(ctx):
     help="Fuzzing lesson description",
     default="my lesson",
 )
-@click.pass_obj
-def start(ctx, description: str):
+def start(description: str):
     """Start recording fuzzing lesson"""
     fl = FuzzingLessons()
-    fl.start_lesson(description, prepare_rpc_client(ctx))
+    fl.start_lesson(description, prepare_rpc_client())
     click.secho(f'Started recording fuzzing lesson "{description}"')
 
 
 # TODO: add "save" alias
 @cli.command("stop")
-@click.pass_obj
-def stop(ctx):
+def stop():
     """Stop recording fuzzing lesson and save results"""
     fl = FuzzingLessons()
-    description = fl.stop_lesson(prepare_rpc_client(ctx))
+    description = fl.stop_lesson(prepare_rpc_client())
     click.secho(
         f'Fuzzing lesson "{description}" recording '
         f"was stopped and results were saved to be used at a next campaign run"

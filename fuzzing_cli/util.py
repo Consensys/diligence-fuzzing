@@ -37,8 +37,9 @@ def files_by_directory(target_path: AnyStr, extension: AnyStr) -> List:
                 + ". Did you pass the correct directory?"
             )
         else:
-            """ If it's a valid target extension file there is no need to search further and we just append it to our
-            list to be returned, removing the .original extension, leaving only the .sol """
+            """If it's a valid target extension file there is no need to search further and we just append it to our
+            list to be returned, removing the .original extension, leaving only the .sol
+            """
             target_files.append(target_path.replace(".original", ""))
     source_dir = os.walk(target_path)
     for sub_dir in source_dir:

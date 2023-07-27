@@ -10,6 +10,7 @@ from requests.structures import CaseInsensitiveDict
 
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
+from .config import FuzzingOptions
 from .exceptions import (
     AuthorizationError,
     BadStatusCode,
@@ -22,35 +23,15 @@ LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class FaasClient:
-    """ A client to interact with the FaaS API.
+    """A client to interact with the FaaS API.
 
     This object receives solidity compilation artifacts and a Harvey Seed state, generates a payload that the faas
     API can consume and submits it, also triggering the start of a Campaign.
     """
 
-    def __init__(
-        self,
-        faas_url: str,
-        campaign_name_prefix: str,
-        project_type: str,
-        client_id: str,
-        refresh_token: str,
-        auth_endpoint: str,
-        project: Optional[str] = None,
-        quick_check: bool = False,
-        time_limit: Optional[int] = None,
-    ):
-        self.faas_url = faas_url
-        self.campaign_name_prefix = campaign_name_prefix
+    def __init__(self, options: FuzzingOptions, project_type: str):
+        self.options = options
         self.project_type = project_type
-        self.project = project
-        self.quick_check = quick_check
-        self.time_limit = time_limit
-
-        self._client_id = client_id
-        self._refresh_token = refresh_token
-        self._auth_endpoint = auth_endpoint
-        self.time_limit = time_limit
 
     @property
     def headers(self):
@@ -62,11 +43,11 @@ class FaasClient:
     @property
     def api_key(self):
         response = requests.post(
-            f"https://{self._auth_endpoint}/oauth/token",
+            f"https://{self.options.auth_endpoint}/oauth/token",
             data={
                 "grant_type": "refresh_token",
-                "client_id": self._client_id,
-                "refresh_token": self._refresh_token,
+                "client_id": self.options.auth_client_id,
+                "refresh_token": self.options.refresh_token,
             },
         )
         body = response.json()
@@ -82,12 +63,14 @@ class FaasClient:
         """Return a random name with the provided prefix self.campaign_name_prefix."""
         letters = string.ascii_lowercase
         random_string = "".join(random.choice(letters) for _ in range(5))
-        return str(self.campaign_name_prefix + "_" + random_string)
+        return str(self.options.campaign_name_prefix + "_" + random_string)
 
     def start_faas_campaign(self, payload):
         """Make HTTP request to the faas"""
         try:
-            req_url = urljoin(self.faas_url, "api/campaigns/?start_immediately=true")
+            req_url = urljoin(
+                self.options.faas_url, "api/campaigns/?start_immediately=true"
+            )
             response = requests.post(req_url, json=payload, headers=self.headers)
             response_data = response.json()
             if response.status_code != requests.codes.ok:
@@ -112,13 +95,13 @@ class FaasClient:
         except Exception as e:
             if isinstance(e, BadStatusCode):
                 raise e
-            raise RequestError("Error starting FaaS campaign", detail=repr(e))
+            raise RequestError(
+                "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
+                detail=repr(e),
+            )
 
     def create_faas_campaign(
-        self,
-        campaign_data: IDEArtifacts,
-        seed_state: Dict[str, any],
-        dry_run: bool = False,
+        self, campaign_data: IDEArtifacts, seed_state: Dict[str, any]
     ):
         """Submit a campaign to the FaaS and start that campaign.
 
@@ -149,14 +132,30 @@ class FaasClient:
             "corpus": seed_state["analysis-setup"],
             "sources": campaign_data.sources,
             "contracts": campaign_data.contracts,
-            "quickCheck": self.quick_check,
+            "quickCheck": self.options.quick_check,
+            "mapToOriginalSource": self.options.map_to_original_source,
         }
 
-        if self.project is not None:
-            api_payload["project"] = self.project
+        if self.options.project is not None:
+            api_payload["project"] = self.options.project
 
-        if self.time_limit is not None:
-            api_payload["timeLimit"] = self.time_limit
+        if self.options.time_limit is not None:
+            api_payload["timeLimit"] = self.options.time_limit
+
+        if self.options.chain_id is not None:
+            api_payload["parameters"]["chain-id"] = self.options.chain_id
+
+        if self.options.enable_cheat_codes is not None:
+            api_payload["parameters"][
+                "enable-cheat-codes"
+            ] = self.options.enable_cheat_codes
+
+        if self.options.foundry_tests:
+            # force enable cheat codes for foundry tests
+            api_payload["parameters"]["enable-cheat-codes"] = True
+            api_payload["foundryTests"] = True
+            if self.options.foundry_tests_list is not None:
+                api_payload["foundryTestsList"] = self.options.foundry_tests_list
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
@@ -167,10 +166,8 @@ class FaasClient:
                 "Error getting Scribble arming metadata", detail=repr(e)
             )
 
-        if dry_run:
-            print("Printing output \n --------")
-            print(f"{json.dumps(api_payload)}")
-            print("End of output \n --------")
+        if self.options.dry_run:  # pragma: no cover
+            print(json.dumps(api_payload, indent=4))
             return "campaign not started due to --dry-run option"
 
         campaign_id = self.start_faas_campaign(api_payload)

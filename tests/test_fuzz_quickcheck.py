@@ -112,7 +112,7 @@ def test_no_annotated_contracts(tmp_path, truffle_echidna_project, fake_process)
             127,
             "Annotation Error",
             None,
-            "Error: QuickCheckError: Annotating failed\nDetail: \nAnnotation Error\n\n",
+            "Error: QuickCheckError: Annotating failed\nDetail: \nAnnotation Error\n",
         ),
         (
             0,
@@ -183,6 +183,7 @@ def test_annotation_errors(
     "corpus_target", ["crp_30f45fac74c04182b023ead4f0ddb709", None]
 )
 def test_fuzz_run(
+    api_key,
     tmp_path: Path,
     truffle_echidna_project,
     fake_process,
@@ -262,6 +263,7 @@ def test_fuzz_run(
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
+            "--no-assert",
         ]
         + [f"{tmp_path}/{t}" for t in targets]
     )
