@@ -1,6 +1,26 @@
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from typing_extensions import TypedDict
+
+
+class StructLog(TypedDict):
+    depth: int
+    gas: int
+    gasCost: int
+    op: str
+    pc: int
+    stack: List[str]
+    error: Optional[str]
+    memory: Optional[List[str]]
+    storage: Optional[Dict[str, Any]]
+
+
+class DebugTraceResult(TypedDict):
+    gas: str
+    returnValue: str
+    structLogs: List[StructLog]
+    failed: Optional[bool]
+    storage: Optional[Dict[str, Any]]
 
 
 class SeedSequenceTransaction(TypedDict):
