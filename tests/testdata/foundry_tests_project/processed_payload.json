@@ -21,7 +21,8 @@
         "to": "",
         "transactionIndex": "0x0",
         "v": "0xf",
-        "value": "0x0"
+        "value": "0x0",
+        "appendSetUpTx": true
       },
       {
         "blockHash": "0xf",
@@ -37,7 +38,8 @@
         "to": "",
         "transactionIndex": "0x0",
         "v": "0xf",
-        "value": "0x0"
+        "value": "0x0",
+        "appendSetUpTx": true
       }
     ]
   },

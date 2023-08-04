@@ -91,6 +91,11 @@ class FoundryArtifacts(IDEArtifacts):
 
         return build_data
 
+    @property
+    @lru_cache(maxsize=1)
+    def build_info(self) -> Dict:
+        return self._get_build_info(self.build_dir)
+
     def get_source(self, source_path: str, sources: Dict[str, Dict[str, str]]) -> str:
         if (
             self.map_to_original_source
@@ -99,26 +104,32 @@ class FoundryArtifacts(IDEArtifacts):
             return get_content_from_file(self.normalize_path(source_path) + ".original")
         return sources[source_path]["content"]
 
+    def has_setup_method(self, contract: Contract) -> bool:
+        contracts_info = self.build_info["output"]["contracts"]
+        contracts = contracts_info[contract["mainSourceFile"]]
+        target_contract = contracts[contract["contractName"]]
+        return "setUp()" in target_contract["evm"]["methodIdentifiers"]
+
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        build_info = self._get_build_info(self.build_dir)
-
         result_contracts = {}
         result_sources = {}
 
         source_ids: List[int] = []
         source_paths = {}
 
-        for source_name, source in build_info["output"]["sources"].items():
+        for source_name, source in self.build_info["output"]["sources"].items():
             source_ids.append(source["id"])
             source_paths[str(source["id"])] = source_name
             result_sources[source_name] = {
                 "fileIndex": source["id"],
-                "source": self.get_source(source_name, build_info["input"]["sources"]),
+                "source": self.get_source(
+                    source_name, self.build_info["input"]["sources"]
+                ),
                 "ast": source["ast"],
             }
 
-        for source_file, contracts in build_info["output"]["contracts"].items():
+        for source_file, contracts in self.build_info["output"]["contracts"].items():
             result_contracts[source_file] = []
             for contract_name, contract in contracts.items():
                 try:

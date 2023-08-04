@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 import click
 import toml
@@ -14,11 +14,30 @@ from fuzzing_cli.fuzz.exceptions import (
     ForgeCompilationError,
     ForgeConfigError,
 )
-from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
-from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
+from fuzzing_cli.fuzz.ide import FoundryArtifacts, IDERepository
+from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import (
+    prepare_seed_state as prepare_seed_state_base,
+)
 from fuzzing_cli.fuzz.run import submit_campaign
 
 LOGGER = logging.getLogger("fuzzing-cli")
+
+
+def prepare_seed_state(
+    artifacts: FoundryArtifacts,
+    number_of_cores: int,
+    corpus_target: Optional[str] = None,
+) -> Dict[str, Any]:
+    # this method adds the `appendSetUpTx` flag to the seed state's steps based on whether the contract
+    # has a setup method or not. For regular campaigns, this flag is omitted
+    seed_state = prepare_seed_state_base(
+        artifacts.contracts, number_of_cores, corpus_target
+    )
+    for i, contract in enumerate(artifacts.contracts):
+        seed_state["analysis-setup"]["steps"][i][
+            "appendSetUpTx"
+        ] = artifacts.has_setup_method(contract)
+    return seed_state
 
 
 def parse_config() -> Dict[str, Any]:
@@ -193,12 +212,15 @@ def foundry_test(
     )
 
     repo = IDERepository.get_instance()
-    artifacts: IDEArtifacts = repo.get_ide("foundry")(
-        options=options,
-        targets=options.targets,
-        build_dir=options.build_directory,
-        sources_dir=options.sources_directory,
-        map_to_original_source=False,
+    artifacts = cast(
+        FoundryArtifacts,
+        repo.get_ide("foundry")(
+            options=options,
+            targets=options.targets,
+            build_dir=options.build_directory,
+            sources_dir=options.sources_directory,
+            map_to_original_source=False,
+        ),
     )
 
     click.echo("🛠️  Collecting and validating campaigns for submission")
@@ -206,7 +228,7 @@ def foundry_test(
 
     click.echo("🛠️  Preparing the seed state")
     seed_state = prepare_seed_state(
-        artifacts.contracts, options.number_of_cores, options.corpus_target
+        artifacts, options.number_of_cores, options.corpus_target
     )
 
     click.echo(f"⚡️ Submitting campaigns")
