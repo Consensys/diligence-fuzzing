@@ -4,6 +4,7 @@ from typing import Optional
 import click
 from click import ClickException
 
+from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
@@ -18,6 +19,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
     default=None,
     help="Path to a custom scribble executable (beta)",
 )
+@trace("fuzz_disarm")
 def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
     """Revert the target files to their original, un-instrumented state.
 

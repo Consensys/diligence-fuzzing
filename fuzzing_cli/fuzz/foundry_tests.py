@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, cast
 import click
 import toml
 
+from fuzzing_cli.fuzz.analytics import Session, trace
 from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
     ForgeCollectTestsError,
@@ -165,6 +166,7 @@ def cli():  # pragma: no-cover
     help="Additional string of `forge compile` command arguments for custom build strategies ("
     "e.g. --build-args=--deny-warnings --build-args --use 0.8.1)",
 )
+@trace("fuzz_foundry_test")
 def foundry_test(
     key: str,
     dry_run: bool,
@@ -230,6 +232,8 @@ def foundry_test(
     seed_state = prepare_seed_state(
         artifacts, options.number_of_cores, options.corpus_target
     )
+
+    Session.set_local_context(ci_mode=options.ci_mode)
 
     click.echo(f"⚡️ Submitting campaigns")
     submit_campaign(options, repo.get_ide("foundry").get_name(), artifacts, seed_state)

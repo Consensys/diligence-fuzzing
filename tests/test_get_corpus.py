@@ -133,7 +133,7 @@ def test_get_corpus(api_key, tmp_path, hardhat_project, monkeypatch):
     }
 
 
-def test_transactions_limit(api_key, tmp_path):
+def test_transactions_limit(api_key, tmp_path, foundry_project):
     write_config(
         base_path=str(tmp_path),
         build_directory="artifacts",
@@ -146,8 +146,13 @@ def test_transactions_limit(api_key, tmp_path):
         m.register_uri(
             "POST",
             "http://localhost:9898",
-            status_code=200,
-            json={"result": {"number": "0x270f"}},  # 0x270f = 9999
+            response_list=[
+                {"status_code": 200, "json": {"result": "test/0.0.1"}},
+                {
+                    "status_code": 200,
+                    "json": {"result": {"number": "0x270f"}},
+                },  # 0x270f = 9999
+            ],
         )
 
         runner = CliRunner()

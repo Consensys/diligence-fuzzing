@@ -197,6 +197,8 @@ def mocked_rpc_client(blocks: List[EVMBlock], codes: Dict[str, str] = {}):
                 if b["hash"] == block_hash:
                     return {**response_body, "result": b}
             return {**response_body, "result": None}
+        elif method == "web3_clientVersion":
+            return {**response_body, "result": "test/0.0.1"}
         return response_body
 
     with requests_mock.Mocker() as m:

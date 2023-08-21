@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import click
 from click import ClickException, UsageError, style
 
+from .analytics import Session, trace
 from .config import AnalyzeOptions, FuzzingOptions, omit_none
 from .corpus import CorpusRepository
 from .corpus.repository import NoTransactionFound
@@ -267,6 +268,7 @@ def handle_validation_errors(
     help="Do not prompt for user input (to suggest an auto fix, for example). Instead, "
     "fail if any of the validation errors are encountered. (CI/CD mode)",
 )
+@trace("fuzz_run")
 def fuzz_run(
     targets,
     ide: Optional[str],
@@ -324,6 +326,12 @@ def fuzz_run(
         )
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
+
+        Session.set_local_context(
+            rpc_node_kind=rpc_client.get_rpc_node_info()["kind"],
+            rpc_node_version=rpc_client.get_rpc_node_info()["version"],
+            ci_mode=options.ci_mode,
+        )
 
         repo = IDERepository.get_instance()
         if options.ide:

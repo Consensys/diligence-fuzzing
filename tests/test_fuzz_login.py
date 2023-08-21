@@ -167,7 +167,7 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
     else:
         assert result.exit_code == 0
         assert "You can view campaign here:" in result.output
-        req = requests_mock.request_history[0]
+        req = requests_mock.request_history[1]
 
     assert req.method == "POST"
     assert req.url == "https://example-us.com/oauth/token"

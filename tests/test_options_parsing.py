@@ -112,6 +112,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "target_contracts": None,
         "dry_run": False,
         "smart_mode": False,
+        "ci_mode": False,
     }
 
     analyze_options_json = {

@@ -77,6 +77,12 @@ class FuzzingOptions(BaseSettings):
     dry_run: bool = False
     smart_mode: bool = False
 
+    analytics_endpoint: str = Field(
+        "https://fuzzing.diligence.tools/api/analytics", exclude=True
+    )
+
+    ci_mode: bool = Field(False)
+
     no_prompts: bool = Field(
         True, exclude=True, description="Disable all prompts. Useful for CI/CD."
     )
@@ -85,12 +91,16 @@ class FuzzingOptions(BaseSettings):
     no_deployed_contract_address: bool = Field(False, exclude=True)
     no_targets: bool = Field(False, exclude=True)
 
-    def __init__(self, *args, **data: Any):
+    def __init__(self, no_exc=False, *args, **data: Any):
         try:
             super().__init__(*args, **data)
         except ValidationError as e:
+            if no_exc:
+                return
             raise click.exceptions.UsageError(f"Invalid config: {repr_errors(e)}")
         except:
+            if no_exc:
+                return
             raise
 
     @property

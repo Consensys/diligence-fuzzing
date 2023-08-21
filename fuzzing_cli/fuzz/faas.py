@@ -2,12 +2,13 @@ import json
 import logging
 import random
 import string
-from typing import Dict, Optional
+from typing import Dict
 from urllib.parse import urljoin
 
 import requests
 from requests.structures import CaseInsensitiveDict
 
+from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
 from .config import FuzzingOptions
@@ -38,6 +39,7 @@ class FaasClient:
         headers = CaseInsensitiveDict()
         headers["Content-Type"] = "application/json"
         headers["Authorization"] = "Bearer " + str(self.api_key)
+        headers["X-Session-ID"] = Session.get_session_id()
         return headers
 
     @property
@@ -110,6 +112,8 @@ class FaasClient:
                 "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
                 detail=repr(e),
             )
+        finally:
+            Session.upload_session()
 
     def create_faas_campaign(
         self, campaign_data: IDEArtifacts, seed_state: Dict[str, any]
