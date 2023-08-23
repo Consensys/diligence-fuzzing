@@ -116,5 +116,5 @@ def fuzz_arm(
             f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
             f"or set one in config"
         )
-    except Exception:
+    except Exception as e:
         raise

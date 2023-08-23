@@ -8,8 +8,8 @@ from appdirs import user_config_dir
 class LocalStorage:
     instance = None
 
-    def __init__(self):
-        self.path = user_config_dir("fuzzing-cli", "ConsenSys")
+    def __init__(self, _user_config_dir: Optional[str] = None):
+        self.path = _user_config_dir or user_config_dir("fuzzing-cli", "ConsenSys")
 
     @classmethod
     def get_instance(cls):

@@ -166,7 +166,7 @@ def cli():  # pragma: no-cover
     help="Additional string of `forge compile` command arguments for custom build strategies ("
     "e.g. --build-args=--deny-warnings --build-args --use 0.8.1)",
 )
-@trace("fuzz_foundry_test")
+@trace("fuzz_foundry_test", upload_session=True)
 def foundry_test(
     key: str,
     dry_run: bool,

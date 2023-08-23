@@ -112,8 +112,6 @@ class FaasClient:
                 "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
                 detail=repr(e),
             )
-        finally:
-            Session.upload_session()
 
     def create_faas_campaign(
         self, campaign_data: IDEArtifacts, seed_state: Dict[str, any]

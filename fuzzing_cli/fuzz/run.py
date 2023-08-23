@@ -268,7 +268,7 @@ def handle_validation_errors(
     help="Do not prompt for user input (to suggest an auto fix, for example). Instead, "
     "fail if any of the validation errors are encountered. (CI/CD mode)",
 )
-@trace("fuzz_run")
+@trace("fuzz_run", upload_session=True)
 def fuzz_run(
     targets,
     ide: Optional[str],

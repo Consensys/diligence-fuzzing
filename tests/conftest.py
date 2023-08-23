@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from fuzzing_cli.fuzz.analytics import Session
+from fuzzing_cli.fuzz.storage import LocalStorage
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
     foundry_config_mock,
@@ -242,3 +244,9 @@ def api_key(monkeypatch):
     )
     yield
     monkeypatch.delenv("FUZZ_API_KEY", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def setup_storages(tmp_path):
+    Session.set_session_path(Path(str(tmp_path) + "/session.json"))
+    LocalStorage.set_instance(LocalStorage(str(tmp_path)))

@@ -12,8 +12,6 @@ from fuzzing_cli.fuzz.solidity import SolidityJob
 from fuzzing_cli.fuzz.types import Contract, Source
 from fuzzing_cli.util import get_content_from_file
 
-from .utils import mk_contract_address
-
 LOGGER = logging.getLogger("fuzzing-cli")
 
 BASE_ADDRESS = "affeaffeaffeaffeaffeaffeaffeaffeaffeaffe"
