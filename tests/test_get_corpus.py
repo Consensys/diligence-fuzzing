@@ -1,5 +1,5 @@
 import os
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests_mock
@@ -39,6 +39,8 @@ def truffle_mocked_context_invoke(
     with patch.object(RPCClient, "get_all_blocks") as get_all_blocks_mock, patch.object(
         RPCClient, "get_code"
     ) as get_code_mock, patch.object(
+        RPCClient, "get_internally_created_contracts", new=Mock(return_value=[])
+    ), patch.object(
         TruffleArtifacts, "query_truffle_db"
     ) as query_truffle_db_mock, patch.object(
         FaasClient, "start_faas_campaign"

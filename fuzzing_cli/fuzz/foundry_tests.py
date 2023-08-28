@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 import click
 import toml
@@ -14,11 +14,30 @@ from fuzzing_cli.fuzz.exceptions import (
     ForgeCompilationError,
     ForgeConfigError,
 )
-from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
-from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import prepare_seed_state
+from fuzzing_cli.fuzz.ide import FoundryArtifacts, IDERepository
+from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import (
+    prepare_seed_state as prepare_seed_state_base,
+)
 from fuzzing_cli.fuzz.run import submit_campaign
 
 LOGGER = logging.getLogger("fuzzing-cli")
+
+
+def prepare_seed_state(
+    artifacts: FoundryArtifacts,
+    number_of_cores: int,
+    corpus_target: Optional[str] = None,
+) -> Dict[str, Any]:
+    # this method adds the `appendSetUpTx` flag to the seed state's steps based on whether the contract
+    # has a setup method or not. For regular campaigns, this flag is omitted
+    seed_state = prepare_seed_state_base(
+        artifacts.contracts, number_of_cores, corpus_target
+    )
+    for i, contract in enumerate(artifacts.contracts):
+        seed_state["analysis-setup"]["steps"][i][
+            "appendSetUpTx"
+        ] = artifacts.has_setup_method(contract)
+    return seed_state
 
 
 def parse_config() -> Dict[str, Any]:
@@ -30,6 +49,12 @@ def parse_config() -> Dict[str, Any]:
     LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
     LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
+
+
+def run_build_command(cmd):
+    return subprocess.run(
+        cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
 
 
 def compile_tests(build_args):
@@ -44,11 +69,20 @@ def compile_tests(build_args):
     os.environ["FOUNDRY_CBOR_METADATA"] = "true"
 
     try:
-        subprocess.run(
-            cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-        )
+        run_build_command(cmd)
     except Exception as e:
-        raise ForgeCompilationError() from e
+        # Here we try to compile with FOUNDRY_OPTIMIZER=true. This is because of a solidity bug where it sometimes fails to compile with FOUNDRY_OPTIMIZER=false.
+        # More at https://github.com/ethereum/solidity/issues/12980#issuecomment-1562813429
+        LOGGER.warning(
+            "⚠️ Compilation failed with FOUNDRY_OPTIMIZER=false. Retrying with FOUNDRY_OPTIMIZER=true. This may result in lower quality results for the fuzzing campaign because compiler optimization affects source maps."
+        )
+        try:
+            os.environ["FOUNDRY_OPTIMIZER"] = "true"
+            os.environ["FOUNDRY_BYTECODE_HASH"] = "ipfs"
+            os.environ["FOUNDRY_CBOR_METADATA"] = "true"
+            run_build_command(cmd)
+        except Exception as e:
+            raise ForgeCompilationError() from e
     LOGGER.debug("Invoking `forge build` command succeeded")
 
 
@@ -147,20 +181,25 @@ def foundry_test(
     click.echo("🛠️  Parsing foundry config")
     foundry_config = parse_config()
 
+    # depending on the FOUNDRY_PROFILE env var, the profile name may be different,
+    # and it will be the only key in the profile dict, so we need to get the first key
+    profile_name = list(foundry_config["profile"].keys())[0]
+
     click.echo("🛠️  Compiling tests")
     compile_tests([] if build_args is None else build_args.split(" "))
 
     click.echo("🛠️  Collecting tests")
+
     targets, target_contracts, tests_list = collect_tests(
-        test_dir=Path(foundry_config["profile"]["default"]["test"]),
+        test_dir=Path(foundry_config["profile"][profile_name]["test"]),
         match_path=match_path,
         match_contract=match_contract,
     )
 
     options = FuzzingOptions(
         ide="foundry",
-        build_directory=foundry_config["profile"]["default"]["out"],
-        sources_directory=foundry_config["profile"]["default"]["src"],
+        build_directory=foundry_config["profile"][profile_name]["out"],
+        sources_directory=foundry_config["profile"][profile_name]["src"],
         targets=targets,
         quick_check=True,
         enable_cheat_codes=True,
@@ -173,12 +212,15 @@ def foundry_test(
     )
 
     repo = IDERepository.get_instance()
-    artifacts: IDEArtifacts = repo.get_ide("foundry")(
-        options=options,
-        targets=options.targets,
-        build_dir=options.build_directory,
-        sources_dir=options.sources_directory,
-        map_to_original_source=False,
+    artifacts = cast(
+        FoundryArtifacts,
+        repo.get_ide("foundry")(
+            options=options,
+            targets=options.targets,
+            build_dir=options.build_directory,
+            sources_dir=options.sources_directory,
+            map_to_original_source=False,
+        ),
     )
 
     click.echo("🛠️  Collecting and validating campaigns for submission")
@@ -186,7 +228,7 @@ def foundry_test(
 
     click.echo("🛠️  Preparing the seed state")
     seed_state = prepare_seed_state(
-        artifacts.contracts, options.number_of_cores, options.corpus_target
+        artifacts, options.number_of_cores, options.corpus_target
     )
 
     click.echo(f"⚡️ Submitting campaigns")
