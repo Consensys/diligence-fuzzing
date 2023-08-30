@@ -51,6 +51,8 @@ def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
                 "targets": targets if len(targets) > 0 else None,
             }
         ),
+        # TODO: refactor this workaround for some config options validation
+        ci_mode=True,
         no_build_directory=True,
         no_key=True,
         no_deployed_contract_address=True,

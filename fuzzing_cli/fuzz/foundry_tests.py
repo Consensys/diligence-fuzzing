@@ -9,7 +9,7 @@ import click
 import toml
 
 from fuzzing_cli.fuzz.analytics import Session, trace
-from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.config import AuthHandler, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
     ForgeCollectTestsError,
     ForgeCompilationError,
@@ -212,6 +212,7 @@ def foundry_test(
         smart_mode=False,
         **omit_none({"key": key}),
     )
+    auth_handler = AuthHandler(options)
 
     repo = IDERepository.get_instance()
     artifacts = cast(
@@ -233,9 +234,14 @@ def foundry_test(
         artifacts, options.number_of_cores, options.corpus_target
     )
 
-    Session.set_local_context(ci_mode=options.ci_mode)
+    Session.set_local_context(
+        ci_mode=options.ci_mode,
+        user_id=auth_handler.user_id,
+    )
 
     click.echo(f"⚡️ Submitting campaigns")
-    submit_campaign(options, repo.get_ide("foundry").get_name(), artifacts, seed_state)
+    submit_campaign(
+        options, repo.get_ide("foundry").get_name(), artifacts, seed_state, auth_handler
+    )
 
     return click.echo("Done 🎉")

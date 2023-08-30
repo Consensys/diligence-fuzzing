@@ -11,3 +11,5 @@ py-solc-x==1.1.1
 cbor2==5.4.6
 toml==0.10.2
 pydantic[dotenv]~=1.10
+elastic-apm==6.18.0
+appdirs==1.4.4

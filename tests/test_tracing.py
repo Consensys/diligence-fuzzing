@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
@@ -23,7 +22,7 @@ def test_operations(
     fake_process,
     monkeypatch,
 ):
-    Session.give_consent()
+    Session.give_consent(True)
 
     os.chdir(tmp_path)
     monkeypatch.setenv(
@@ -69,6 +68,7 @@ def test_operations(
         assert_is_equal(
             list(session_post_data.keys()),
             [
+                "deviceId",
                 "sessionId",
                 "system",
                 "release",
@@ -79,6 +79,7 @@ def test_operations(
                 "rpcNodeKind",
                 "rpcNodeVersion",
                 "ciMode",
+                "userId",
                 "functionCalls",
             ],
         )
@@ -87,10 +88,12 @@ def test_operations(
             {
                 "functionName": "fuzz_arm",
                 "result": "success",
+                "context": {},
             },
             {
                 "functionName": "fuzz_run",
                 "result": "success",
+                "context": {},
             },
         ]
 
@@ -100,7 +103,7 @@ def test_capture_exception(
     tmp_path,
     monkeypatch,
 ):
-    Session.give_consent()
+    Session.give_consent(True)
 
     os.chdir(tmp_path)
     monkeypatch.setenv(
@@ -152,6 +155,7 @@ def test_capture_exception(
                 "result": "exception",
                 "errorMessage": "Unhandled exception - test exception",
                 "errorType": "ClickException",
+                "context": {},
             }
         ]
 
@@ -161,7 +165,7 @@ def test_report_crash(
     tmp_path,
     monkeypatch,
 ):
-    Session.give_consent()
+    Session.give_consent(True)
     os.chdir(tmp_path)
     monkeypatch.setenv(
         "FUZZ_API_KEY", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
@@ -219,17 +223,46 @@ def test_report_crash(
             == "https://fuzzing.diligence.tools/api/analytics/crash-reports"
         )
         assert crash_report_post.method == "POST"
-        assert omit_keys(crash_report_post_data, ["stackTrace", "stackFrames"]) == {
+        assert omit_keys(
+            crash_report_post_data,
+            ["stackTrace", "stackFrames", "deviceId", "sessionId"],
+        ) == {
+            "userId": "test-user",
             "errorMessage": "test exception",
             "errorType": "Exception",
+            "errorCulprit": "__main__.<module>",
+            "context": {},
+            "ciMode": False,
+            "fuzzingCliVersion": "0.11.2",
+            "machine": "arm64",
+            "pythonImplementation": "CPython",
+            "pythonVersion": "3.10.10",
+            "release": "22.3.0",
+            "rpcNodeKind": "test",
+            "rpcNodeVersion": "test/0.0.1",
+            "system": "Darwin",
         }
         assert_is_equal(
             list(crash_report_post_data.keys()),
             [
+                "deviceId",
+                "userId",
+                "sessionId",
                 "errorType",
                 "errorMessage",
+                "errorCulprit",
                 "stackTrace",
                 "stackFrames",
+                "context",
+                "ciMode",
+                "fuzzingCliVersion",
+                "machine",
+                "pythonImplementation",
+                "pythonVersion",
+                "release",
+                "rpcNodeKind",
+                "rpcNodeVersion",
+                "system",
             ],
         )
 
@@ -246,5 +279,6 @@ def test_report_crash(
                 "result": "exception",
                 "errorMessage": "test exception",
                 "errorType": "Exception",
+                "context": {},
             }
         ]

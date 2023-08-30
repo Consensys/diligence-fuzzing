@@ -30,7 +30,7 @@ TESTS_PARAMETRIZATION = (
 
 
 def truffle_mocked_context_invoke(
-    tmp_path, with_prompt, auto_fix, blocks=None, contracts=None, cmd=None
+    tmp_path, auto_fix, blocks=None, contracts=None, cmd=None
 ):
     blocks = blocks or get_test_case("testdata/truffle_project/blocks.json")
     contracts = contracts or get_test_case("testdata/truffle_project/contracts.json")
@@ -50,8 +50,6 @@ def truffle_mocked_context_invoke(
         query_truffle_db_mock.side_effect = query_truffle_db_mocker
         start_faas_campaign_mock.return_value = "cmp_0"
         cmd = cmd or ["run"]
-        if not with_prompt:
-            cmd.append("--no-prompts")
         runner = CliRunner()
         result = runner.invoke(cli, cmd, input="y\n" if auto_fix else "n\n")
         return result, start_faas_campaign_mock
@@ -242,6 +240,7 @@ def test_not_targeted_contracts(
     truffle_project,
     with_prompt: bool,
     auto_fix: bool,
+    monkeypatch,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -250,9 +249,13 @@ def test_not_targeted_contracts(
         targets=["contracts/Foo.sol"],
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
     )
-    result, start_faas_campaign_mock = truffle_mocked_context_invoke(
-        tmp_path, with_prompt, auto_fix
-    )
+
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
+    result, start_faas_campaign_mock = truffle_mocked_context_invoke(tmp_path, auto_fix)
 
     assert result.exit_code == 0
     payload = start_faas_campaign_mock.call_args[0][0]
@@ -293,6 +296,7 @@ def test_contract_target_not_set(
     absolute_targets: bool,
     with_prompt: bool,
     auto_fix: bool,
+    monkeypatch,
 ):
     # multiple deployments
     write_config(
@@ -307,9 +311,13 @@ def test_contract_target_not_set(
         ],
         absolute_targets=absolute_targets,
     )
-    result, start_faas_campaign_mock = truffle_mocked_context_invoke(
-        tmp_path, with_prompt, auto_fix
-    )
+
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
+    result, start_faas_campaign_mock = truffle_mocked_context_invoke(tmp_path, auto_fix)
 
     output = (
         "The following targets were provided without providing addresses of "
@@ -351,11 +359,7 @@ def test_contract_target_not_set(
 
 @pytest.mark.parametrize(*TESTS_PARAMETRIZATION)
 def test_source_target_not_set(
-    api_key,
-    tmp_path,
-    truffle_project,
-    with_prompt: bool,
-    auto_fix: bool,
+    api_key, tmp_path, truffle_project, with_prompt: bool, auto_fix: bool, monkeypatch
 ):
     # multiple deployments
     write_config(
@@ -366,9 +370,13 @@ def test_source_target_not_set(
         deployed_contract_address="0x1672fB2eb51789aBd1a9f2FE83d69C6f4C883065",
     )
 
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
     result, start_faas_campaign_mock = truffle_mocked_context_invoke(
         tmp_path,
-        with_prompt,
         auto_fix,
         cmd=[
             "run",
@@ -425,6 +433,7 @@ def test_unknown_contracts(
     truffle_project,
     with_prompt: bool,
     auto_fix: bool,
+    monkeypatch,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -440,9 +449,12 @@ def test_unknown_contracts(
             "0x0000fB2eb51789aBd1a9f2FE83d69C6f4C88bbbb",
         ],
     )
-    result, start_faas_campaign_mock = truffle_mocked_context_invoke(
-        tmp_path, with_prompt, auto_fix
-    )
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
+    result, start_faas_campaign_mock = truffle_mocked_context_invoke(tmp_path, auto_fix)
 
     output = (
         "Unable to find contracts with following addresses:\n"
@@ -487,6 +499,7 @@ def test_not_deployed_contracts(
     truffle_project,
     with_prompt: bool,
     auto_fix: bool,
+    monkeypatch,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -499,6 +512,12 @@ def test_not_deployed_contracts(
             "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
         ],
     )
+
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
     # remove Migrations contract from the list
     blocks = [
         block
@@ -507,7 +526,7 @@ def test_not_deployed_contracts(
     ]
 
     result, start_faas_campaign_mock = truffle_mocked_context_invoke(
-        tmp_path, with_prompt, auto_fix, blocks=blocks
+        tmp_path, auto_fix, blocks=blocks
     )
 
     output = (
@@ -547,6 +566,7 @@ def test_contracts_with_no_artifact(
     truffle_project,
     with_prompt: bool,
     auto_fix: bool,
+    monkeypatch,
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
@@ -564,6 +584,12 @@ def test_contracts_with_no_artifact(
             "0x6Bcb21De38753e485f7678C7Ada2a63F688b8579",
         ],
     )
+
+    if with_prompt:
+        monkeypatch.setenv("FUZZ_CI_MODE", "false")
+    else:
+        monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
     # leave Migration contract in the blocks, but remove one from the contracts
     contracts = {
         k: v
@@ -571,7 +597,7 @@ def test_contracts_with_no_artifact(
         if k != "Migrations"
     }
     result, start_faas_campaign_mock = truffle_mocked_context_invoke(
-        tmp_path, with_prompt, auto_fix, contracts=contracts
+        tmp_path, auto_fix, contracts=contracts
     )
 
     output = (

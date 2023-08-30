@@ -15,10 +15,11 @@ from appdirs import user_data_dir
 from click import ClickException
 from elasticapm.conf import Config, VersionedConfig
 from elasticapm.utils import stacks, varmap
-from elasticapm.utils.encoding import shorten
+from elasticapm.utils.encoding import shorten, transform
+from elasticapm.utils.stacks import get_culprit
 
 from fuzzing_cli import __version__
-from fuzzing_cli.fuzz.config import FuzzingOptions
+from fuzzing_cli.fuzz.config import AdditionalOptions
 from fuzzing_cli.fuzz.exceptions import EmptyArtifactsError, FaaSError
 from fuzzing_cli.fuzz.storage import LocalStorage
 
@@ -41,7 +42,7 @@ class Session:
         call = {
             "functionName": cls.storage.function,
             "result": result,
-            **cls.storage.context,
+            "context": cls.storage.context,
         }
         session = cls.get_session()
         function_calls = session.get("functionCalls", [])
@@ -61,7 +62,7 @@ class Session:
             "errorType": str(exc_type.__name__),
             "errorMessage": str(exc_value),
             "stackTrace": traceback.format_exc(),
-            **cls.storage.context,
+            "context": cls.storage.context,
         }
         session = cls.get_session()
         function_calls = session.get("functionCalls", [])
@@ -89,6 +90,7 @@ class Session:
             "ciMode": ci_mode,
             "userId": user_id,
         }
+        # update local context with non-None values (i.e. only updates)
         context = {k: v for k, v in context.items() if v is not None}
         if not context:
             return
@@ -100,7 +102,6 @@ class Session:
     def get_session(cls) -> Dict[str, Any]:
         if not os.path.exists(cls.session_path):
             cls.start_session()
-
         with cls.session_path.open() as f:
             return json.load(f)
 
@@ -114,33 +115,45 @@ class Session:
             json.dump(session, f)
 
     @staticmethod
-    def _consent_given():
-        return LocalStorage.get_instance().get("consent_given", False)
+    def consent_given():
+        return LocalStorage.get_instance().get("consent_given", None)
 
     @staticmethod
-    def give_consent():
-        LocalStorage.get_instance().set("consent_given", True)
+    def give_consent(answer: bool):
+        LocalStorage.get_instance().set("consent_given", answer)
+
+    @staticmethod
+    def get_device_id() -> str:
+        device_id = LocalStorage.get_instance().get("device_id", None)
+        if device_id is None:
+            device_id = str(uuid4())
+            LocalStorage.get_instance().set("device_id", device_id)
+        return device_id
+
+    @staticmethod
+    def _get_device_info():
+        return {
+            "system": platform.system(),
+            "release": platform.release(),
+            "machine": platform.machine(),
+            "pythonVersion": platform.python_version(),
+            "pythonImplementation": platform.python_implementation(),
+            "fuzzingCliVersion": __version__,
+        }
 
     @classmethod
     def start_session(cls):
-        session_id = str(uuid4())
-
         session_dir = cls.session_path.parent
         session_dir.mkdir(parents=True, exist_ok=True)
 
+        session = {
+            "deviceId": cls.get_device_id(),
+            "sessionId": str(uuid4()),
+            **cls._get_device_info(),
+        }
+
         with cls.session_path.open("w") as f:
-            json.dump(
-                {
-                    "sessionId": session_id,
-                    "system": platform.system(),
-                    "release": platform.release(),
-                    "machine": platform.machine(),
-                    "pythonVersion": platform.python_version(),
-                    "pythonImplementation": platform.python_implementation(),
-                    "fuzzingCliVersion": __version__,
-                },
-                f,
-            )
+            json.dump(session, f)
 
     @classmethod
     def end_session(cls):
@@ -150,9 +163,9 @@ class Session:
     def upload_session(cls, end_function: bool = False):
         if end_function:
             cls.end_function("success")
-        options = FuzzingOptions(no_exc=True)
+        options = AdditionalOptions()
         session = cls.get_session()
-        if not cls._consent_given():
+        if not cls.consent_given():
             cls.end_session()
             return
         try:
@@ -167,6 +180,8 @@ class Session:
 
     @classmethod
     def report_crash(cls):
+        session = cls.get_session()
+
         frames = stacks.get_stack_info(
             stacks.iter_stack_frames(skip=1, config=VersionedConfig(Config(), None)),
             with_locals=True,
@@ -181,18 +196,22 @@ class Session:
         )
         exc_type, exc_value, exc_trace = sys.exc_info()
         crash_report = {
+            "deviceId": cls.get_device_id(),
+            **cls._get_device_info(),
+            **({k: v for k, v in session.items() if k != "functionCalls"}),
             "errorType": str(exc_type.__name__),
             "errorMessage": str(exc_value),
+            "errorCulprit": get_culprit(frames),
             "stackTrace": traceback.format_exc(),
             "stackFrames": [
                 # remove context_metadata to avoid json serialization errors
-                {k: v for k, v in frame.items() if k != "context_metadata"}
+                transform(frame)
                 for frame in frames[:6]
             ],
-            **(cls.storage.context if hasattr(cls.storage, "context") else {}),
+            "context": cls.storage.context if hasattr(cls.storage, "context") else {},
         }
 
-        options = FuzzingOptions(no_exc=True)
+        options = AdditionalOptions()
         try:
             requests.post(
                 f"{options.analytics_endpoint}/crash-reports",
@@ -220,19 +239,53 @@ def trace(name: str, upload_session: bool = False):
                 ]
                 if not any(isinstance(e, exc) for exc in expected_exceptions):
                     exc_type, exc_value, exc_trace = sys.exc_info()
-                    report_crash: bool = click.confirm(
-                        f"An unexpected error occurred: {str(exc_type.__name__)}: {str(exc_value)}\n"
-                        f"Do you want to report this error?",
-                        default=True,
-                    )
+                    options = AdditionalOptions()
+                    # if the CI mode is enabled, we need to check FUZZ_REPORT_CRASHES env variable
+                    if options.ci_mode:
+                        report_crash: bool = options.report_crashes
+                    else:
+                        if options.report_crashes:
+                            # ask the user for consent in case the env variable is set to default (True)
+                            report_crash: bool = click.confirm(
+                                f"An unexpected error occurred: {str(exc_type.__name__)}: {str(exc_value)}\n"
+                                f"Do you want to report this error?",
+                                default=True,
+                            )
+                        else:
+                            # if the env variable is set to False (by setting the env variable),
+                            # don't ask the user for consent
+                            report_crash = False
                     if report_crash:
                         Session.report_crash()
                         Session.capture_exception()
                         return
 
                 Session.capture_exception()
-                raise
+
+                if isinstance(e, ClickException):
+                    # do not wrap the click exceptions
+                    raise e
+                raise ClickException(message=f"Unhandled exception - {str(e)}")
+
             finally:
+                # TODO: better handling of saving the consent for cases when it's not confirmed interactively
+                # ask for consent if not given and save the answer to the app settings
+                if Session.consent_given() is None:
+                    options = AdditionalOptions()
+                    # if the CI mode is enabled, we need to check FUZZ_ALLOW_ANALYTICS env variable
+                    if options.ci_mode:
+                        consent_given = options.allow_analytics
+                    else:
+                        if options.allow_analytics:
+                            consent_given: bool = click.confirm(
+                                f"Do you want to allow us to collect product usage analytics to improve the product?",
+                                default=True,
+                            )
+                        else:
+                            # if the env variable is set to False (by setting the env variable),
+                            # don't ask the user for consent because the user has already denied it
+                            consent_given = False
+                    Session.give_consent(consent_given)
                 if upload_session:
                     Session.upload_session()
 

@@ -1,11 +1,14 @@
+import base64
 import json
 import os
 import tarfile
 from pathlib import Path
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 
 from fuzzing_cli.fuzz.analytics import Session
+from fuzzing_cli.fuzz.config import AuthHandler
 from fuzzing_cli.fuzz.storage import LocalStorage
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
@@ -250,3 +253,30 @@ def api_key(monkeypatch):
 def setup_storages(tmp_path):
     Session.set_session_path(Path(str(tmp_path) + "/session.json"))
     LocalStorage.set_instance(LocalStorage(str(tmp_path)))
+
+
+@pytest.fixture(autouse=True)
+def mocked_auth_handler():
+    mocked_jwt_token = f"header.{base64.b64encode(json.dumps({'sub': 'test-user'}).encode()).decode()}.tail"
+    orig = AuthHandler._get_access_token
+    with patch.object(
+        AuthHandler,
+        "_get_access_token",
+        new=Mock(return_value=(mocked_jwt_token, 100000)),
+    ) as _get_access_token_mock:
+
+        def restore_original():
+            AuthHandler._get_access_token = orig
+
+        setattr(_get_access_token_mock, "restore_original", restore_original)
+        yield _get_access_token_mock
+
+
+@pytest.fixture(autouse=True)
+def no_analytics(monkeypatch):
+    monkeypatch.setenv("FUZZ_ALLOW_ANALYTICS", "false")
+
+
+@pytest.fixture()
+def ci_mode(monkeypatch):
+    monkeypatch.setenv("FUZZ_CI_MODE", "true")

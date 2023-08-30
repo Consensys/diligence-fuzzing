@@ -8,16 +8,10 @@ from urllib.parse import urljoin
 import requests
 from requests.structures import CaseInsensitiveDict
 
-from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
-from .config import FuzzingOptions
-from .exceptions import (
-    AuthorizationError,
-    BadStatusCode,
-    RequestError,
-    ScribbleMetaError,
-)
+from .config import AuthHandler, FuzzingOptions
+from .exceptions import BadStatusCode, RequestError, ScribbleMetaError
 from .ide.generic import IDEArtifacts
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -30,36 +24,19 @@ class FaasClient:
     API can consume and submits it, also triggering the start of a Campaign.
     """
 
-    def __init__(self, options: FuzzingOptions, project_type: str):
+    def __init__(
+        self, options: FuzzingOptions, project_type: str, auth_handler: AuthHandler
+    ):
         self.options = options
         self.project_type = project_type
+        self.auth_handler = auth_handler
 
     @property
     def headers(self):
         headers = CaseInsensitiveDict()
         headers["Content-Type"] = "application/json"
-        headers["Authorization"] = "Bearer " + str(self.api_key)
-        headers["X-Session-ID"] = Session.get_session_id()
+        headers["Authorization"] = f"Bearer {self.auth_handler.api_key}"
         return headers
-
-    @property
-    def api_key(self):
-        response = requests.post(
-            f"https://{self.options.auth_endpoint}/oauth/token",
-            data={
-                "grant_type": "refresh_token",
-                "client_id": self.options.auth_client_id,
-                "refresh_token": self.options.refresh_token,
-            },
-        )
-        body = response.json()
-        if response.status_code != 200:
-            error = body.get("error", "")
-            description = body.get("error_description", "")
-            raise AuthorizationError(
-                f"Authorization failed. Error: {error}", detail=description
-            )
-        return body.get("access_token")
 
     def generate_campaign_name(self):
         """Return a random name with the provided prefix self.campaign_name_prefix."""

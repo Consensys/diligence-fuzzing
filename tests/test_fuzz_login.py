@@ -1,3 +1,5 @@
+import base64
+import json
 from unittest.mock import MagicMock, Mock, patch
 
 from click.testing import CliRunner
@@ -5,6 +7,7 @@ from pytest import mark
 from requests_mock import Mocker
 
 from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.config import AuthHandler
 from tests.common import write_config
 
 KEY_MALFORMED_ERROR = "Error: API key is malformed. The format is `<auth_data>::<refresh_token>`. You need an API key and active subscriptions. Learn more at https://fuzzing-docs.diligence.tools/getting-started/configuring-the-cli#subscriptions-and-api-key"
@@ -129,7 +132,17 @@ def test_validate_api_key(key: str, tmp_path):
 )
 @patch("fuzzing_cli.fuzz.run.CorpusRepository", new=CorpusRepoMock)
 @mark.parametrize("return_error,", [True, False])
-def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path):
+def test_retrieving_api_key(
+    requests_mock: Mocker,
+    return_error: bool,
+    tmp_path,
+    mocked_auth_handler,
+    monkeypatch,
+):
+    monkeypatch.setenv("FUZZ_REPORT_CRASHES", "false")
+    # reset mocks to run test the actual code
+    mocked_auth_handler.restore_original()
+
     requests_mock.real_http = True
     if return_error:
         requests_mock.post(
@@ -138,10 +151,11 @@ def test_retrieving_api_key(requests_mock: Mocker, return_error: bool, tmp_path)
             json={"error": "some_error", "error_description": "some description"},
         )
     else:
+        mocked_jwt = f"header.{base64.b64encode(json.dumps({'sub': 'test-user'}).encode()).decode()}.tail"
         requests_mock.post(
             "https://example-us.com/oauth/token",
             status_code=200,
-            json={"access_token": "test_access_token"},
+            json={"access_token": mocked_jwt},
         )
         requests_mock.post(
             "http://localhost:9899/api/campaigns/?start_immediately=true",

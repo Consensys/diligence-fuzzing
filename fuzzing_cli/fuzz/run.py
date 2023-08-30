@@ -6,7 +6,7 @@ import click
 from click import ClickException, UsageError, style
 
 from .analytics import Session, trace
-from .config import AnalyzeOptions, FuzzingOptions, omit_none
+from .config import AnalyzeOptions, AuthHandler, FuzzingOptions, omit_none
 from .corpus import CorpusRepository
 from .corpus.repository import NoTransactionFound
 from .exceptions import EmptyArtifactsError, FaaSError
@@ -261,13 +261,6 @@ def handle_validation_errors(
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
-@click.option(
-    "--no-prompts",
-    is_flag=True,
-    default=False,
-    help="Do not prompt for user input (to suggest an auto fix, for example). Instead, "
-    "fail if any of the validation errors are encountered. (CI/CD mode)",
-)
 @trace("fuzz_run", upload_session=True)
 def fuzz_run(
     targets,
@@ -280,7 +273,6 @@ def fuzz_run(
     map_to_original_source,
     project,
     truffle_path: Optional[str],
-    no_prompts: bool,
 ):
     """Submit contracts to the Diligence Fuzzing API"""
 
@@ -299,8 +291,9 @@ def fuzz_run(
                 "truffle_executable_path": truffle_path,
             }
         ),
-        no_prompts=no_prompts,
     )
+
+    auth_handler = AuthHandler(options)
 
     _corpus_target = options.corpus_target
     if options.incremental:
@@ -331,6 +324,7 @@ def fuzz_run(
             rpc_node_kind=rpc_client.get_rpc_node_info()["kind"],
             rpc_node_version=rpc_client.get_rpc_node_info()["version"],
             ci_mode=options.ci_mode,
+            user_id=auth_handler.user_id,
         )
 
         repo = IDERepository.get_instance()
@@ -357,7 +351,7 @@ def fuzz_run(
         corpus_repo = CorpusRepository(rpc_client, artifacts, options, _corpus_target)
         # if the no_prompts flag is set, we need to fail if there are any validation errors
         suggested_fixes = handle_validation_errors(
-            corpus_repo, prompt=not no_prompts, smart_mode=options.smart_mode
+            corpus_repo, prompt=not options.ci_mode, smart_mode=options.smart_mode
         )
         if suggested_fixes:
             corpus_repo.apply_auto_fix(suggested_fixes)
@@ -393,7 +387,7 @@ def fuzz_run(
                 f"or recompile contracts"
             )
 
-    return submit_campaign(options, project_type, artifacts, seed_state)
+    return submit_campaign(options, project_type, artifacts, seed_state, auth_handler)
 
 
 def submit_campaign(
@@ -401,8 +395,11 @@ def submit_campaign(
     project_type: str,
     artifacts: IDEArtifacts,
     seed_state: Dict[str, any],
+    auth_handler: AuthHandler,
 ) -> None:
-    faas_client = FaasClient(options=options, project_type=project_type)
+    faas_client = FaasClient(
+        options=options, project_type=project_type, auth_handler=auth_handler
+    )
 
     try:
         campaign_id = faas_client.create_faas_campaign(
