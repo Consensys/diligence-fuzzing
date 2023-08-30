@@ -84,7 +84,9 @@ def test_operations(
             ],
         )
 
-        assert session_post_data["functionCalls"] == [
+        assert [
+            omit_keys(d, ["duration"]) for d in session_post_data["functionCalls"]
+        ] == [
             {
                 "functionName": "fuzz_arm",
                 "result": "success",
@@ -149,7 +151,7 @@ def test_capture_exception(
             omit_keys(d, ["stackTrace"]) for d in session_post_data["functionCalls"]
         ]
         assert all("stackTrace" in d for d in session_post_data["functionCalls"])
-        assert function_calls == [
+        assert [omit_keys(d, ["duration"]) for d in function_calls] == [
             {
                 "functionName": "fuzz_run",
                 "result": "exception",
@@ -273,7 +275,7 @@ def test_report_crash(
         function_calls = [
             omit_keys(d, ["stackTrace"]) for d in session_post_data["functionCalls"]
         ]
-        assert function_calls == [
+        assert [omit_keys(d, ["duration"]) for d in function_calls] == [
             {
                 "functionName": "fuzz_run",
                 "result": "exception",

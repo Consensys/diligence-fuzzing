@@ -4,6 +4,7 @@ import os
 import platform
 import sys
 import threading
+import time
 import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -38,10 +39,11 @@ class Session:
         cls.storage.context = {}
 
     @classmethod
-    def end_function(cls, result: str):
+    def end_function(cls, result: str, duration: float = None):
         call = {
             "functionName": cls.storage.function,
             "result": result,
+            "duration": duration,
             "context": cls.storage.context,
         }
         session = cls.get_session()
@@ -53,12 +55,13 @@ class Session:
         delattr(cls.storage, "context")
 
     @classmethod
-    def capture_exception(cls):
+    def capture_exception(cls, duration: float = None):
         exc_type, exc_value, exc_trace = sys.exc_info()
         function_name = cls.storage.function
         call = {
             "functionName": function_name,
             "result": "exception",
+            "duration": duration,
             "errorType": str(exc_type.__name__),
             "errorMessage": str(exc_value),
             "stackTrace": traceback.format_exc(),
@@ -227,10 +230,13 @@ def trace(name: str, upload_session: bool = False):
     def trace_factory(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            _start_time = time.perf_counter()
             try:
                 Session.start_function(name)
                 func(*args, **kwargs)
-                Session.end_function("success")
+                Session.end_function(
+                    "success", duration=time.perf_counter() - _start_time
+                )
             except Exception as e:
                 expected_exceptions = [
                     FaaSError,
@@ -260,7 +266,7 @@ def trace(name: str, upload_session: bool = False):
                         Session.capture_exception()
                         return
 
-                Session.capture_exception()
+                Session.capture_exception(duration=time.perf_counter() - _start_time)
 
                 if isinstance(e, ClickException):
                     # do not wrap the click exceptions
