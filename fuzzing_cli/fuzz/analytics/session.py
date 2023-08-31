@@ -1,5 +1,6 @@
 import functools
 import json
+import logging
 import os
 import platform
 import sys
@@ -23,6 +24,8 @@ from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.config import AdditionalOptions
 from fuzzing_cli.fuzz.exceptions import EmptyArtifactsError, FaaSError
 from fuzzing_cli.fuzz.storage import LocalStorage
+
+LOGGER = logging.getLogger("fuzzing-cli")
 
 
 class Session:
@@ -164,6 +167,7 @@ class Session:
 
     @classmethod
     def upload_session(cls, end_function: bool = False):
+        LOGGER.debug("Uploading analytics session")
         if end_function:
             cls.end_function("success")
         options = AdditionalOptions()
@@ -172,17 +176,24 @@ class Session:
             cls.end_session()
             return
         try:
-            requests.post(
+            result = requests.post(
                 f"{options.analytics_endpoint}/sessions",
                 json=session,
                 headers={"Content-Type": "application/json"},
             )
-        except:
-            pass
+            if result.status_code == 200:
+                LOGGER.debug("Analytics session sent successfully")
+            else:
+                LOGGER.debug(
+                    f"Failed to send analytics session. Status Code: {result.status_code}. Response: {result.text}",
+                )
+        except Exception as e:
+            LOGGER.debug(f"Failed to send analytics session. Exception: {e}")
         cls.end_session()
 
     @classmethod
     def report_crash(cls):
+        LOGGER.debug("Reporting crash")
         session = cls.get_session()
 
         frames = stacks.get_stack_info(
@@ -206,23 +217,25 @@ class Session:
             "errorMessage": str(exc_value),
             "errorCulprit": get_culprit(frames),
             "stackTrace": traceback.format_exc(),
-            "stackFrames": [
-                # remove context_metadata to avoid json serialization errors
-                transform(frame)
-                for frame in frames[:6]
-            ],
+            "stackFrames": [transform(frame) for frame in frames],
             "context": cls.storage.context if hasattr(cls.storage, "context") else {},
         }
 
         options = AdditionalOptions()
         try:
-            requests.post(
+            result = requests.post(
                 f"{options.analytics_endpoint}/crash-reports",
                 json=crash_report,
                 headers={"Content-Type": "application/json"},
             )
-        except Exception:
-            pass
+            if result.status_code == 200:
+                LOGGER.debug("Crash report sent successfully")
+            else:
+                LOGGER.debug(
+                    f"Failed to send crash report. Status Code: {result.status_code}. Response: {result.text}",
+                )
+        except Exception as e:
+            LOGGER.debug(f"Failed to send crash report. Exception: {e}")
         cls.end_session()
 
 

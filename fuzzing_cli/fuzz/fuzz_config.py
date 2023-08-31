@@ -28,6 +28,7 @@ def show_config(json: bool = False):
         no_deployed_contract_address=True,
     )
     analyze_options = AnalyzeOptions()
+    # TODO: add additional options and consent loading from the LocalStorage
     if json:
         # here we get json string from the options (call .json()) because Pydantic should do the serialization
         # on complex types (like Path, datetime, etc.) first, so we could later use json.loads() to get a dict which

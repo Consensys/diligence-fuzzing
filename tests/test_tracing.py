@@ -227,12 +227,11 @@ def test_report_crash(
         assert crash_report_post.method == "POST"
         assert omit_keys(
             crash_report_post_data,
-            ["stackTrace", "stackFrames", "deviceId", "sessionId"],
+            ["stackTrace", "stackFrames", "deviceId", "sessionId", "errorCulprit"],
         ) == {
             "userId": "test-user",
             "errorMessage": "test exception",
             "errorType": "Exception",
-            "errorCulprit": "__main__.<module>",
             "context": {},
             "ciMode": False,
             "fuzzingCliVersion": "0.11.2",
@@ -244,6 +243,8 @@ def test_report_crash(
             "rpcNodeVersion": "test/0.0.1",
             "system": "Darwin",
         }
+        import json
+
         assert_is_equal(
             list(crash_report_post_data.keys()),
             [

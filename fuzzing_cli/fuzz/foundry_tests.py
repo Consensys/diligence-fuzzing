@@ -214,6 +214,13 @@ def foundry_test(
     )
     auth_handler = AuthHandler(options)
 
+    Session.set_local_context(
+        ci_mode=options.ci_mode,
+        user_id=auth_handler.user_id,
+        rpc_node_kind="",
+        rpc_node_version="",
+    )
+
     repo = IDERepository.get_instance()
     artifacts = cast(
         FoundryArtifacts,
@@ -232,11 +239,6 @@ def foundry_test(
     click.echo("🛠️  Preparing the seed state")
     seed_state = prepare_seed_state(
         artifacts, options.number_of_cores, options.corpus_target
-    )
-
-    Session.set_local_context(
-        ci_mode=options.ci_mode,
-        user_id=auth_handler.user_id,
     )
 
     click.echo(f"⚡️ Submitting campaigns")
