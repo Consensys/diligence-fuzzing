@@ -1,8 +1,10 @@
 import os
+import platform
 from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
+from fuzzing_cli import __version__
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.faas import FaasClient
@@ -234,14 +236,14 @@ def test_report_crash(
             "errorType": "Exception",
             "context": {},
             "ciMode": False,
-            "fuzzingCliVersion": "0.11.2",
-            "machine": "arm64",
-            "pythonImplementation": "CPython",
-            "pythonVersion": "3.10.10",
-            "release": "22.3.0",
+            "fuzzingCliVersion": __version__,
+            "machine": platform.machine(),
+            "pythonImplementation": platform.python_implementation(),
+            "pythonVersion": platform.python_version(),
+            "release": platform.release(),
             "rpcNodeKind": "test",
             "rpcNodeVersion": "test/0.0.1",
-            "system": "Darwin",
+            "system": platform.system(),
         }
         import json
 
