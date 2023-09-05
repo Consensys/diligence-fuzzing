@@ -1,5 +1,15 @@
 # History
 
+0.12.0 (2023-09-05)
+--------------------
+- Analytics collection support
+
+0.11.3 (2023-08-28)
+--------------------
+- setUp method support for foundry tests
+- Foundry profiles support
+- Bump dependencies
+
 0.11.2 (2023-05-17)
 --------------------
 - Add more verbose error messages
