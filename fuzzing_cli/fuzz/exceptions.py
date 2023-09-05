@@ -138,6 +138,32 @@ Please check the project's compilation logs or consult the project's documentati
 
     pass
 
+class ForgeNotFoundryDirectory(ForgeError):
+    """Raised when `forge config` command fails"""
+
+    def __init__(self):
+        self.message = """Unable to collect Foundry tests.
+
+There was an issue collecting Foundry tests. We weren't able to find a foundry.toml file in this directory, which points to this not being a Foundry project root folder.
+
+Please ensure that the Foundry project is properly configured and that the 'forge test' command can be executed correctly and displays the expected test results.
+"""
+
+    pass
+
+class ForgeNoTestsFoundError(ForgeError):
+    """Raised when `forge config` command fails"""
+
+    def __init__(self):
+        self.message = """Unable to collect Foundry tests.
+
+It appears that there was an issue collecting Foundry tests. This error is likely caused by the Foundry project not having any tests.
+
+Please ensure that the Foundry project is properly configured and that the 'forge test' command can be executed correctly and displays the expected test results.
+"""
+
+    pass
+
 
 class ForgeCollectTestsError(ForgeError):
     """Raised when `forge config` command fails"""
