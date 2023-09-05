@@ -4,4 +4,4 @@
 
 __author__ = """Dominik Muhs"""
 __email__ = "dominik.muhs@consensys.net"
-_version__ = "0.12.0"
+__version__ = "0.12.0"
