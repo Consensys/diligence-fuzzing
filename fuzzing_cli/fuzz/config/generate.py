@@ -49,7 +49,7 @@ def determine_ide(confirm=False) -> str:
     return ide_name
 
 
-def determine_smart_mode(confirm: bool = False) -> str:
+def determine_smart_mode(confirm: bool = False) -> bool:
     use_smart_mode: bool = click.confirm(
         f"{QM} Enable Smart Mode? This will have the CLI automatically determine your source target and contract addresses. (recommended for beginners)",
         default=True,

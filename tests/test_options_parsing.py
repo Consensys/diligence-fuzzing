@@ -41,10 +41,12 @@ def prepare_config(tmp_path: Path, monkeypatch):
         )
     )
 
-    os.environ["FUZZ_CAMPAIGN_NAME_PREFIX"] = "test"
-    os.environ["FUZZ_TIME_LIMIT"] = "20m"
-    os.environ["ANALYZE_SCRIBBLE_PATH"] = "ext2/scribble"
-    os.environ["FUZZ_API_KEY"] = "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
+    monkeypatch.setenv("FUZZ_CAMPAIGN_NAME_PREFIX", "test")
+    monkeypatch.setenv("FUZZ_TIME_LIMIT", "20m")
+    monkeypatch.setenv("ANALYZE_SCRIBBLE_PATH", "ext2/scribble")
+    monkeypatch.setenv(
+        "FUZZ_API_KEY", "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"
+    )
 
 
 def test_fuzzing_options_parsing(tmp_path, monkeypatch):
@@ -76,9 +78,11 @@ def test_fuzzing_options_parsing(tmp_path, monkeypatch):
 @pytest.mark.parametrize("json", [True, False])
 def test_config_show(tmp_path, monkeypatch, json: bool):
     prepare_config(tmp_path, monkeypatch)
-    os.environ["FUZZ_SOURCES_DIRECTORY"] = "contracts"
-    os.environ["FUZZ_BUILD_DIRECTORY"] = "build"
-    os.environ["FUZZ_TARGETS"] = '["contracts/ERC20.sol", "contracts/ERC721.sol"]'
+    monkeypatch.setenv("FUZZ_SOURCES_DIRECTORY", "contracts")
+    monkeypatch.setenv("FUZZ_BUILD_DIRECTORY", "build")
+    monkeypatch.setenv(
+        "FUZZ_TARGETS", '["contracts/ERC20.sol", "contracts/ERC721.sol"]'
+    )
     runner = CliRunner()
     cmd = ["config", "show"]
     if json:
@@ -112,6 +116,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "target_contracts": None,
         "dry_run": False,
         "smart_mode": False,
+        "ci_mode": False,
     }
 
     analyze_options_json = {

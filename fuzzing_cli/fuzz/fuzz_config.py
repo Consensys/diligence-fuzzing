@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 from click import style
 
+from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions
 from fuzzing_cli.fuzz.config.generate import recreate_config, sync_config
 
@@ -16,6 +17,7 @@ def cli():  # pragma: no-cover
 
 @cli.command("show")
 @click.option("--json", is_flag=True, help="Show configuration as JSON")
+@trace("fuzz_config_show")
 def show_config(json: bool = False):
     """Show current configuration (collected from yaml file, .env file, environment variables).
     Validation for required parameters is not performed."""
@@ -26,6 +28,7 @@ def show_config(json: bool = False):
         no_deployed_contract_address=True,
     )
     analyze_options = AnalyzeOptions()
+    # TODO: add additional options and consent loading from the LocalStorage
     if json:
         # here we get json string from the options (call .json()) because Pydantic should do the serialization
         # on complex types (like Path, datetime, etc.) first, so we could later use json.loads() to get a dict which
@@ -51,6 +54,7 @@ def show_config(json: bool = False):
 @cli.command("generate")
 @click.option("--sync", help="Update existing config", is_flag=True, default=False)
 @click.argument("config-file", type=click.Path(), default=".fuzz.yml", nargs=1)
+@trace("fuzz_config_generate")
 def generate_config(config_file, sync: bool) -> None:
     """Generate config file for fuzzing. If `config-file` argument is provided, it will be used as a config file name.
     If --sync option is provided, existing config file will be updated.

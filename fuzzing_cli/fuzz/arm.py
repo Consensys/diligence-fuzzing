@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import click
 from click import ClickException
 
+from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
@@ -41,6 +42,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
     required=False,
     help="If specified, execution will halt when an invariant is violated (instead of only emitting an event).",
 )
+@trace("fuzz_arm")
 def fuzz_arm(
     targets,
     scribble_path: str,
@@ -87,6 +89,8 @@ def fuzz_arm(
                 "targets": targets if len(targets) > 0 else None,
             }
         ),
+        # TODO: refactor this workaround for some config options validation
+        ci_mode=True,
         no_build_directory=True,
         no_key=True,
         no_deployed_contract_address=True,
@@ -114,5 +118,5 @@ def fuzz_arm(
             f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
             f"or set one in config"
         )
-    except:
+    except Exception as e:
         raise

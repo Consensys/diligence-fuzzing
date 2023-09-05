@@ -197,11 +197,13 @@ def mocked_rpc_client(blocks: List[EVMBlock], codes: Dict[str, str] = {}):
                 if b["hash"] == block_hash:
                     return {**response_body, "result": b}
             return {**response_body, "result": None}
+        elif method == "web3_clientVersion":
+            return {**response_body, "result": "test/0.0.1"}
         return response_body
 
     with requests_mock.Mocker() as m:
         m.register_uri("POST", "http://localhost:9898", json=request_handler)
-        yield
+        yield m
 
 
 def assert_is_equal(
@@ -257,3 +259,7 @@ def construct_output(
     if error:
         return error_message + result
     return message + result
+
+
+def omit_keys(d: Dict[str, any], keys: List[str]) -> Dict[str, any]:
+    return {k: v for k, v in d.items() if k not in keys}

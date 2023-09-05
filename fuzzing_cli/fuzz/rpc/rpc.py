@@ -1,5 +1,6 @@
 import json
 import logging
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Set, Union
 
 import click
@@ -28,7 +29,9 @@ class RPCClient(RPCClientBase):
         self.number_of_cores = number_of_cores
 
     @staticmethod
-    def parse_rpc_node_kind(rpc_node_info: str) -> str:
+    def parse_rpc_node_kind(rpc_node_info: Optional[str]) -> Optional[str]:
+        if not rpc_node_info:
+            return None
         rpc_node_info_parsed = rpc_node_info.split("/")
         kind = "unknown"
         if len(rpc_node_info_parsed) > 0:
@@ -44,9 +47,13 @@ class RPCClient(RPCClientBase):
 
         return kind
 
+    @lru_cache(maxsize=1)
     def get_rpc_node_info(self) -> Dict[str, Any]:
         """Get information about the RPC node"""
-        version = self.call("web3_clientVersion", [])
+        try:
+            version = self.call("web3_clientVersion", [])
+        except RPCCallError:
+            version = None
         return {"kind": self.parse_rpc_node_kind(version), "version": version}
 
     def call(self, method: str, params: List[Union[str, bool, int, float]]):
