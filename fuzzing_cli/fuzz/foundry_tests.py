@@ -8,8 +8,11 @@ from typing import Any, Dict, List, Optional, Set, Tuple, cast
 import click
 import toml
 
-from fuzzing_cli.fuzz.config import FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.analytics import Session, trace
+from fuzzing_cli.fuzz.config import AuthHandler, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
+    ForgeNotFoundryDirectory,
+    ForgeNoTestsFoundError,
     ForgeCollectTestsError,
     ForgeCompilationError,
     ForgeConfigError,
@@ -94,8 +97,6 @@ def collect_tests(
     targets: List[str] = []
     target_contracts: Optional[Dict[str, Set[str]]] = None
     cmd = ["forge", "test", "--list", "--json"]
-    if match_path is None and match_contract is None:
-        cmd += ["--match-path", f"{test_dir}/*"]
 
     if match_path:
         cmd += ["--match-path", match_path]
@@ -113,12 +114,27 @@ def collect_tests(
     except Exception as e:
         raise ForgeCollectTestsError() from e
     LOGGER.debug(
-        f"Invoking `forge test --list` command succeeded. Parsing the list ..."
+        f"Invoking `forge test --list --json` command succeeded. Parsing the list ..."
     )
-    LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
-    tests: Dict[str, Dict[str, List[str]]] = json.loads(
-        result.stdout.decode().splitlines()[-1]
-    )
+    try:
+        LOGGER.debug(f"Raw tests list {result.stdout.decode()}")
+        tests: Dict[str, Dict[str, List[str]]] = json.loads(
+            result.stdout.decode().splitlines()[-1]
+        )
+    # we catch the exception json.decoder.JSONDecodeError
+    except json.decoder.JSONDecodeError as e:
+        # we look at all the files in the current folder
+        files = os.listdir(".")
+        # and check if there is a foundry.toml file
+        if not "foundry.toml" in files:
+            raise ForgeNotFoundryDirectory()
+        # if its a foundry directory, we return the error of tests not found.
+        else:
+            raise ForgeNoTestsFoundError()
+
+    # if there are no tests, we return an empty list and throw an error
+    if not tests:
+        raise ForgeNoTestsFoundError()
     for test_path, test_contracts in tests.items():
         targets.append(test_path)
         if match_contract:
@@ -165,6 +181,7 @@ def cli():  # pragma: no-cover
     help="Additional string of `forge compile` command arguments for custom build strategies ("
     "e.g. --build-args=--deny-warnings --build-args --use 0.8.1)",
 )
+@trace("fuzz_foundry_test", upload_session=True)
 def foundry_test(
     key: str,
     dry_run: bool,
@@ -210,6 +227,14 @@ def foundry_test(
         smart_mode=False,
         **omit_none({"key": key}),
     )
+    auth_handler = AuthHandler(options)
+
+    Session.set_local_context(
+        ci_mode=options.ci_mode,
+        user_id=auth_handler.user_id,
+        rpc_node_kind="",
+        rpc_node_version="",
+    )
 
     repo = IDERepository.get_instance()
     artifacts = cast(
@@ -232,6 +257,8 @@ def foundry_test(
     )
 
     click.echo(f"⚡️ Submitting campaigns")
-    submit_campaign(options, repo.get_ide("foundry").get_name(), artifacts, seed_state)
+    submit_campaign(
+        options, repo.get_ide("foundry").get_name(), artifacts, seed_state, auth_handler
+    )
 
     return click.echo("Done 🎉")

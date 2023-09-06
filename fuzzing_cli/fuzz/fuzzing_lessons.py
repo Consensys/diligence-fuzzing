@@ -1,5 +1,6 @@
 import click
 
+from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.lessons import FuzzingLessons
 from fuzzing_cli.fuzz.rpc.rpc import RPCClient
@@ -29,6 +30,7 @@ def cli():
     help="Fuzzing lesson description",
     default="my lesson",
 )
+@trace("fuzz_lesson_start")
 def start(description: str):
     """Start recording fuzzing lesson"""
     fl = FuzzingLessons()
@@ -38,6 +40,7 @@ def start(description: str):
 
 # TODO: add "save" alias
 @cli.command("stop")
+@trace("fuzz_lesson_stop")
 def stop():
     """Stop recording fuzzing lesson and save results"""
     fl = FuzzingLessons()
@@ -49,6 +52,7 @@ def stop():
 
 
 @cli.command("abort")
+@trace("fuzz_lesson_abort")
 def abort():
     """Abort recording fuzzing lesson"""
     fl = FuzzingLessons()

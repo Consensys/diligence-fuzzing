@@ -35,6 +35,7 @@ def test_parameters_check(
     incremental: Optional[bool],
     corpus_target: Optional[str],
     error_detail: str,
+    ci_mode,
 ):
     write_config(
         base_path=str(tmp_path),
@@ -43,7 +44,7 @@ def test_parameters_check(
         corpus_target=corpus_target,
     )
     runner = CliRunner()
-    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
+    result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert result.exit_code == 2
     assert (
@@ -86,6 +87,7 @@ def test_incremental_fuzzing(
     corpus_target: Optional[str],
     corpus_target_result: str,
     brownie_project,
+    ci_mode,
 ):
     write_config(
         ide="brownie",
@@ -106,7 +108,7 @@ def test_incremental_fuzzing(
     ) as start_faas_campaign_mock:
         start_faas_campaign_mock.return_value = "560ba03a-8744-4da6-aeaa-a62568ccbf44"
         runner = CliRunner()
-        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts", "--no-prompts"])
+        result = runner.invoke(cli, ["run", f"{tmp_path}/contracts"])
 
     assert result.exit_code == 0
     assert (
