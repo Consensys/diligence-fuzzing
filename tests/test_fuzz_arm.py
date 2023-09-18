@@ -100,7 +100,7 @@ def test_fuzz_arm(
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process):
+def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process, ci_mode):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -113,8 +113,14 @@ def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process):
     command = ["arm"]
     result = runner.invoke(cli, command)
 
-    assert result.exit_code == 2
-    assert "Invalid config: Targets not provided." in result.output
+    assert result.exit_code == 1
+    assert (
+        result.output == "⚠️ Targets were not provided but the following files can "
+        "be set as targets to be armed:\n"
+        f"  ◦ {tmp_path}/contracts/Migrations.sol\n  ◦ {tmp_path}/contracts/VulnerableToken.sol\n"
+        "Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
+        "No files to instrument at provided targets\n"
+    )
     assert len(fake_process.calls) == 0
 
 
@@ -243,3 +249,86 @@ def test_fuzz_arm_empty_folder_targets(tmp_path, scribble_project, fake_process)
         f"No files to instrument at provided targets"
     )
     assert len(fake_process.calls) == 0
+
+
+@pytest.mark.parametrize("smart_mode", [True, False])
+@pytest.mark.parametrize("ci_mode_flag", [True, False])
+@pytest.mark.parametrize("accept_suggestions", [True, False])
+@patch("pathlib.Path.exists", new=Mock(return_value=True))
+def test_fuzz_arm_smart_mode(
+    tmp_path,
+    scribble_project,
+    fake_process,
+    monkeypatch,
+    smart_mode: bool,
+    ci_mode_flag: bool,
+    accept_suggestions: bool,
+):
+    monkeypatch.delenv("FUZZ_CONFIG_FILE", raising=False)
+    monkeypatch.setenv("FUZZ_SMART_MODE", "true" if smart_mode else "false")
+    monkeypatch.setenv("FUZZ_CI_MODE", "true" if ci_mode_flag else "false")
+
+    cmd = [
+        "scribble",
+        "--arm",
+        "--output-mode=files",
+        "--instrumentation-metadata-file=.scribble-arming.meta.json",
+        fake_process.any(),
+        f"{tmp_path}/contracts/VulnerableToken.sol",
+    ]
+
+    out = (
+        "Found 4 annotations in 1 different files.\n"
+        "contracts/VulnerableToken.sol -> contracts/VulnerableToken.sol.instrumented\n"
+        "Copying contracts/VulnerableToken.sol to contracts/VulnerableToken.sol.original\n"
+        "Copying contracts/VulnerableToken.sol.instrumented to contracts/VulnerableToken.sol"
+    )
+    fake_process.register_subprocess(cmd, stdout=out)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["arm"], input="y\n" if accept_suggestions else "n\n")
+    if not smart_mode:
+        suggestion = (
+            "⚠️ Targets were not provided but the following files can be set as targets to be armed:\n"
+            f"  ◦ {tmp_path}/contracts/Migrations.sol\n"
+            f"  ◦ {tmp_path}/contracts/VulnerableToken.sol"
+        )
+        warnings = (
+            "Warning: Build directory not specified. Using IDE defaults. "
+            "For a proper seed state check please set one.\n"
+            "Warning: Sources directory not specified. Using IDE defaults. "
+            "For a proper seed state check please set one."
+        )
+        scribble_error = (
+            f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
+            "No files to instrument at provided targets\n"
+        )
+
+        if ci_mode_flag:
+            assert result.exit_code == 1
+            assert result.output == f"{warnings}\n{suggestion}\n{scribble_error}"
+        elif not accept_suggestions:
+            assert result.exit_code == 1
+            assert (
+                result.output == f"{warnings}\n"
+                f"[?] {suggestion}\nAdd them to targets? [Y/n]: n\n{suggestion}\n"
+                f"{scribble_error}"
+            )
+        else:
+            # accepted suggestions
+            assert result.exit_code == 0
+            assert (
+                result.output == f"{warnings}\n"
+                f"[?] {suggestion}\nAdd them to targets? [Y/n]: y\n{out}\n"
+            )
+            assert len(fake_process.calls) == 1
+            process_command = fake_process.calls[0]
+            assert process_command[0:4] == cmd[0:4]
+            assert "--no-assert" in process_command
+    else:
+        # with smart mode enabled, suggestions will be auto-applied
+        assert result.exit_code == 0
+        assert result.output == f"{out}\n"
+        assert len(fake_process.calls) == 1
+        process_command = fake_process.calls[0]
+        assert process_command[0:4] == cmd[0:4]
+        assert "--no-assert" in process_command
