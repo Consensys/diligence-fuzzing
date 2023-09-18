@@ -238,6 +238,18 @@ class Session:
             LOGGER.debug(f"Failed to send crash report. Exception: {e}")
         cls.end_session()
 
+    @classmethod
+    def get_consents_status(cls):
+        options = AdditionalOptions()
+        report_crash = options.report_crashes
+        consent_given = Session.consent_given()
+        if consent_given is None:
+            consent_given = options.allow_analytics
+        return {
+            "report_crashes": report_crash,
+            "allow_analytics": consent_given,
+        }
+
 
 def trace(name: str, upload_session: bool = False):
     def trace_factory(func):
@@ -266,7 +278,9 @@ def trace(name: str, upload_session: bool = False):
                         if options.report_crashes:
                             # ask the user for consent in case the env variable is set to default (True)
                             report_crash: bool = click.confirm(
-                                f"An unexpected error occurred: {str(exc_type.__name__)}: {str(exc_value)}\n"
+                                f"Oops! 🙊 Something didn't go as planned. "
+                                f"Please see details below for more information: "
+                                f"{str(exc_type.__name__)}: {str(exc_value)}\n"
                                 f"Do you want to report this error?",
                                 default=True,
                             )
@@ -297,7 +311,10 @@ def trace(name: str, upload_session: bool = False):
                     else:
                         if options.allow_analytics:
                             consent_given: bool = click.confirm(
-                                f"Do you want to allow us to collect product usage analytics to improve the product?",
+                                f"Hey there! 👋 Mind if we collect some usage analytics? "
+                                f"It helps us improve and make the experience better for you and others. 🚀. "
+                                f"(You can revoke the consent at any time later using "
+                                f"`fuzz config set no-product-analytics`)",
                                 default=True,
                             )
                         else:

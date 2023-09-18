@@ -11,11 +11,11 @@ import toml
 from fuzzing_cli.fuzz.analytics import Session, trace
 from fuzzing_cli.fuzz.config import AuthHandler, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.exceptions import (
-    ForgeNotFoundryDirectory,
-    ForgeNoTestsFoundError,
     ForgeCollectTestsError,
     ForgeCompilationError,
     ForgeConfigError,
+    ForgeNoTestsFoundError,
+    ForgeNotFoundryDirectory,
 )
 from fuzzing_cli.fuzz.ide import FoundryArtifacts, IDERepository
 from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import (

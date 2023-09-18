@@ -3,13 +3,14 @@ import json
 import os
 import tarfile
 from pathlib import Path
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.config import AuthHandler
 from fuzzing_cli.fuzz.storage import LocalStorage
+# DO NOT DELETE: fixtures import
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
     foundry_config_mock,

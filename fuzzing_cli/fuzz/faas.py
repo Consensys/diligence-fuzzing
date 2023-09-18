@@ -1,10 +1,10 @@
 import json
 import logging
+import os
 import random
 import string
 from typing import Dict
 from urllib.parse import urljoin
-import os
 
 import requests
 from requests.structures import CaseInsensitiveDict

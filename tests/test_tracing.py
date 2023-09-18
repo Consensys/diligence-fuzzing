@@ -211,10 +211,10 @@ def test_report_crash(
         start_faas_campaign_mock.side_effect = Exception("test exception")
         result = runner.invoke(cli, ["run"], input="y\n")
         assert result.exit_code == 0
-        assert (
-            result.output == "An unexpected error occurred: Exception: test exception\n"
-            "Do you want to report this error? [Y/n]: y\n"
-        )
+        assert (result.output == "Oops! 🙊 Something didn't go as planned. "
+                                 "Please see details below for more information: "
+                                 "Exception: test exception\n"
+                                 "Do you want to report this error? [Y/n]: y\n")
 
         crash_report_post = m.request_history[-2]
         crash_report_post_data = crash_report_post.json()

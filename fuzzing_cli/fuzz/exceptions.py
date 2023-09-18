@@ -138,6 +138,7 @@ Please check the project's compilation logs or consult the project's documentati
 
     pass
 
+
 class ForgeNotFoundryDirectory(ForgeError):
     """Raised when `forge config` command fails"""
 
@@ -150,6 +151,7 @@ Please ensure that the Foundry project is properly configured and that the 'forg
 """
 
     pass
+
 
 class ForgeNoTestsFoundError(ForgeError):
     """Raised when `forge config` command fails"""

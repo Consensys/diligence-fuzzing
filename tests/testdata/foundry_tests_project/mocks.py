@@ -16,8 +16,8 @@ list_args = {
     '--match-path "test/Counter*" --match-contract "Counter*"': list_output,
     "--match-path test/Counter* --match-contract Counter*": list_output,
     '--match-contract "Counter*"': list_output,
-    "--match-path test/*":list_output_2,
-    '': list_output_2,
+    "--match-path test/*": list_output_2,
+    "": list_output_2,
 }
 
 
