@@ -1,7 +1,7 @@
 import base64
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import requests
 
@@ -18,9 +18,20 @@ class AuthHandler:
         self._api_key: Optional[str] = None
         self._expires_at: Optional[datetime] = None
 
+    def _decode_api_key(self) -> Dict[str, Any]:
+        payload = self.api_key.split(".")[1]
+        input_bytes = payload.encode("utf-8")
+        remainder = len(input_bytes) % 4
+        if remainder > 0:
+            # here we need to correct the padding
+            input_bytes += b"=" * (4 - remainder)
+
+        return json.loads(base64.urlsafe_b64decode(input_bytes))
+
     @property
     def user_id(self) -> str:
-        return json.loads(base64.b64decode(self.api_key.split(".")[1]))["sub"]
+        token_data = self._decode_api_key()
+        return token_data["sub"]
 
     def _get_access_token(self) -> Tuple[str, int]:
         response = requests.post(
