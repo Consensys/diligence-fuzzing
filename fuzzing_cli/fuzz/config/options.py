@@ -90,6 +90,8 @@ class FuzzingOptions(BaseSettings):
 
     enable_cheat_codes: Optional[bool] = None
     chain_id: Optional[str] = None
+    max_sequence_length: Optional[int] = None
+    ignore_code_hash: Optional[bool] = None
     incremental: bool = False
     truffle_executable_path: Optional[str] = None
     quick_check: bool = False

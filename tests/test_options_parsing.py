@@ -113,6 +113,8 @@ def test_config_show(tmp_path, monkeypatch, json: bool, give_analytics_consent: 
         "map_to_original_source": False,
         "enable_cheat_codes": None,
         "chain_id": None,
+        "max_sequence_length": None,
+        "ignore_code_hash": None,
         "incremental": False,
         "truffle_executable_path": None,
         "quick_check": False,
