@@ -3,13 +3,15 @@ import json
 import os
 import tarfile
 from pathlib import Path
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.config import AuthHandler
 from fuzzing_cli.fuzz.storage import LocalStorage
+
+# DO NOT DELETE: fixtures import
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
     foundry_config_mock,
@@ -45,10 +47,10 @@ def truffle_project(tmp_path):
         "build_directory": "build/contracts",
         "sources_directory": "contracts",
         "targets": [
+            "contracts/Migrations.sol",
             "contracts/Foo.sol",
             "contracts/Bar.sol",
             "contracts/ABC.sol",
-            "contracts/Migrations.sol",
         ],
         "deployed_contract_address": "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         "additional_addresses": [
@@ -84,9 +86,9 @@ def hardhat_project(tmp_path):
         "build_directory": "artifacts",
         "sources_directory": "contracts",
         "targets": [
-            "contracts/Foo.sol",
-            "contracts/Bar.sol",
             "contracts/ABC.sol",
+            "contracts/Bar.sol",
+            "contracts/Foo.sol",
             "contracts/Migrations.sol",
         ],
         "deployed_contract_address": "0x128B125f3D14338E71AA0C213B3FfC3D545C8c47",

@@ -212,7 +212,9 @@ def test_report_crash(
         result = runner.invoke(cli, ["run"], input="y\n")
         assert result.exit_code == 0
         assert (
-            result.output == "An unexpected error occurred: Exception: test exception\n"
+            result.output == "Oops! 🙊 Something didn't go as planned. "
+            "Please see details below for more information: "
+            "Exception: test exception\n"
             "Do you want to report this error? [Y/n]: y\n"
         )
 

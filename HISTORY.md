@@ -1,8 +1,9 @@
 # History
 
-0.12.0 (2023-09-05)
+0.12.0 (2024-03-04)
 --------------------
 - Analytics collection support
+- Add new fuzzer options
 
 0.11.3 (2023-08-28)
 --------------------

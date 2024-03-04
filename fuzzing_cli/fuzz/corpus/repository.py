@@ -205,9 +205,8 @@ class CorpusRepository:
         if addresses_under_test is None:
             addresses_under_test = self._options.addresses_under_test
         if targets is None:
-            targets = self._options.targets[
-                :
-            ]  # make a copy of the targets to not modify the original list
+            # make a copy of the targets to not modify the original list
+            targets = self._options.targets[:]
 
         return _uniq(addresses_under_test), _uniq(targets)
 
@@ -364,7 +363,7 @@ class CorpusRepository:
             not_targeted_contracts.append(
                 (
                     contract_address,
-                    contract.get("mainSourceFile"),
+                    self._artifacts.normalize_path(contract.get("mainSourceFile")),
                     contract.get("contractName"),
                 )
             )

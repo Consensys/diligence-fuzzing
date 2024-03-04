@@ -7,6 +7,7 @@ import yaml
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
+from fuzzing_cli.fuzz.analytics import Session
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions
 
 
@@ -76,7 +77,10 @@ def test_fuzzing_options_parsing(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("json", [True, False])
-def test_config_show(tmp_path, monkeypatch, json: bool):
+@pytest.mark.parametrize("give_analytics_consent", [True, False])
+def test_config_show(tmp_path, monkeypatch, json: bool, give_analytics_consent: bool):
+    Session.give_consent(give_analytics_consent)
+
     prepare_config(tmp_path, monkeypatch)
     monkeypatch.setenv("FUZZ_SOURCES_DIRECTORY", "contracts")
     monkeypatch.setenv("FUZZ_BUILD_DIRECTORY", "build")
@@ -109,6 +113,8 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "map_to_original_source": False,
         "enable_cheat_codes": None,
         "chain_id": None,
+        "max_sequence_length": None,
+        "ignore_code_hash": None,
         "incremental": False,
         "truffle_executable_path": None,
         "quick_check": False,
@@ -127,9 +133,17 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
         "assert_": False,
     }
 
+    product_analytics_options_json = {
+        "report_crashes": True,
+        "allow_analytics": give_analytics_consent,
+    }
+
     fuzz_config_repr = "\n".join([f"{k} = {v}" for k, v in faas_options_json.items()])
     analyze_config_repr = "\n".join(
         [f"{k} = {v}" for k, v in analyze_options_json.items()]
+    )
+    product_analytics_config_repr = "\n".join(
+        [f"{k} = {v}" for k, v in product_analytics_options_json.items()]
     )
 
     assert result.exit_code == 0
@@ -138,11 +152,40 @@ def test_config_show(tmp_path, monkeypatch, json: bool):
             {
                 "fuzz": faas_options_json,
                 "analyze": analyze_options_json,
+                "productAnalytics": product_analytics_options_json,
             }
         )
         assert result.output == f"{out}\n"
     else:
         assert (
-            result.output
-            == f"""FUZZ CONFIG\n-----------\n{fuzz_config_repr}\n\nANALYZE CONFIG\n--------------\n{analyze_config_repr}\n"""
+            result.output == f"FUZZ CONFIG\n-----------\n{fuzz_config_repr}\n\n"
+            f"ANALYZE CONFIG\n--------------\n{analyze_config_repr}\n\n"
+            f"PRODUCT ANALYTICS\n--------------\n{product_analytics_config_repr}\n"
         )
+
+
+@pytest.mark.parametrize("give_analytics_consent", [True, False])
+def test_config_set_analytics_consent(
+    tmp_path, monkeypatch, give_analytics_consent: bool
+):
+    Session.give_consent(give_analytics_consent)
+    monkeypatch.setenv("FUZZ_SOURCES_DIRECTORY", "contracts")
+    prepare_config(tmp_path, monkeypatch)
+    runner = CliRunner()
+    cmd = ["config", "set"]
+    if give_analytics_consent:
+        # disallow product analytics if the consent is previously given
+        cmd += ["--no-product-analytics"]
+        status = "disallowed"
+    else:
+        # else allow one if the consent was not given
+        cmd += ["--product-analytics"]
+        status = "allowed"
+    result = runner.invoke(cli, cmd)
+
+    assert result.exit_code == 0
+    assert result.output == f"🛠️  Product analytics collection is now {status}\n"
+
+    result = runner.invoke(cli, ["config", "show", "--json"])
+    out = jsonlib.loads(result.output)
+    assert out["productAnalytics"]["allow_analytics"] is not give_analytics_consent

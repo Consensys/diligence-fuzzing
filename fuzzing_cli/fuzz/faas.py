@@ -1,10 +1,10 @@
 import json
 import logging
+import os
 import random
 import string
 from typing import Dict
 from urllib.parse import urljoin
-import os
 
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -147,6 +147,16 @@ class FaasClient:
             api_payload["foundryTests"] = True
             if self.options.foundry_tests_list is not None:
                 api_payload["foundryTestsList"] = self.options.foundry_tests_list
+
+        if self.options.max_sequence_length is not None:
+            api_payload["parameters"][
+                "max-sequence-length"
+            ] = self.options.max_sequence_length
+
+        if self.options.ignore_code_hash is not None:
+            api_payload["parameters"][
+                "ignore-code-hash"
+            ] = self.options.ignore_code_hash
 
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()

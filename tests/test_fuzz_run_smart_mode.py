@@ -160,18 +160,6 @@ def test_fuzz_run_with_auto_fixes(
         else:
             result = runner.invoke(cli, ["run"])
 
-    if not provide_targets and not provide_addresses:
-        assert result.exit_code == 2
-        assert (
-            "Usage: cli run [OPTIONS] [TARGETS]...\n"
-            "Try 'cli run --help' for help.\n"
-            "\n"
-            "Error: Invalid config: No targets specified. Please specify "
-            "at least one target (deployed contract address or targets).\n"
-            == result.output
-        )
-        return
-
     message = ""
     prompt = ""
 
@@ -208,6 +196,22 @@ def test_fuzz_run_with_auto_fixes(
             f"respective contracts as addresses under test:\n{data}"
         )
         prompt = "Add them to addresses under test"
+    elif not provide_addresses and not provide_targets:
+        data = []
+        for target in ide["targets"]:
+            for contract_name, contract in contracts.items():
+                if contract["contractPath"] == target:
+                    data.append(
+                        f"  ◦ Address: {contract['address'].lower()}"
+                        f" Source File: {tmp_path}/{contract['contractPath']}"
+                        f" Contract Name: {contract_name}"
+                    )
+                    break
+        data = "\n".join(data)
+        message = (
+            f"⚠️ Following contracts were not included into the seed state:\n{data}"
+        )
+        prompt = "Add them to targets"
 
     expected_output = construct_output(
         message,

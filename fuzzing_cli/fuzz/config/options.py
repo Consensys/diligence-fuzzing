@@ -90,6 +90,8 @@ class FuzzingOptions(BaseSettings):
 
     enable_cheat_codes: Optional[bool] = None
     chain_id: Optional[str] = None
+    max_sequence_length: Optional[int] = None
+    ignore_code_hash: Optional[bool] = None
     incremental: bool = False
     truffle_executable_path: Optional[str] = None
     quick_check: bool = False
@@ -251,12 +253,6 @@ class FuzzingOptions(BaseSettings):
     def _regular_mode_validator(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if values.get("smart_mode"):
             return values
-
-        if not values.get("targets") and not values.get("deployed_contract_address"):
-            raise ValueError(
-                "No targets specified. "
-                "Please specify at least one target (deployed contract address or targets)."
-            )
 
         if not values.get("no_build_directory") and not values.get("build_directory"):
             click.secho(

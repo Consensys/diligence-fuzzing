@@ -1,14 +1,43 @@
 import logging
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import click
-from click import ClickException
+from click import ClickException, style
 
 from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
+from fuzzing_cli.fuzz.utils import detect_ide
+from fuzzing_cli.util import sol_files_by_directory
 
 LOGGER = logging.getLogger("fuzzing-cli")
+
+QM = f"[{style('?', fg='yellow')}]"
+
+
+def handle_validation_errors(
+    targets: List[str],
+    fuzzing_options: FuzzingOptions,
+    prompt: bool = True,
+    smart_mode: bool = False,
+) -> List[str]:
+    if len(targets) > 0:
+        return targets
+
+    _IDEClass = detect_ide(fuzzing_options)
+    suggested_targets = sorted(
+        sol_files_by_directory(str(_IDEClass.get_default_sources_dir()))
+    )
+
+    data = "\n".join([f"  ◦ {file_name}" for file_name in suggested_targets])
+    error_message = f"⚠️ Targets were not provided but the following files can be set as targets to be armed:\n{data}"
+    if smart_mode or (
+        prompt
+        and click.confirm(f"{QM} {error_message}\nAdd them to targets?", default=True)
+    ):
+        return suggested_targets
+    click.secho(error_message)
+    return targets
 
 
 @click.command("arm")
@@ -83,23 +112,24 @@ def fuzz_arm(
         )
     )
 
+    # allow no_targets for smart mode or prompts to run
     fuzzing_options = FuzzingOptions(
-        **omit_none(
-            {
-                "targets": targets if len(targets) > 0 else None,
-            }
-        ),
-        # TODO: refactor this workaround for some config options validation
-        ci_mode=True,
-        no_build_directory=True,
+        # omit_none for targets to look in the config if the one was not provided as arg to fuzz arm command
+        **omit_none({"targets": targets if len(targets) > 0 else None}),
         no_key=True,
+        no_targets=True,
         no_deployed_contract_address=True,
-        smart_mode=False,
+    )
+    _targets = handle_validation_errors(
+        fuzzing_options.targets,
+        fuzzing_options,
+        prompt=not fuzzing_options.ci_mode,
+        smart_mode=fuzzing_options.smart_mode,
     )
 
     try:
         return_code, out, err = ScribbleMixin.instrument_solc_in_place(
-            file_list=fuzzing_options.targets,
+            file_list=_targets,
             scribble_path=options.scribble_path,
             remappings=options.remappings,
             solc_version=options.solc_version,

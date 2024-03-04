@@ -14,6 +14,7 @@ from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
 from .rpc.rpc import RPCClient
+from .utils import detect_ide
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -327,17 +328,7 @@ def fuzz_run(
             user_id=auth_handler.user_id,
         )
 
-        repo = IDERepository.get_instance()
-        if options.ide:
-            LOGGER.debug(f'"{options.ide}" IDE is specified')
-            _IDEClass = repo.get_ide(options.ide)
-        else:
-            LOGGER.debug("IDE not specified. Detecting one")
-            _IDEClass = repo.detect_ide()
-            if not _IDEClass:
-                LOGGER.debug("No supported IDE was detected")
-                raise UsageError(f"No supported IDE was detected")
-            LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
+        _IDEClass = detect_ide(options)
 
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
