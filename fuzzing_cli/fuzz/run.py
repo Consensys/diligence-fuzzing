@@ -34,6 +34,7 @@ def handle_validation_errors(
 
     :param corpus_repo: Corpus repository
     :param prompt: Whether to prompt the user for automatic fixes
+    :param smart_mode: Whether to automatically apply fixes without prompting
     :return: List of suggested fixes
     """
     suggested_fixes = []
@@ -101,7 +102,8 @@ def handle_validation_errors(
                     }
                 )
                 continue
-            raise ClickException(error_message)
+            click.secho(error_message)
+            continue
 
         if validation_error["type"] == "source_target_not_set":
             data = "\n".join(

@@ -1,5 +1,10 @@
 # History
 
+0.12.1 (2024-03-07)
+--------------------
+- Change `fuzz run` command behavior on contract targets absence (now it will emit warning instead of an error)
+- Update documentation
+
 0.12.0 (2024-03-04)
 --------------------
 - Analytics collection support

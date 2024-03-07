@@ -334,27 +334,27 @@ def test_contract_target_not_set(
             prompt if with_prompt else None,
             cmd_result,
             "y" if auto_fix else "n",
-            error=True if not auto_fix else False,
+            error=False,
         )
         == result.output
     )
 
-    if not with_prompt or not auto_fix:
-        assert result.exit_code == 1
-        assert start_faas_campaign_mock.called is False
-    else:
-        assert result.exit_code == 0
-        assert start_faas_campaign_mock.called is True
-        payload = start_faas_campaign_mock.call_args[0][0]
-        assert (
-            payload["corpus"]["address-under-test"]
-            == "0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6"
-        )
-        assert payload["corpus"]["other-addresses-under-test"] == [
-            "0x1672fb2eb51789abd1a9f2fe83d69c6f4c883065",
-            "0x6a432c13a2e980a78f941c136ec804e7cb67e0d9",
-            "0x6bcb21de38753e485f7678c7ada2a63f688b8579",
-        ]
+    assert result.exit_code == 0
+    assert start_faas_campaign_mock.called is True
+    payload = start_faas_campaign_mock.call_args[0][0]
+    assert (
+        payload["corpus"]["address-under-test"]
+        == "0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6"
+    )
+
+    expected = [
+        "0x1672fb2eb51789abd1a9f2fe83d69c6f4c883065",
+        "0x6a432c13a2e980a78f941c136ec804e7cb67e0d9",
+    ]
+    if auto_fix:
+        expected.append("0x6bcb21de38753e485f7678c7ada2a63f688b8579")
+
+    assert payload["corpus"]["other-addresses-under-test"] == expected
 
 
 @pytest.mark.parametrize(*TESTS_PARAMETRIZATION)
