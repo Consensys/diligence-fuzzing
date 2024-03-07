@@ -34,7 +34,7 @@ You can opt out of analytics following ways:
    ```bash
     > Hey there! 👋 Mind if we collect some usage analytics?
     It helps us improve and make the experience better for you and others. 🚀.
-    (You can revoke the consent at any time later using `fuzz config set no-product-analytics`) [Y/n]:
+    (You can revoke the consent at any time later using `fuzz config set no-product-analytics`) [Y/n]: n
     ```
 2. By running `fuzz config set no-product-analytics` command
 3. By setting `FUZZ_ALLOW_ANALYTICS` environment variable to `false`<br>
@@ -67,9 +67,9 @@ Fuzzing CLI collects crash data to help us understand and fix issues. We use thi
 You can opt out of crash data collection following ways:
 1. At an every event of a crash, you will be asked whether you want to send the crash report. If you choose not to send the crash report, we will not collect any crash data from your device.
    ```bash
-    > "Oops! 🙊 Something didn't go as planned. Please see details below for more information:
+    > Oops! 🙊 Something didn't go as planned. Please see details below for more information:
     <Exception Type>: <Exception Message>
-    Do you want to report this error? [Y/n]:
+    Do you want to report this error? [Y/n]: n
     ```
 2. By setting `FUZZ_REPORT_CRASHES` environment variable to `false`. Setting this environment variable will prevent the tool from asking you to send the crash report at every event of a crash.
 
