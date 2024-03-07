@@ -4,7 +4,7 @@ deepdiff==6.3.0
 
 bumpversion==0.6.0
 # pin cryptography version to allow installation on PyPy 3.7 (v7.3.9)
-cryptography==40.0.2
+cryptography==42.0.4
 # cryptography is a dependency of twine
 twine==4.0.2
 
