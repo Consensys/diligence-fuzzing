@@ -23,6 +23,7 @@ Table of Contents
     - [Foundry Tests](#foundry-tests)
   - [Configuration](#configuration)
   - [Commands](#commands)
+  - [Product Analytics Collection](#product-analytics-collection)
 
 ## Installing
 The Diligence Fuzzing CLI runs on Python 3.7+, including PyPy.
@@ -244,5 +245,8 @@ The `fuzz` CLI tool provides the following commands:
 
 Each command serves a specific purpose in the fuzzing process, and they can be used together to configure and execute fuzzing campaigns. For more information on each command, consult the corresponding documentation.
 
+## Product Analytics Collection
+This tool collects usage data to help us understand how the tool is being used and how we can improve it, but you can opt out of this data collection at any time.
+Please have a look at the [Product Analytics Collection](docs/analytics.md) documentation for more information.
 
 * Free software: Apache 2 license

@@ -247,7 +247,6 @@ def test_report_crash(
             "rpcNodeVersion": "test/0.0.1",
             "system": platform.system(),
         }
-        import json
 
         assert_is_equal(
             list(crash_report_post_data.keys()),

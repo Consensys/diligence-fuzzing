@@ -152,9 +152,8 @@ class IDEArtifacts(ABC):
             return None
         except Exception as e:
             LOGGER.debug(
-                f'Exception decoding metadata from the bytecode. Encoded metadata "{encoded_metadata}"'
+                f'Exception decoding metadata from the bytecode. Encoded metadata "{encoded_metadata}". Exception: {e}'
             )
-            LOGGER.error(e)
             return None
 
     def get_contract(self, deployed_bytecode: str) -> Optional[Contract]:
