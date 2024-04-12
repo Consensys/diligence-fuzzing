@@ -1,9 +1,10 @@
 import json
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Literal, Optional, Set, Tuple
 
 import cbor2
 
@@ -11,6 +12,8 @@ from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError, EmptyArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import LOGGER, sol_files_by_directory
+
+ContractKind = Literal["contract", "interface", "library"]
 
 
 class IDEArtifacts(ABC):
@@ -196,7 +199,41 @@ class IDEArtifacts(ABC):
                     return contract
         return None
 
+    @lru_cache(1)
+    def _contracts_kind_mapping(self) -> Dict[str, Dict[str, ContractKind]]:
+        _result_contracts, _result_sources = self.process_artifacts()
+        types_mapping = defaultdict(dict)
+        for source_file_name, _ in _result_contracts.items():
+            # we need to `get` `source_file_name` because it's possible that some source files
+            # are not present in the sources directory.
+            ast = _result_sources.get(source_file_name, {}).get("ast")
+            if not ast:
+                continue
+            for node in ast["nodes"]:
+                if node["nodeType"] != "ContractDefinition":
+                    continue
+                contract_name = node["name"]
+                types_mapping[source_file_name][contract_name] = node["contractKind"]
+        return types_mapping
+
+    def _get_contract_kind(self, contract: Contract) -> ContractKind:
+        return (
+            self._contracts_kind_mapping().get(contract["mainSourceFile"], {})
+            # if contract is not found in the mapping, we assume it's a contract
+            .get(contract["contractName"], "contract")
+        )
+
     def include_contract(self, contract: Contract) -> bool:
+        # if contract is library, we would not include it by default
+        # (because it will be included by default in the main contract). However,
+        # there are cases when we need to include libraries as well (because it supposed to be deployed),
+        # so we need to check `include_library_contracts` option.
+        if (
+            self._get_contract_kind(contract) == "library"
+            and not self._options.include_library_contracts
+        ):
+            return False
+
         if len(self._include) == 0:
             # for case when targets are not specified
             return True
@@ -212,6 +249,7 @@ class IDEArtifacts(ABC):
             in self._options.target_contracts[source_path]
         ):
             return False
+
         return True
 
     @lru_cache(maxsize=1)

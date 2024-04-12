@@ -122,6 +122,7 @@ def test_config_show(tmp_path, monkeypatch, json: bool, give_analytics_consent: 
         "target_contracts": None,
         "dry_run": False,
         "smart_mode": False,
+        "include_library_contracts": False,
         "ci_mode": False,
     }
 
