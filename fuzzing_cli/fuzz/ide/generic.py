@@ -4,7 +4,12 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import cbor2
 
