@@ -5,9 +5,11 @@ from functools import lru_cache, partial
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from ...util import get_content_from_file
-from ..exceptions import BuildArtifactsError
-from ..types import Contract, Source
+from fuzzing_cli.fuzz.analytics import Session
+from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
+from fuzzing_cli.fuzz.types import Contract, Source
+from fuzzing_cli.util import get_content_from_file
+
 from . import IDEArtifacts
 
 
@@ -90,14 +92,32 @@ class HardhatArtifacts(IDEArtifacts):
         result_contracts = defaultdict(list)
         result_sources = {}
 
+        _seen_source_files = defaultdict(set)
+        # here we reverse the build_info to have a mapping from build_info_path to source_file (along with contracts)
         build_info_paths: Dict[Path, Dict[str, List[str]]] = defaultdict(
             partial(defaultdict, list)
         )
         for source_file_name, contracts in self.build_info.items():
             for contract_name, build_info_path in contracts.items():
+                _seen_source_files[source_file_name].add(build_info_path)
                 build_info_paths[build_info_path][source_file_name].append(
                     contract_name
                 )
+
+        _sources_in_multiple_build_info = {}
+        for source_file_name, _build_info_paths in _seen_source_files.items():
+            if len(_build_info_paths) > 1:
+                _sources_in_multiple_build_info[source_file_name] = _build_info_paths
+
+        if _sources_in_multiple_build_info:
+            # This is a special (maybe never occurring) case where the same source file is present in multiple
+            # build_info files. If this happens, we want to catch that and try to handle it gracefully (for
+            # proper handling), so for now we need to add them to the function's context to submit to the analytics
+            # server for further investigation.
+            # NOTE: this info will be sent to the analytics server only if the user has opted in
+            Session.set_context(
+                sources_in_multiple_build_info=_sources_in_multiple_build_info
+            )
 
         # each build_info file has a list of source files and their contracts
         # we need to process each build_info_path separately, as each build_info file has its own source_ids
