@@ -1,5 +1,10 @@
 # History
 
+0.12.2 (2024-04-23)
+--------------------
+- Fix hardhat artifacts collection
+- Ignore library contracts by default
+
 0.12.1 (2024-03-07)
 --------------------
 - Change `fuzz run` command behavior on contract targets absence (now it will emit warning instead of an error)
