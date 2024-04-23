@@ -106,6 +106,8 @@ class FuzzingOptions(BaseSettings):
     dry_run: bool = False
     smart_mode: bool = False
 
+    include_library_contracts: bool = False
+
     ci_mode: bool = Field(False)
 
     no_build_directory: bool = Field(False, exclude=True)
