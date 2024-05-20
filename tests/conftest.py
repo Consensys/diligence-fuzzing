@@ -73,6 +73,32 @@ def hardhat_fuzzing_lessons_project(tmp_path):
 
 
 @pytest.fixture()
+def hardhat_project_with_unlinked_libraries(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "hardhat_project_with_unlinked_libraries", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "hardhat",
+        "build_directory": "artifacts",
+        "sources_directory": "contracts",
+        "targets": [
+            "contracts/ABC.sol",
+            "contracts/Bar.sol",
+            "contracts/Foo.sol",
+        ],
+        "deployed_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "additional_addresses": [
+            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+            "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+        ],
+    }
+
+
+@pytest.fixture()
 def hardhat_project(tmp_path):
     with tarfile.open(
         Path(__file__).parent.joinpath(
@@ -203,6 +229,28 @@ def foundry_project(tmp_path):
     with tarfile.open(
         Path(__file__).parent.joinpath(
             "testdata", "foundry_project", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "foundry",
+        "build_directory": "out",
+        "sources_directory": "src",
+        "targets": ["src/Foo.sol", "src/Bar.sol", "src/ABC.sol"],
+        "deployed_contract_address": "0x0c91f9338228f19315BE34E5CA5307DF586CBD99",
+        "additional_addresses": [
+            "0x9B92063B8B94A9EF8b5fDE3Df8D375B39bC9fC10",
+            "0x694D08b77D2499E161635005Fd4A77233cedD761",
+        ],
+    }
+
+
+@pytest.fixture()
+def foundry_project_with_unlinked_libraries(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "foundry_project_with_unlinked_libraries", "artifacts.tar.gz"
         )
     ) as f:
         f.extractall(tmp_path)

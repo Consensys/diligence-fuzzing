@@ -3,7 +3,7 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -28,6 +28,7 @@ class FoundryArtifacts(IDEArtifacts):
         super(FoundryArtifacts, self).__init__(
             options, build_dir, sources_dir, targets, map_to_original_source
         )
+        self._unlinked_libraries: List[Tuple[Contract, Dict[str, Set[str]]]] = []
 
     @classmethod
     def get_name(cls) -> str:
@@ -132,37 +133,41 @@ class FoundryArtifacts(IDEArtifacts):
         for source_file, contracts in self.build_info["output"]["contracts"].items():
             result_contracts[source_file] = []
             for contract_name, contract in contracts.items():
+                unlinked_libs = self.detect_unlinked_libs(contract)
+
                 try:
-                    result_contracts[source_file] += [
-                        {
-                            "sourcePaths": self.get_used_sources(
-                                source_paths,
-                                contract["evm"]["deployedBytecode"]["sourceMap"],
+                    contract_obj = {
+                        "sourcePaths": self.get_used_sources(
+                            source_paths,
+                            contract["evm"]["deployedBytecode"]["sourceMap"],
+                        ),
+                        "deployedSourceMap": contract["evm"]["deployedBytecode"][
+                            "sourceMap"
+                        ],
+                        "deployedBytecode": contract["evm"]["deployedBytecode"][
+                            "object"
+                        ],
+                        "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
+                        "bytecode": contract["evm"]["bytecode"]["object"],
+                        "contractName": contract_name,
+                        "mainSourceFile": source_file,
+                        "ignoredSources": self.get_ignored_sources(
+                            generated_sources=contract["evm"]["deployedBytecode"].get(
+                                "generatedSources"
                             ),
-                            "deployedSourceMap": contract["evm"]["deployedBytecode"][
-                                "sourceMap"
-                            ],
-                            "deployedBytecode": contract["evm"]["deployedBytecode"][
-                                "object"
-                            ],
-                            "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
-                            "bytecode": contract["evm"]["bytecode"]["object"],
-                            "contractName": contract_name,
-                            "mainSourceFile": source_file,
-                            "ignoredSources": self.get_ignored_sources(
-                                generated_sources=contract["evm"][
-                                    "deployedBytecode"
-                                ].get("generatedSources"),
-                                source_map=contract["evm"]["deployedBytecode"][
-                                    "sourceMap"
-                                ],
-                                source_ids=source_ids,
-                            ),
-                        }
-                    ]
+                            source_map=contract["evm"]["deployedBytecode"]["sourceMap"],
+                            source_ids=source_ids,
+                        ),
+                    }
+                    result_contracts[source_file].append(contract_obj)
+                    if unlinked_libs:
+                        self._unlinked_libraries.append((contract_obj, unlinked_libs))
                 except KeyError as e:
                     raise BuildArtifactsError(
                         f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
                     )
 
         return result_contracts, result_sources
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Dict[str, Set[str]]]]:
+        return self._unlinked_libraries

@@ -1,10 +1,11 @@
 import json
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     from typing import Literal
@@ -19,6 +20,8 @@ from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import LOGGER, sol_files_by_directory
 
 ContractKind = Literal["contract", "interface", "library"]
+
+UNLINKED_LIB_HASH_REGEX = re.compile("__\$(\w{34})\$__")
 
 
 class IDEArtifacts(ABC):
@@ -257,6 +260,26 @@ class IDEArtifacts(ABC):
 
         return True
 
+    @staticmethod
+    def fallback_check_unlinked_libraries(
+        contracts: List[Contract],
+    ) -> List[Tuple[Contract, Set[str]]]:
+        unlinked_libraries = []
+        for contract in contracts:
+            libs_hashes = set(
+                UNLINKED_LIB_HASH_REGEX.findall(contract["bytecode"])
+                + UNLINKED_LIB_HASH_REGEX.findall(contract["deployedBytecode"])
+            )
+            if len(libs_hashes) > 0:
+                unlinked_libraries.append((contract, libs_hashes))
+        return unlinked_libraries
+
+    @abstractmethod
+    def unlinked_libraries(
+        self,
+    ) -> List[Tuple[Contract, Dict[str, Set[str]]]]:  # pragma: no cover
+        pass
+
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
         _result_contracts, _result_sources = self.process_artifacts()
@@ -265,6 +288,43 @@ class IDEArtifacts(ABC):
             for contract in self.flatten_contracts(_result_contracts)
             if self.include_contract(contract)
         ]
+
+        unlinked_libs = self.unlinked_libraries()
+
+        if len(unlinked_libs) > 0:
+            _details = []
+            for contract, libs in unlinked_libs:
+                for lib_path, lib_names in libs.items():
+                    for lib_name in lib_names:
+                        _details.append(
+                            f"  ◦ Contract: {contract['contractName']} "
+                            f"Contract path: {contract['mainSourceFile']} Library: {lib_name} Library path: {lib_path}"
+                        )
+
+            details = "\n".join(_details)
+            raise BuildArtifactsError(
+                f"Following contracts have unlinked libraries:\n{details}\n"
+                f"For more info on library linking please visit "
+                f"https://docs.soliditylang.org/en/latest/using-the-compiler.html#library-linking"
+            )
+        else:
+            unlinked_libs = self.fallback_check_unlinked_libraries(result_contracts)
+            if len(unlinked_libs) > 0:
+                details = "\n".join(
+                    [
+                        f"  ◦ Contract: {contract['contractName']} "
+                        f"Contract path: {contract['mainSourceFile']} Library hash: {lib_hash}"
+                        for contract, libs in unlinked_libs
+                        for lib_hash in libs
+                    ]
+                )
+                raise BuildArtifactsError(
+                    f"Following contracts have unlinked libraries:\n{details}\n"
+                    f"Fuzzing CLI provides only library hashes because it wasn't able to one's name and path "
+                    f"from compilation artifacts. Please check your IDE settings to enable full solc compiler output.\n"
+                    f"For more info on library linking please visit "
+                    f"https://docs.soliditylang.org/en/latest/using-the-compiler.html#library-linking"
+                )
 
         used_file_ids = set()
         for contract in result_contracts:
@@ -338,3 +398,25 @@ class IDEArtifacts(ABC):
             for file_id, name in source_paths.items()
             if file_id in all_file_ids
         }
+
+    @staticmethod
+    def detect_unlinked_libs(contract: Dict[str, Any]) -> Dict[str, Set[str]]:
+        unlinked_libs: Dict[str, Set[str]] = defaultdict(set)
+
+        bytecode_link_ref = contract["evm"]["bytecode"].get("linkReferences", {})
+        deployed_bytecode_link_ref = contract["evm"]["deployedBytecode"].get(
+            "linkReferences", {}
+        )
+
+        if bytecode_link_ref:
+            # here we are collecting all the unlinked libraries for the contract
+            for lib_file_path in bytecode_link_ref.keys():
+                for lib_name in bytecode_link_ref[lib_file_path].keys():
+                    unlinked_libs[lib_file_path].add(lib_name)
+
+        if deployed_bytecode_link_ref:
+            for lib_file_path in deployed_bytecode_link_ref.keys():
+                for lib_name in deployed_bytecode_link_ref[lib_file_path].keys():
+                    unlinked_libs[lib_file_path].add(lib_name)
+
+        return unlinked_libs
