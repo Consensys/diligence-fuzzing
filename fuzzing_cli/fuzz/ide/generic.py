@@ -297,8 +297,8 @@ class IDEArtifacts(ABC):
                 for lib_path, lib_names in libs.items():
                     for lib_name in lib_names:
                         _details.append(
-                            f"  ◦ Contract: {contract['contractName']} "
-                            f"Contract path: {contract['mainSourceFile']} Library: {lib_name} Library path: {lib_path}"
+                            f"  ◦ Contract: \"{contract['contractName']}\" "
+                            f"Contract path: \"{contract['mainSourceFile']}\" Library: \"{lib_name}\" Library path: \"{lib_path}\""
                         )
 
             details = "\n".join(_details)

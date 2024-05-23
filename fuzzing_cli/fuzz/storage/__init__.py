@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Any, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, Optional
 
 from appdirs import user_config_dir
 
@@ -21,6 +22,14 @@ class LocalStorage:
     def set_instance(cls, instance):
         cls.instance = instance
 
+    @contextmanager
+    def config(self) -> Generator[Dict[str, Any], None, None]:
+        # this is a context manager that allows you to read and write to the config file.
+        # it will automatically save the config file when the context manager is exited
+        _config = self._config
+        yield _config
+        self._update_config(_config)
+
     @property
     def _config(self):
         try:
@@ -37,7 +46,7 @@ class LocalStorage:
         with open(self.path + "/config.json", "w") as f:
             json.dump(config, f)
 
-    def get(self, key: str, default: Any) -> Optional[Any]:
+    def get(self, key: str, default: Any = None) -> Optional[Any]:
         return self._config.get(key, default)
 
     def set(self, key: str, value: str) -> None:

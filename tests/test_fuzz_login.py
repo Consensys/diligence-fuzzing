@@ -181,7 +181,7 @@ def test_retrieving_api_key(
     else:
         assert result.exit_code == 0
         assert "You can view campaign here:" in result.output
-        req = requests_mock.request_history[1]
+        req = requests_mock.request_history[2]
 
     assert req.method == "POST"
     assert req.url == "https://example-us.com/oauth/token"

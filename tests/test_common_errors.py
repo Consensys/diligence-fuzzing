@@ -58,7 +58,8 @@ def test_unlinked_libraries(api_key, tmp_path, ide, unlinked_contracts):
 
     details = "\n".join(
         [
-            f"  ◦ Contract: {contract_name} Contract path: {contract_path} Library: {lib} Library path: {lib_path}"
+            f'  ◦ Contract: "{contract_name}" Contract path: "{contract_path}" '
+            f'Library: "{lib}" Library path: "{lib_path}"'
             for lib, lib_path, contract_name, contract_path in unlinked_contracts
         ]
     )

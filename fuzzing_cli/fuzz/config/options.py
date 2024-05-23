@@ -68,6 +68,19 @@ def yaml_config_settings_source(key="fuzz"):
     return loader
 
 
+class AppOptions(BaseSettings):
+    check_updates: bool = True
+    ci_mode: bool = Field(False)
+
+    def __init__(self, *args, **data: Any):
+        try:
+            super().__init__(*args, **data)
+        except ValidationError as e:
+            raise click.exceptions.UsageError(f"Invalid config: {repr_errors(e)}")
+        except:
+            raise
+
+
 class FuzzingOptions(BaseSettings):
     ide: Optional[str] = None
     build_directory: Optional[Path] = None
@@ -107,6 +120,8 @@ class FuzzingOptions(BaseSettings):
     smart_mode: bool = False
 
     include_library_contracts: bool = False
+
+    check_updates: bool = True
 
     ci_mode: bool = Field(False)
 
