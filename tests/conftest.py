@@ -330,3 +330,17 @@ def no_analytics(monkeypatch):
 @pytest.fixture()
 def ci_mode(monkeypatch):
     monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
+
+@pytest.fixture(autouse=True)
+def no_updates_check(monkeypatch):
+    monkeypatch.setenv("FUZZ_CHECK_UPDATES", "false")
+    yield
+    monkeypatch.delenv("FUZZ_CHECK_UPDATES", raising=False)
+
+
+@pytest.fixture()
+def allow_updates_check(monkeypatch):
+    monkeypatch.setenv("FUZZ_CHECK_UPDATES", "true")
+    yield
+    monkeypatch.delenv("FUZZ_CHECK_UPDATES", raising=False)

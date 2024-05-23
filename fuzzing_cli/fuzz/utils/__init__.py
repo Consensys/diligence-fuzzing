@@ -9,8 +9,7 @@ from click import UsageError
 from requests import Response
 
 import fuzzing_cli
-from fuzzing_cli.fuzz.config import FuzzingOptions
-from fuzzing_cli.fuzz.config.options import AppOptions
+from fuzzing_cli.fuzz.config import AdditionalOptions, FuzzingOptions
 from fuzzing_cli.fuzz.ide import IDEArtifacts, IDERepository
 from fuzzing_cli.fuzz.storage import LocalStorage
 
@@ -81,7 +80,7 @@ def get_latest_version() -> Optional[str]:
         return config["latest_version"]
 
 
-def check_latest_version(options: AppOptions):
+def check_latest_version(options: AdditionalOptions) -> None:
     if not options.check_updates or options.ci_mode:
         return
     current_version = fuzzing_cli.__version__

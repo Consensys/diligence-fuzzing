@@ -9,7 +9,7 @@ import yaml
 
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
-from fuzzing_cli.fuzz.config.options import AppOptions
+from fuzzing_cli.fuzz.config import AdditionalOptions
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.foundry_tests import cli as foundry_test
 from fuzzing_cli.fuzz.fuzz_config import cli as fuzz_config
@@ -73,7 +73,7 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
 
-    options = AppOptions()
+    options = AdditionalOptions()
     check_latest_version(options)
 
 

@@ -9,7 +9,9 @@ from fuzzing_cli.fuzz.storage import LocalStorage
 from tests.common import write_config
 
 
-def test_check_updates(api_key, tmp_path, fake_process, scribble_project):
+def test_check_updates(
+    api_key, tmp_path, fake_process, scribble_project, allow_updates_check
+):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
     )
@@ -36,7 +38,9 @@ def test_check_updates(api_key, tmp_path, fake_process, scribble_project):
     )
 
 
-def test_check_updates_etag(api_key, tmp_path, fake_process, scribble_project):
+def test_check_updates_etag(
+    api_key, tmp_path, fake_process, scribble_project, allow_updates_check
+):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
     )
@@ -73,7 +77,7 @@ def test_check_updates_etag(api_key, tmp_path, fake_process, scribble_project):
 
 
 def test_check_updates_etag_current_version(
-    api_key, tmp_path, fake_process, scribble_project
+    api_key, tmp_path, fake_process, scribble_project, allow_updates_check
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
@@ -107,7 +111,7 @@ def test_check_updates_etag_current_version(
 
 
 def test_check_updates_etag_new_version(
-    api_key, tmp_path, fake_process, scribble_project
+    api_key, tmp_path, fake_process, scribble_project, allow_updates_check
 ):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
