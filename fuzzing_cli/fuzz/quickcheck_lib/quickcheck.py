@@ -2,7 +2,7 @@ import logging
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
@@ -265,3 +265,6 @@ class QuickCheck(IDEArtifacts):
                 )
 
         return result_contracts, result_sources
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Set[str]]]:
+        return []

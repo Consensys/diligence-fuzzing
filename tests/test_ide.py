@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.ide import IDEArtifacts
@@ -30,6 +30,9 @@ class IDEMock(IDEArtifacts):
 
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
         return self.__contracts, {}
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Set[str]]]:
+        return []
 
 
 def test_get_contract():

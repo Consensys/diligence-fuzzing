@@ -3,7 +3,7 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -167,3 +167,7 @@ class DapptoolsArtifacts(IDEArtifacts):
                     )
 
         return result_contracts, result_sources
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Set[str]]]:
+        # We'll deprecate Dapptools in the future, so we don't implement this method
+        return []

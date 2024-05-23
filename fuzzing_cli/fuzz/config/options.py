@@ -108,6 +108,8 @@ class FuzzingOptions(BaseSettings):
 
     include_library_contracts: bool = False
 
+    check_updates: bool = True
+
     ci_mode: bool = Field(False)
 
     no_build_directory: bool = Field(False, exclude=True)
@@ -328,6 +330,7 @@ class AdditionalOptions(BaseSettings):
     ci_mode: bool = Field(False)
     report_crashes: bool = Field(True)
     allow_analytics: bool = Field(True)
+    check_updates: bool = Field(True)
 
     def __init__(self, *args, **data: Any):
         try:

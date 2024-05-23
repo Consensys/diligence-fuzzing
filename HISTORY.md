@@ -1,5 +1,10 @@
 # History
 
+0.12.3 (2024-05-23)
+--------------------
+- Unlinked libraries detection for Foundry and Hardhat project
+- Update checks for fuzzing cli. Now fuzzing cli will check for new versions and notify the user if a new version is available
+
 0.12.2 (2024-04-23)
 --------------------
 - Fix hardhat artifacts collection
