@@ -3,7 +3,7 @@ import logging
 from collections import defaultdict
 from os.path import commonpath
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import click
 
@@ -20,7 +20,7 @@ class NoTransactionFound(Exception):
     pass
 
 
-def _uniq(lst: List[str | Path]) -> List[str | Path]:
+def _uniq(lst: List[Union[str, Path]]) -> List[Union[str, Path]]:
     """
     Remove duplicates from a list while preserving order
     """
@@ -182,7 +182,7 @@ class CorpusRepository:
             else:
                 file_paths.append(_path)
 
-        def inner_checker(path: str | Path):
+        def inner_checker(path: Union[str, Path]):
             if path in file_paths:
                 # we have found exact file match
                 return True

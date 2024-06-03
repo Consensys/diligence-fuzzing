@@ -5,7 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 try:
     from typing import Literal
@@ -342,7 +342,7 @@ class IDEArtifacts(ABC):
     ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 
-    def normalize_path(self, path: str | Path) -> Path:
+    def normalize_path(self, path: Union[str, Path]) -> Path:
         if Path(path).is_absolute():
             return Path(path)
         _path = self.sources_dir.parent.joinpath(path)
