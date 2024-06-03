@@ -26,10 +26,29 @@ Table of Contents
   - [Product Analytics Collection](#product-analytics-collection)
 
 ## Installing
-The Diligence Fuzzing CLI runs on Python 3.7+, including PyPy.
-
+The Diligence Fuzzing CLI runs on Python 3.8+, including PyPy.
+### Linux and macOS
 To get started, simply run
 
+```console
+$ pip3 install diligence-fuzzing
+```
+
+Alternatively, clone the repository and run
+
+```console
+$ pip3 install .
+```
+Or directly through Python's :code:`setuptools`:
+```console
+$ python3 setup.py install
+```
+> Don't forget to add the directory containing the `fuzz` executable to your system's PATH environment variable.
+
+### Windows
+> We recommend using Windows Subsystem for Linux (WSL) for a better experience
+1. Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for CLI's dependencies compilation
+2. Run the following command to install the CLI
 ```console
 $ pip3 install diligence-fuzzing
 ```
