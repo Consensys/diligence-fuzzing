@@ -54,7 +54,9 @@ class SolidityJob:
             input_data={
                 "language": "Solidity",
                 "sources": {
-                    str(target): {"urls": [str(target)]} for target in self.targets
+                    # here we specifically, provide paths in posix-style, even on Windows
+                    str(target.as_posix()): {"urls": [str(target.as_posix())]}
+                    for target in self.targets
                 },
                 "settings": {
                     "remappings": [r.format(pwd=path) for r in remappings]

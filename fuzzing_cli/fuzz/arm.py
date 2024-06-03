@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import click
@@ -20,13 +21,13 @@ def handle_validation_errors(
     fuzzing_options: FuzzingOptions,
     prompt: bool = True,
     smart_mode: bool = False,
-) -> List[str]:
+) -> List[Path]:
     if len(targets) > 0:
-        return targets
+        return [Path(t) for t in targets]
 
     _IDEClass = detect_ide(fuzzing_options)
     suggested_targets = sorted(
-        sol_files_by_directory(str(_IDEClass.get_default_sources_dir()))
+        sol_files_by_directory(_IDEClass.get_default_sources_dir())
     )
 
     data = "\n".join([f"  ◦ {file_name}" for file_name in suggested_targets])
@@ -37,7 +38,7 @@ def handle_validation_errors(
     ):
         return suggested_targets
     click.secho(error_message)
-    return targets
+    return [Path(t) for t in targets]
 
 
 @click.command("arm")
@@ -144,7 +145,7 @@ def fuzz_arm(
             )
     except FileNotFoundError:
         raise click.exceptions.UsageError(
-            f'Scribble not found at path "{options.scribble_path}". '
+            f'Scribble not found at path "{Path(options.scribble_path)}". '
             f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
             f"or set one in config"
         )

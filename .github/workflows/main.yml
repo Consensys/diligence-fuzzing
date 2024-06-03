@@ -36,7 +36,7 @@ jobs:
             -   name: Install Python dependencies
                 uses: py-actions/py-dependency-install@v4
                 with:
-                    path: "requirements_dev.txt"
+                    path: "requirements_deploy.txt"
             -   name: Build and publish
                 env:
                     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

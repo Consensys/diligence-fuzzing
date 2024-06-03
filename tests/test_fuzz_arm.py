@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 from typing import List, Optional
 from unittest.mock import Mock, patch
 
@@ -42,7 +43,7 @@ def test_fuzz_arm(
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
         fake_process.any(),
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        str(Path(f"{tmp_path}/contracts/VulnerableToken.sol")),
     ]
     if params_in_config:
         write_config(
@@ -100,7 +101,7 @@ def test_fuzz_arm(
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process, ci_mode):
+def test_fuzz_arm_no_targets(tmp_path: Path, scribble_project, fake_process, ci_mode):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -117,7 +118,7 @@ def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process, ci_mode):
     assert (
         result.output == "⚠️ Targets were not provided but the following files can "
         "be set as targets to be armed:\n"
-        f"  ◦ {tmp_path}/contracts/Migrations.sol\n  ◦ {tmp_path}/contracts/VulnerableToken.sol\n"
+        f"  ◦ {tmp_path.joinpath('contracts/Migrations.sol')}\n  ◦ {tmp_path.joinpath('contracts/VulnerableToken.sol')}\n"
         "Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
         "No files to instrument at provided targets\n"
     )
@@ -200,7 +201,7 @@ def test_fuzz_arm_unknown_scribble_path(
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
+def test_fuzz_arm_folder_targets(tmp_path: Path, scribble_project, fake_process):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -224,8 +225,8 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
             "--no-assert",
-            f"{tmp_path}/contracts/Migrations.sol",
-            f"{tmp_path}/contracts/VulnerableToken.sol",
+            f"{tmp_path.joinpath('contracts/Migrations.sol')}",
+            f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
         ],
     )
 
@@ -274,7 +275,7 @@ def test_fuzz_arm_smart_mode(
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
         fake_process.any(),
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
     ]
 
     out = (
@@ -289,8 +290,8 @@ def test_fuzz_arm_smart_mode(
     if not smart_mode:
         suggestion = (
             "⚠️ Targets were not provided but the following files can be set as targets to be armed:\n"
-            f"  ◦ {tmp_path}/contracts/Migrations.sol\n"
-            f"  ◦ {tmp_path}/contracts/VulnerableToken.sol"
+            f"  ◦ {tmp_path.joinpath('contracts/Migrations.sol')}\n"
+            f"  ◦ {tmp_path.joinpath('contracts/VulnerableToken.sol')}"
         )
         warnings = (
             "Warning: Build directory not specified. Using IDE defaults. "

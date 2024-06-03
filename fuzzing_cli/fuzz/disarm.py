@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -61,7 +62,8 @@ def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
 
     try:
         return_code, out, err = ScribbleMixin.disarm_solc_in_place(
-            file_list=fuzzing_options.targets, scribble_path=options.scribble_path
+            file_list=[Path(t) for t in fuzzing_options.targets],
+            scribble_path=options.scribble_path,
         )
         if return_code == 0:
             click.secho(out)

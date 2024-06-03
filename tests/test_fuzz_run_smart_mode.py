@@ -75,17 +75,17 @@ def test_fuzz_run(
     # and there's no way to hardcode `tmp_path` related paths
     if IDE_NAME == "truffle":
         processed_payload["sources"] = {
-            name.replace("artifacts", str(tmp_path)): data
+            str(tmp_path.joinpath(name[10:]).as_posix()): data
             for name, data in processed_payload["sources"].items()
         }
         processed_payload["contracts"] = [
             {
                 **c,
-                "mainSourceFile": c["mainSourceFile"].replace(
-                    "artifacts", str(tmp_path)
+                "mainSourceFile": str(
+                    tmp_path.joinpath(c["mainSourceFile"][10:]).as_posix()
                 ),
                 "sourcePaths": {
-                    k: v.replace("artifacts", str(tmp_path))
+                    k: str(tmp_path.joinpath(v[10:]).as_posix())
                     for k, v in c["sourcePaths"].items()
                 },
             }
@@ -170,7 +170,7 @@ def test_fuzz_run_with_auto_fixes(
                 if contract["address"] == address:
                     data.append(
                         f"  ◦ Address: {address.lower()}"
-                        f" Target: {tmp_path}/{contract['contractPath']}"
+                        f" Target: {tmp_path.joinpath(contract['contractPath'])}"
                     )
                     break
         data = "\n".join(data)
@@ -186,7 +186,7 @@ def test_fuzz_run_with_auto_fixes(
                 if contract["contractPath"] == target:
                     data.append(
                         f"  ◦ Address: {contract['address'].lower()}"
-                        f" Source File: {tmp_path}/{contract['contractPath']}"
+                        f" Source File: {tmp_path.joinpath(contract['contractPath'])}"
                         f" Contract Name: {contract_name}"
                     )
                     break
@@ -203,7 +203,7 @@ def test_fuzz_run_with_auto_fixes(
                 if contract["contractPath"] == target:
                     data.append(
                         f"  ◦ Address: {contract['address'].lower()}"
-                        f" Source File: {tmp_path}/{contract['contractPath']}"
+                        f" Source File: {tmp_path.joinpath(contract['contractPath'])}"
                         f" Contract Name: {contract_name}"
                     )
                     break
@@ -231,17 +231,17 @@ def test_fuzz_run_with_auto_fixes(
     # and there's no way to hardcode `tmp_path` related paths
     if IDE_NAME == "truffle":
         processed_payload["sources"] = {
-            name.replace("artifacts", str(tmp_path)): data
+            str(tmp_path.joinpath(name[10:]).as_posix()): data
             for name, data in processed_payload["sources"].items()
         }
         processed_payload["contracts"] = [
             {
                 **c,
-                "mainSourceFile": c["mainSourceFile"].replace(
-                    "artifacts", str(tmp_path)
+                "mainSourceFile": str(
+                    tmp_path.joinpath(c["mainSourceFile"][10:]).as_posix()
                 ),
                 "sourcePaths": {
-                    k: v.replace("artifacts", str(tmp_path))
+                    k: str(tmp_path.joinpath(v[10:]).as_posix())
                     for k, v in c["sourcePaths"].items()
                 },
             }

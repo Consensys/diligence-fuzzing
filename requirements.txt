@@ -5,7 +5,7 @@ inquirer==2.10.1
 typing_extensions==4.5.0
 ruamel.yaml==0.17.2
 requests==2.31.0
-pycryptodome==3.17
+pycryptodome==3.20.0
 rlp==3.0.0
 py-solc-x==1.1.1
 cbor2==5.4.6

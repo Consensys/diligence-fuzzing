@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -10,12 +11,12 @@ from tests.common import assert_is_equal, write_config
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_disarm(tmp_path, scribble_project, fake_process):
+def test_fuzz_disarm(tmp_path: Path, scribble_project, fake_process):
     cmd = [
         "scribble",
         "--disarm",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
     ]
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml", base_path=str(tmp_path), **scribble_project
@@ -151,8 +152,8 @@ def test_fuzz_disarm_folder_targets(tmp_path, scribble_project, fake_process):
             "scribble",
             "--disarm",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
-            f"{tmp_path}/contracts/Migrations.sol",
-            f"{tmp_path}/contracts/VulnerableToken.sol",
+            f"{tmp_path.joinpath('contracts/Migrations.sol')}",
+            f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
         ],
     )
 

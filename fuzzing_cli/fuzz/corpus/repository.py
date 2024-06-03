@@ -20,7 +20,7 @@ class NoTransactionFound(Exception):
     pass
 
 
-def _uniq(lst: List[str]) -> List[str]:
+def _uniq(lst: List[str | Path]) -> List[str | Path]:
     """
     Remove duplicates from a list while preserving order
     """
@@ -75,7 +75,8 @@ class CorpusRepository:
                 addresses_under_test.extend(fix["data"])
                 continue
             if fix["type"] == "add_targets":
-                targets.extend(fix["data"])
+                fix_paths = [Path(p) for p in fix["data"]]
+                targets.extend(fix_paths)
                 continue
             if fix["type"] == "remove_addresses":
                 addresses_under_test = [
@@ -85,7 +86,8 @@ class CorpusRepository:
                 ]
                 continue
             if fix["type"] == "remove_targets":
-                targets = [target for target in targets if target not in fix["data"]]
+                fix_paths = [Path(p) for p in fix["data"]]
+                targets = [target for target in targets if target not in fix_paths]
                 continue
         # Re-initialize the repository with the new targets and addresses, and validate
         self._initialize(addresses_under_test, targets)
@@ -145,7 +147,7 @@ class CorpusRepository:
 
     def _construct_address_contract_mapping(
         self,
-    ) -> Tuple[Dict[str, Contract], Dict[Tuple[str, str], str], Dict[str, List[str]]]:
+    ) -> Tuple[Dict[str, Contract], Dict[Tuple[str, str], str], Dict[Path, List[str]]]:
         address_to_contract_mapping = {}
         contract_to_address_mapping = {}
         # source file to contract addresses mapping. One source file can have multiple contracts, so we need to
@@ -158,7 +160,7 @@ class CorpusRepository:
                 continue
             address_to_contract_mapping[contract_address] = contract
             contract_to_address_mapping[self._contract_key(contract)] = contract_address
-            source_file_to_address_mapping[contract["mainSourceFile"]].append(
+            source_file_to_address_mapping[Path(contract["mainSourceFile"])].append(
                 contract_address
             )
 
@@ -169,18 +171,18 @@ class CorpusRepository:
         )
 
     @staticmethod
-    def _path_inclusion_checker(paths: List[str]):
+    def _path_inclusion_checker(paths: List[Path]):
         """Construct a function that checks if a given path is in the list of paths.
         The paths can be files or folders"""
-        directory_paths: List[str] = []
-        file_paths: List[str] = []
+        directory_paths: List[Path] = []
+        file_paths: List[Path] = []
         for _path in paths:
-            if Path(_path).is_dir():
+            if _path.is_dir():
                 directory_paths.append(_path)
             else:
                 file_paths.append(_path)
 
-        def inner_checker(path: str):
+        def inner_checker(path: str | Path):
             if path in file_paths:
                 # we have found exact file match
                 return True
@@ -197,7 +199,7 @@ class CorpusRepository:
         self,
         addresses_under_test: Optional[List[str]] = None,
         targets: Optional[List[str]] = None,
-    ) -> Tuple[List[CONTRACT_ADDRESS], List[str]]:
+    ) -> Tuple[List[CONTRACT_ADDRESS], List[Path]]:
         """
         Construct the targets from the addresses under test and the targets options
         or from provided addresses under test and targets (after prompting for automatic fixes).
@@ -206,7 +208,7 @@ class CorpusRepository:
             addresses_under_test = self._options.addresses_under_test
         if targets is None:
             # make a copy of the targets to not modify the original list
-            targets = self._options.targets[:]
+            targets = [Path(t) for t in self._options.targets]
 
         return _uniq(addresses_under_test), _uniq(targets)
 

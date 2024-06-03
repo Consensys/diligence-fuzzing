@@ -17,11 +17,10 @@ LOGGER = logging.getLogger("fuzzing-cli")
 BASE_ADDRESS = "affeaffeaffeaffeaffeaffeaffeaffeaffeaffe"
 
 
-def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List[Path]:
+def annotate_contracts(targets: List[Path], scribble_generator_path: str) -> List[Path]:
     LOGGER.debug(
         f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}"
     )
-    _targets = [Path(t) for t in targets]
     # for cases when it's complex command. e.g.: npx scribble-generate
     _scribble_generator_path = scribble_generator_path.split(" ")
     command = _scribble_generator_path + ["--targets"] + targets
@@ -38,7 +37,7 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
                 f"QuickCheckError: Annotating failed\nDetail: {reason}"
             )
 
-        for target in _targets:
+        for target in targets:
             if target.is_dir():  # find all annotated contracts
                 _changed_files = [x for x in target.rglob("*.sol.sg_original")]
                 _files = [f.parent.joinpath(f.stem) for f in _changed_files]
@@ -155,7 +154,7 @@ class QuickCheck(IDEArtifacts):
 
     def arm_contracts(self):
         ScribbleMixin.instrument_solc_in_place(
-            file_list=self.targets,
+            file_list=[Path(t) for t in self.targets],
             scribble_path=self.scribble_path,
             remappings=self.remappings,
             solc_version=self.solc_version,
