@@ -8,6 +8,7 @@ import pytest
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
+from fuzzing_cli.util import executable_command
 from tests.common import (
     _construct_scribble_error_message,
     assert_is_equal,
@@ -43,7 +44,7 @@ def test_fuzz_arm(
     params_in_config: bool,
 ):
     cmd = [
-        shutil.which("scribble"),
+        *executable_command("scribble"),
         "--arm",
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
@@ -220,7 +221,7 @@ def test_fuzz_arm_folder_targets(tmp_path: Path, scribble_project, fake_process)
     assert_is_equal(
         fake_process.calls[0],
         [
-            shutil.which("scribble"),
+            *executable_command("scribble"),
             "--arm",
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
@@ -271,7 +272,7 @@ def test_fuzz_arm_smart_mode(
     monkeypatch.setenv("FUZZ_CI_MODE", "true" if ci_mode_flag else "false")
 
     cmd = [
-        shutil.which("scribble"),
+        *executable_command("scribble"),
         "--arm",
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
