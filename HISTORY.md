@@ -1,5 +1,11 @@
 # History
 
+0.13.0 (2024-06-04)
+--------------------
+- Add Windows support
+- Drop support for Python 3.7
+- Add support for Python 3.12
+
 0.12.3 (2024-05-23)
 --------------------
 - Unlinked libraries detection for Foundry and Hardhat project

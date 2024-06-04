@@ -100,3 +100,10 @@ def check_latest_version(options: AdditionalOptions) -> None:
             bold=True,
         )
         click.secho(f"{msg}\n{hint}")
+
+
+__all__ = [
+    "detect_ide",
+    "get_latest_version",
+    "check_latest_version",
+]

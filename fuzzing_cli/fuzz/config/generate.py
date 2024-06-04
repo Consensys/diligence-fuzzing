@@ -57,11 +57,11 @@ def determine_smart_mode(confirm: bool = False) -> bool:
     return use_smart_mode
 
 
-def __select_targets(targets: List[str]) -> List[str]:
+def __select_targets(targets: List[Path]) -> List[Path]:
     files = []
     files_in_dirs = []
     for target in targets:
-        if Path(target).is_dir():
+        if target.is_dir():
             files_in_dirs.extend(sorted(sol_files_by_directory(target)))
         else:
             files.append(target)
@@ -86,30 +86,30 @@ def __select_targets(targets: List[str]) -> List[str]:
                 click.secho(
                     "⚠️  No targets are selected, please configure them manually in a config file"
                 )
-            targets = answers.get("targets", []) + files
+            targets = [Path(t) for t in answers.get("targets", [])] + files
     return targets
 
 
-def __prompt_targets() -> List[str]:
+def __prompt_targets() -> List[Path]:
     target = click.prompt(
         f"{QM} Specify folder(s) or smart-contract(s) (comma-separated) to fuzz"
     )
     targets = [
-        t.strip()
+        Path(t.strip())
         if Path(t.strip()).is_absolute()
-        else str(Path.cwd().absolute().joinpath(t.strip()))
+        else Path.cwd().absolute().joinpath(t.strip())
         for t in target.split(",")
     ]
     return targets
 
 
-def determine_targets(ide: str) -> List[str]:
+def determine_targets(ide: str) -> List[Path]:
     repo = IDERepository.get_instance()
     _IDEArtifactsClass = repo.get_ide(ide)
     target = _IDEArtifactsClass.get_default_sources_dir()
     ts = style(target, fg="yellow")
 
-    targets = [str(target)]
+    targets = [target]
 
     if target.exists() and target.is_dir():
         if not click.confirm(
@@ -188,17 +188,17 @@ def determine_campaign_name() -> str:
     return name
 
 
-def determine_sources_dir(targets: List[str]) -> Optional[str]:
+def determine_sources_dir(targets: List[Path]) -> Optional[Path]:
     if len(targets) == 0:
         return None
     if len(targets) == 1:
-        if Path(targets[0]).is_dir():
+        if targets[0].is_dir():
             # looks like contracts directory
             return targets[0]
         # return parent folder of the contract file
-        return str(Path(targets[0]).parent)
+        return targets[0].parent
     # return common parent of target files
-    return commonpath(targets)
+    return Path(commonpath(targets))
 
 
 def recreate_config(config_file: str):
@@ -240,8 +240,7 @@ def recreate_config(config_file: str):
     click.echo(
         f"⚡️ Alright! Generating config at {style(config_path, fg='yellow', italic=True)}"
     )
-
-    with config_path.open("w") as f:
+    with config_path.open("w", encoding="utf-8") as f:
         f.write(
             generate_yaml(
                 {

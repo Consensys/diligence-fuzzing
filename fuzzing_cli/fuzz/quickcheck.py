@@ -29,7 +29,7 @@ def create_config(
     no_assert: Optional[bool] = None,
 ) -> Path:
     config_path = Path().cwd().joinpath(config_name)
-    with config_path.open("w") as f:
+    with config_path.open("w", encoding="utf-8") as f:
         f.write(
             generate_yaml(
                 {

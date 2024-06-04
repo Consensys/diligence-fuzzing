@@ -5,7 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 try:
     from typing import Literal
@@ -49,7 +49,7 @@ class IDEArtifacts(ABC):
         include = set([])
         for target in targets:
             include.update(
-                [self.normalize_path(p) for p in sol_files_by_directory(target)]
+                [self.normalize_path(p) for p in sol_files_by_directory(Path(target))]
             )
         self._include = include
 
@@ -90,15 +90,13 @@ class IDEArtifacts(ABC):
         pass
 
     @staticmethod
-    def _get_build_artifacts(build_dir) -> Dict:
+    def _get_build_artifacts(build_dir: Path) -> Dict:
         # _get_build_artifacts goes through each .json build file and extracts the Source file it references
         # A source file may contain several contracts, so it is possible that a given source file
         # will be pointed to by multiple build artifacts
         # build_files_by_source_file is a dictionary where the key is a source file name
         # and the value is an array of build artifacts (contracts)
         build_files_by_source_file = {}
-
-        build_dir = Path(build_dir)
 
         if not build_dir.is_dir():
             raise BuildArtifactsError("Build directory doesn't exist")
@@ -116,7 +114,8 @@ class IDEArtifacts(ABC):
 
             data = json.loads(child.read_text("utf-8"))
 
-            source_path = data["sourcePath"]
+            source_path = str(Path(data["sourcePath"]).as_posix())
+            data["sourcePath"] = source_path
 
             if source_path not in build_files_by_source_file:
                 # initialize the array of contracts with a list
@@ -343,14 +342,18 @@ class IDEArtifacts(ABC):
     ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 
-    def normalize_path(self, path: str) -> str:
+    def normalize_path(self, path: Union[str, Path]) -> Path:
         if Path(path).is_absolute():
-            return path
-        _path = str(self.sources_dir.parent.joinpath(path))
+            return Path(path)
+        _path = self.sources_dir.parent.joinpath(path)
         LOGGER.debug(
             f'Normalizing path "{path}" relative to source_dir. Absolute path "{_path}"'
         )
         return _path
+
+    @staticmethod
+    def as_posix(path: str) -> str:
+        return str(Path(path).as_posix())
 
     def validate(self) -> None:
         if len(self.sources.keys()) == 0 or len(self.contracts) == 0:

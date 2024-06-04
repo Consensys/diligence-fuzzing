@@ -54,7 +54,9 @@ class SolidityJob:
             input_data={
                 "language": "Solidity",
                 "sources": {
-                    str(target): {"urls": [str(target)]} for target in self.targets
+                    # here we specifically, provide paths in posix-style, even on Windows
+                    str(target.as_posix()): {"urls": [str(target.as_posix())]}
+                    for target in self.targets
                 },
                 "settings": {
                     "remappings": [r.format(pwd=path) for r in remappings]
@@ -79,11 +81,9 @@ class SolidityJob:
             },
             allow_paths=[path],
         )
-        base_path = Path()
+        base_path = Path().cwd()
         for source_name, data in result.get("sources", {}).items():
-            data["source"] = get_content_from_file(
-                str(base_path.cwd().joinpath(source_name))
-            )
+            data["source"] = get_content_from_file(base_path.joinpath(source_name))
 
         for contract_path, data in result.get("contracts", {}).items():
             for contract, contract_data in data.items():
