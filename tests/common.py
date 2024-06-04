@@ -1,4 +1,5 @@
 import json
+import pathlib
 import platform
 import sys
 from contextlib import contextmanager
@@ -66,7 +67,7 @@ def generate_fuzz_config(
 ):
     config_file = "analyze:"
     if remappings:
-        _data = "\n".join([f'    - "{r}"' for r in remappings])
+        _data = "\n".join([f"    - '{r}'" for r in remappings])
         config_file += f"\n  remappings:\n{_data}"
     if solc_version:
         config_file += f"\n  solc-version: {solc_version}"
@@ -79,30 +80,32 @@ def generate_fuzz_config(
     if ide:
         config_file += f"\n  ide: {ide}"
     if "deployed_contract_address" not in not_include:
-        config_file += f'\n  deployed_contract_address: "{deployed_contract_address}"'
+        config_file += f"\n  deployed_contract_address: '{deployed_contract_address}'"
     if "number_of_cores" not in not_include:
         config_file += "\n  number_of_cores: 1"
     if "campaign_name_prefix" not in not_include:
-        config_file += '\n  campaign_name_prefix: "ide_test"'
+        config_file += "\n  campaign_name_prefix: 'ide_test'"
     if "rpc_url" not in not_include:
-        config_file += f'\n  rpc_url: "http://localhost:9898"'
+        config_file += f"\n  rpc_url: http://localhost:9898"
     if "faas_url" not in not_include:
-        config_file += f'\n  faas_url: "http://localhost:9899"'
+        config_file += f"\n  faas_url: http://localhost:9899"
     if "build_directory" not in not_include:
         if absolute_build_directory:
-            config_file += f"\n  build_directory: {base_path}/{build_directory}"
+            config_file += f"\n  build_directory: '{pathlib.Path(base_path).joinpath(build_directory)}'"
         else:
-            config_file += f"\n  build_directory: {build_directory}"
+            config_file += f"\n  build_directory: '{pathlib.Path(build_directory)}'"
     if "sources_directory" not in not_include:
         if absolute_sources_directory:
-            config_file += f"\n  sources_directory: {base_path}/{sources_directory}"
+            config_file += f"\n  sources_directory: '{pathlib.Path(base_path).joinpath(sources_directory)}'"
         else:
-            config_file += f"\n  sources_directory: {sources_directory}"
+            config_file += f"\n  sources_directory: '{pathlib.Path(sources_directory)}'"
     if "targets" not in not_include:
         if absolute_targets:
-            _data = "\n".join([f'    - "{base_path}/{t}"' for t in targets])
+            _data = "\n".join(
+                [f"    - '{pathlib.Path(base_path).joinpath(t)}'" for t in targets]
+            )
         else:
-            _data = "\n".join([f'    - "{t}"' for t in targets])
+            _data = "\n".join([f"    - '{pathlib.Path(t)}'" for t in targets])
         config_file += f"\n  targets:\n{_data}"
 
     if project is not None:
@@ -124,12 +127,12 @@ def generate_fuzz_config(
         config_file += f"\n  suggested_seed_seqs:{mapping_str}"
 
     if additional_addresses:
-        _data = "\n".join([f'    - "{a}"' for a in additional_addresses])
+        _data = "\n".join([f"    - '{a}'" for a in additional_addresses])
         config_file += f"\n  additional_contracts_addresses:\n{_data}"
 
     if add_refresh_token:
         config_file += (
-            f'\n  refresh_token: "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2"'
+            f"\n  refresh_token: 'dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2'"
         )
     if time_limit:
         config_file += f"\n  time_limit: 15min"
@@ -148,7 +151,7 @@ def generate_fuzz_config(
 
     if chain_id is not None:
         if string_chain_id:
-            config_file += f'\n  chain_id: "{chain_id}"'
+            config_file += f"\n  chain_id: '{chain_id}'"
         else:
             config_file += (
                 f"\n  chain_id: {chain_id}"  # hex will be converted to number
@@ -263,3 +266,20 @@ def construct_output(
 
 def omit_keys(d: Dict[str, any], keys: List[str]) -> Dict[str, any]:
     return {k: v for k, v in d.items() if k not in keys}
+
+
+def _construct_scribble_error_message(underlying_error: str) -> str:
+    return f"""Error: Scribble not installed or configured correctly.
+
+It appears that Scribble is not installed or configured correctly on your system.
+
+You may need to:
+  - install Scribble
+  - ensure that the Scribble executable is in your PATH
+  - consider providing Scribble executable path using `--scribble-path` argument to command or set it in the config (https://github.com/Consensys/diligence-fuzzing/blob/master/docs/configuration.md#arming-configuration-options)
+  - Note: Windows users may need to use the full path to the Scribble executable (e.g. "node .\\node_modules\\eth-scribble\\dist\\bin\\scribble.js")
+
+Please ensure that Scribble is installed and configured correctly before attempting to run the fuzzer again. If the issue persists, please consult the Scribble documentation at https://docs.scribble.codes/tool/installation.
+
+Underlying error: {underlying_error}
+"""

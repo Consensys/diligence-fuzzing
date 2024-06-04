@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -6,6 +7,7 @@ from click import ClickException
 
 from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.exceptions import ScribbleError
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -17,7 +19,7 @@ LOGGER = logging.getLogger("fuzzing-cli")
     "--scribble-path",
     type=click.Path(),
     default=None,
-    help="Path to a custom scribble executable (beta)",
+    help="Path to a custom scribble executable",
 )
 @trace("fuzz_disarm")
 def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
@@ -61,7 +63,8 @@ def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
 
     try:
         return_code, out, err = ScribbleMixin.disarm_solc_in_place(
-            file_list=fuzzing_options.targets, scribble_path=options.scribble_path
+            file_list=[Path(t) for t in fuzzing_options.targets],
+            scribble_path=options.scribble_path,
         )
         if return_code == 0:
             click.secho(out)
@@ -70,11 +73,7 @@ def fuzz_disarm(targets, scribble_path: Optional[str]) -> None:
             raise ClickException(
                 f"ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{err}"
             )
-    except FileNotFoundError:
-        raise click.exceptions.UsageError(
-            f'Scribble not found at path "{options.scribble_path}". '
-            f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command "
-            f"or set one in config"
-        )
-    except:
+    except ClickException:
         raise
+    except Exception as e:
+        raise ScribbleError(e)

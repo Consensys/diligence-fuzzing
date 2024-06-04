@@ -2,6 +2,8 @@ from io import BytesIO
 
 import pytest
 
+from fuzzing_cli.util import executable_command
+
 list_output = """
     [⠒] Compiling...
     No files changed, compilation skipped
@@ -48,7 +50,7 @@ def foundry_config_mock(fp):
     """
     with fp.context() as proc:
         proc.keep_last_process(True)
-        proc.register(["forge", "config"], stdout=result)
+        proc.register([*executable_command("forge"), "config"], stdout=result)
         yield proc
 
 
@@ -60,7 +62,8 @@ def foundry_test_list_mock(fp):
     with fp.context() as proc:
         proc.keep_last_process(True)
         proc.register(
-            ["forge", "test", "--list", "--json", fp.any()], callback=list_callback
+            [*executable_command("forge"), "test", "--list", "--json", fp.any()],
+            callback=list_callback,
         )
         yield proc
 
@@ -69,5 +72,5 @@ def foundry_test_list_mock(fp):
 def foundry_build_mock(fp):
     with fp.context() as proc:
         proc.keep_last_process(True)
-        proc.register(["forge", "build", fp.any()], stdout="")
+        proc.register([*executable_command("forge"), "build", fp.any()], stdout="")
         yield proc

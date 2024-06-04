@@ -222,7 +222,7 @@ class TruffleArtifacts(IDEArtifacts):
         for contract in result["project"]["contracts"]:
             contracts[contract["name"]] = list(
                 map(
-                    lambda x: x["source"]["sourcePath"],
+                    lambda x: str(Path(x["source"]["sourcePath"]).as_posix()),
                     contract["compilation"]["processedSources"],
                 )
             )

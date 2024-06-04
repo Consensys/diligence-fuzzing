@@ -22,6 +22,7 @@ from fuzzing_cli.fuzz.quickcheck_lib.quickcheck import (
     prepare_seed_state as prepare_seed_state_base,
 )
 from fuzzing_cli.fuzz.run import submit_campaign
+from fuzzing_cli.util import executable_command
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -46,9 +47,13 @@ def prepare_seed_state(
 def parse_config() -> Dict[str, Any]:
     LOGGER.debug("Invoking `forge config` command")
     try:
-        result = subprocess.run(["forge", "config"], check=True, stdout=subprocess.PIPE)
+        result = subprocess.run(
+            [*executable_command("forge"), "config"],
+            check=True,
+            stdout=subprocess.PIPE,
+        )
     except Exception as e:
-        raise ForgeConfigError() from e
+        raise ForgeConfigError(e)
     LOGGER.debug("Invoking `forge config` command succeeded. Parsing config ...")
     LOGGER.debug(f"Raw forge config {result.stdout.decode()}")
     return toml.loads(result.stdout.decode())
@@ -61,7 +66,13 @@ def run_build_command(cmd):
 
 
 def compile_tests(build_args):
-    cmd = ["forge", "build", "--build-info", "--force", *build_args]
+    cmd = [
+        *executable_command("forge"),
+        "build",
+        "--build-info",
+        "--force",
+        *build_args,
+    ]
     LOGGER.debug(f"Invoking `forge build` command ({json.dumps(cmd)})")
 
     # we set the environment variables because passing a forge config
@@ -85,18 +96,17 @@ def compile_tests(build_args):
             os.environ["FOUNDRY_CBOR_METADATA"] = "true"
             run_build_command(cmd)
         except Exception as e:
-            raise ForgeCompilationError() from e
+            raise ForgeCompilationError(e)
     LOGGER.debug("Invoking `forge build` command succeeded")
 
 
 def collect_tests(
-    test_dir: Path,
     match_path: Optional[str] = None,
     match_contract: Optional[str] = None,
 ) -> Tuple[List[str], Optional[Dict[str, Set[str]]], Dict[str, Dict[str, List[str]]]]:
     targets: List[str] = []
     target_contracts: Optional[Dict[str, Set[str]]] = None
-    cmd = ["forge", "test", "--list", "--json"]
+    cmd = [*executable_command("forge"), "test", "--list", "--json"]
 
     if match_path:
         cmd += ["--match-path", match_path]
@@ -112,7 +122,7 @@ def collect_tests(
             cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
     except Exception as e:
-        raise ForgeCollectTestsError() from e
+        raise ForgeCollectTestsError(e)
     LOGGER.debug(
         f"Invoking `forge test --list --json` command succeeded. Parsing the list ..."
     )
@@ -208,7 +218,6 @@ def foundry_test(
     click.echo("🛠️  Collecting tests")
 
     targets, target_contracts, tests_list = collect_tests(
-        test_dir=Path(foundry_config["profile"][profile_name]["test"]),
         match_path=match_path,
         match_contract=match_contract,
     )

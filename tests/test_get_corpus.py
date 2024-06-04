@@ -270,9 +270,9 @@ def test_not_targeted_contracts(
 
     output = (
         f"⚠️ Following contracts were not included into the seed state:\n"
-        f"  ◦ Address: 0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6 Source File: {tmp_path}/contracts/Migrations.sol Contract Name: Migrations\n"
-        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Source File: {tmp_path}/contracts/Bar.sol Contract Name: Bar\n"
-        f"  ◦ Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579 Source File: {tmp_path}/contracts/ABC.sol Contract Name: ABC"
+        f"  ◦ Address: 0x07d9fb5736cd151c8561798dfbda5dbcf54cb9e6 Source File: {tmp_path.joinpath('contracts/Migrations.sol')} Contract Name: Migrations\n"
+        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Source File: {tmp_path.joinpath('contracts/Bar.sol')} Contract Name: Bar\n"
+        f"  ◦ Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579 Source File: {tmp_path.joinpath('contracts/ABC.sol')} Contract Name: ABC"
     )
     prompt = "Add them to targets"
     cmd_result = "You can view campaign here: http://localhost:9899/campaigns/cmp_0"
@@ -323,7 +323,7 @@ def test_contract_target_not_set(
         "The following targets were provided without providing addresses of "
         f"respective contracts as addresses under test:\n"
         f"  ◦ Address: 0x6bcb21de38753e485f7678c7ada2a63f688b8579 "
-        f"Source File: {tmp_path}/contracts/ABC.sol Contract Name: ABC"
+        f"Source File: {tmp_path.joinpath('contracts/ABC.sol')} Contract Name: ABC"
     )
     prompt = "Add them to addresses under test"
     cmd_result = "You can view campaign here: http://localhost:9899/campaigns/cmp_0"
@@ -393,7 +393,7 @@ def test_source_target_not_set(
     output = (
         "Following contract's addresses were provided as addresses under test without specifying "
         f"them as a target prior to `fuzz run`:\n"
-        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Target: {tmp_path}/contracts/Bar.sol"
+        f"  ◦ Address: 0x6a432c13a2e980a78f941c136ec804e7cb67e0d9 Target: {tmp_path.joinpath('contracts/Bar.sol')}"
     )
     prompt = "Add them to targets"
     cmd_result = "You can view campaign here: http://localhost:9899/campaigns/cmp_0"
@@ -531,7 +531,7 @@ def test_not_deployed_contracts(
 
     output = (
         "⚠️ Following contracts were not deployed to RPC node:\n"
-        f"  ◦ Source File: {tmp_path}/contracts/Migrations.sol Contract Name: Migrations"
+        f"  ◦ Source File: {tmp_path.joinpath('contracts/Migrations.sol').as_posix()} Contract Name: Migrations"
     )
     prompt = "Remove them from targets"
     cmd_result = "You can view campaign here: http://localhost:9899/campaigns/cmp_0"

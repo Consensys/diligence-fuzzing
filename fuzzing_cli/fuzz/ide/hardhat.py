@@ -155,8 +155,11 @@ class HardhatArtifacts(IDEArtifacts):
                 }
 
             for source_file, contracts in source_files.items():
+                source_file_posix = self.as_posix(source_file)
                 for contract_name in contracts:
-                    contract = build_info["output"]["contracts"][source_file][
+                    # solidity build info files use posix paths, and if we are on Windows, we need to
+                    # normalize paths to posix style.
+                    contract = build_info["output"]["contracts"][source_file_posix][
                         contract_name
                     ]
 
@@ -177,7 +180,7 @@ class HardhatArtifacts(IDEArtifacts):
                             "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
                             "bytecode": contract["evm"]["bytecode"]["object"],
                             "contractName": contract_name,
-                            "mainSourceFile": source_file,
+                            "mainSourceFile": source_file_posix,
                             "ignoredSources": self.get_ignored_sources(
                                 generated_sources=contract["evm"][
                                     "deployedBytecode"
@@ -188,7 +191,7 @@ class HardhatArtifacts(IDEArtifacts):
                                 source_ids=source_ids,
                             ),
                         }
-                        result_contracts[source_file].append(contract_obj)
+                        result_contracts[source_file_posix].append(contract_obj)
                         if unlinked_libs:
                             self._unlinked_libraries.append(
                                 (contract_obj, unlinked_libs)
