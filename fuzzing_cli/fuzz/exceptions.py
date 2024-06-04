@@ -52,6 +52,27 @@ class ScribbleMetaError(FaaSError):
     pass
 
 
+class ScribbleError(click.exceptions.ClickException):
+    """Raised when `scribble` command fails"""
+
+    def __init__(self, underlying_error: Exception):
+        self.message = f"""Scribble not installed or configured correctly.
+
+It appears that Scribble is not installed or configured correctly on your system.
+
+You may need to:
+  - install Scribble
+  - ensure that the Scribble executable is in your PATH
+  - consider providing Scribble executable path using `--scribble-path` argument to command or set it in the config (https://github.com/Consensys/diligence-fuzzing/blob/master/docs/configuration.md#arming-configuration-options)
+
+Please ensure that Scribble is installed and configured correctly before attempting to run the fuzzer again. If the issue persists, please consult the Scribble documentation at https://docs.scribble.codes/tool/installation.
+
+Underlying error: {underlying_error}
+"""
+
+    pass
+
+
 class CreateFaaSCampaignError(FaaSError):
     """Exception raised for errors creating the FaaS Campaign"""
 
@@ -115,12 +136,14 @@ class ForgeError(click.exceptions.ClickException):
 class ForgeConfigError(ForgeError):
     """Raised when `forge config` command fails"""
 
-    def __init__(self):
-        self.message = """Foundry not installed or configured correctly.
+    def __init__(self, underlying_error: Exception):
+        self.message = f"""Foundry not installed or configured correctly.
 
 It appears that Foundry is not installed or configured correctly on your system. This error is preventing the fuzzer from running as expected.
 
 Please ensure that Foundry is installed and configured correctly before attempting to run the fuzzer again. If the issue persists, please consult the Foundry documentation or seek help from the Foundry community.
+
+Underlying error: {underlying_error}
 """
 
     pass
@@ -129,12 +152,15 @@ Please ensure that Foundry is installed and configured correctly before attempti
 class ForgeCompilationError(ForgeError):
     """Raised when `forge config` command fails"""
 
-    def __init__(self):
-        self.message = """Unable to compile Foundry project.
+    def __init__(self, underlying_error: Exception):
+        self.message = f"""Unable to compile Foundry project.
 
 It appears that there are issues with compiling the Foundry project. This error is likely related to the project's code or configuration.
 
-Please check the project's compilation logs or consult the project's documentation or support resources for assistance with resolving any compilation issues. Once the project has been successfully compiled, you can attempt to run the fuzzer again."""
+Please check the project's compilation logs or consult the project's documentation or support resources for assistance with resolving any compilation issues. Once the project has been successfully compiled, you can attempt to run the fuzzer again.
+
+Underlying error: {underlying_error}
+"""
 
     pass
 
@@ -170,12 +196,14 @@ Please ensure that the Foundry project is properly configured and that the 'forg
 class ForgeCollectTestsError(ForgeError):
     """Raised when `forge config` command fails"""
 
-    def __init__(self):
-        self.message = """Unable to collect Foundry tests.
+    def __init__(self, underlying_error: Exception):
+        self.message = f"""Unable to collect Foundry tests.
 
 It appears that there was an issue collecting Foundry tests with the 'forge test --list' command. This error may be related to issues with the Foundry project configuration or the command itself.
 
 Please ensure that the Foundry project is properly configured and that the 'forge test --list' command can be executed correctly. You may want to consult the Foundry documentation or seek help from the Foundry community for further assistance.
+
+Underlying error: {underlying_error}
 """
 
     pass

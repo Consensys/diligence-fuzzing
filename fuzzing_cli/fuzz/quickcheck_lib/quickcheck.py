@@ -10,7 +10,7 @@ from fuzzing_cli.fuzz.ide import IDEArtifacts
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
 from fuzzing_cli.fuzz.types import Contract, Source
-from fuzzing_cli.util import get_content_from_file
+from fuzzing_cli.util import executable_command, get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -21,9 +21,7 @@ def annotate_contracts(targets: List[Path], scribble_generator_path: str) -> Lis
     LOGGER.debug(
         f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}"
     )
-    # for cases when it's complex command. e.g.: npx scribble-generate
-    _scribble_generator_path = scribble_generator_path.split(" ")
-    command = _scribble_generator_path + ["--targets"] + targets
+    command = executable_command(scribble_generator_path) + ["--targets"] + targets
 
     annotated_files: List[Path] = []
 

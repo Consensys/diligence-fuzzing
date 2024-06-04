@@ -10,6 +10,7 @@ from click.testing import CliRunner
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config.utils import parse_config
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.util import executable_command
 from tests.common import assert_is_equal, write_config
 from tests.testdata.quickcheck_project.echidna.utils import (
     get_compilation_artifacts,
@@ -263,7 +264,7 @@ def test_fuzz_run(
     assert len(fake_process.calls) == 1
     assert fake_process.calls[0] == (
         [
-            "scribble",
+            *executable_command("scribble"),
             "--arm",
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",

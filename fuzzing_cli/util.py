@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import AnyStr, List
 
@@ -77,3 +78,27 @@ def get_content_from_file(file_path: Path) -> AnyStr:
     finally:
         reader.close()
     return source_code
+
+
+def executable_command(exec_path: str) -> List[str]:
+    """Get the executable command
+
+    :param exec_path: The path to the executable
+    """
+    if Path(exec_path).is_file():
+        # it's a full path to the executable
+        return [exec_path]
+
+    # exec_path can be an executable in the PATH or a command with arguments
+    resolved_exec_path = shutil.which(exec_path)
+    if resolved_exec_path is not None:
+        # it's a command in the PATH resolved by shutil
+        return [resolved_exec_path]
+
+    if exec_path.count(" ") > 0:
+        # it's a command with arguments. Split it and return the list
+        return [c.strip() for c in exec_path.split(" ")]
+
+    # we can't resolve the full executable path, so we assume
+    # it's a command in the PATH and return the list
+    return [exec_path]

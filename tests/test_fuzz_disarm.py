@@ -7,13 +7,18 @@ import pytest
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
-from tests.common import assert_is_equal, write_config
+from fuzzing_cli.util import executable_command
+from tests.common import (
+    _construct_scribble_error_message,
+    assert_is_equal,
+    write_config,
+)
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
 def test_fuzz_disarm(tmp_path: Path, scribble_project, fake_process):
     cmd = [
-        "scribble",
+        *executable_command("scribble"),
         "--disarm",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
         f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
@@ -83,8 +88,8 @@ def test_fuzz_disarm_process_error(
 
     assert result.exit_code == 1
     assert (
-        f"Error: ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{error}"
-        in result.output
+        f"Error: ScribbleError:\nThere was an error un-instrumenting your contracts with scribble:\n{error}\n"
+        == result.output
     )
     assert len(fake_process.calls) == 1
 
@@ -122,12 +127,8 @@ def test_fuzz_disarm_unknown_scribble_path(
         run_mock.side_effect = cb
         result = runner.invoke(cli, command)
 
-    assert (
-        f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
-        f"Please provide scribble path using either `--scribble-path` option to `fuzz disarm` command "
-        f"or set one in config" in result.output
-    )
-    assert result.exit_code == 2
+    assert _construct_scribble_error_message("executable not found\n") in result.output
+    assert result.exit_code == 1
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
@@ -149,7 +150,7 @@ def test_fuzz_disarm_folder_targets(tmp_path, scribble_project, fake_process):
     assert_is_equal(
         fake_process.calls[0],
         [
-            "scribble",
+            *executable_command("scribble"),
             "--disarm",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             f"{tmp_path.joinpath('contracts/Migrations.sol')}",

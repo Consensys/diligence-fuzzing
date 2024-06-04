@@ -266,3 +266,19 @@ def construct_output(
 
 def omit_keys(d: Dict[str, any], keys: List[str]) -> Dict[str, any]:
     return {k: v for k, v in d.items() if k not in keys}
+
+
+def _construct_scribble_error_message(underlying_error: str) -> str:
+    return f"""Error: Scribble not installed or configured correctly.
+
+It appears that Scribble is not installed or configured correctly on your system.
+
+You may need to:
+  - install Scribble
+  - ensure that the Scribble executable is in your PATH
+  - consider providing Scribble executable path using `--scribble-path` argument to command or set it in the config (https://github.com/Consensys/diligence-fuzzing/blob/master/docs/configuration.md#arming-configuration-options)
+
+Please ensure that Scribble is installed and configured correctly before attempting to run the fuzzer again. If the issue persists, please consult the Scribble documentation at https://docs.scribble.codes/tool/installation.
+
+Underlying error: {underlying_error}
+"""

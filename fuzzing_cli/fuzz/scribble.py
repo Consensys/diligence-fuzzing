@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from fuzzing_cli.util import sol_files_by_directory
+from fuzzing_cli.util import executable_command, sol_files_by_directory
 
 SCRIBBLE_ARMING_META_FILE = ".scribble-arming.meta.json"
 
@@ -39,7 +39,8 @@ class ScribbleMixin:
         :return: The deserialized scribble JSON output object
         """
         process = subprocess.run(
-            [scribble_path, "--input-mode=source", "--output-mode=json"]
+            executable_command(scribble_path)
+            + ["--input-mode=source", "--output-mode=json"]
             + ([f"--path-remapping={';'.join(remappings)}"] if remappings else [])
             + [target],
             stdout=subprocess.PIPE,
@@ -67,7 +68,7 @@ class ScribbleMixin:
         :param solc_version: The solc compiler version to use
         """
         command = [
-            scribble_path,
+            *executable_command(scribble_path),
             "--arm",
             "--output-mode=files",
             f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
@@ -112,7 +113,7 @@ class ScribbleMixin:
         :param scribble_path: The path to the scribble executable
         """
         command = [
-            scribble_path,
+            *executable_command(scribble_path),
             "--disarm",
             f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
         ]
