@@ -277,6 +277,7 @@ You may need to:
   - install Scribble
   - ensure that the Scribble executable is in your PATH
   - consider providing Scribble executable path using `--scribble-path` argument to command or set it in the config (https://github.com/Consensys/diligence-fuzzing/blob/master/docs/configuration.md#arming-configuration-options)
+  - Note: Windows users may need to use the full path to the Scribble executable (e.g. "node .\\node_modules\\eth-scribble\\dist\\bin\\scribble.js")
 
 Please ensure that Scribble is installed and configured correctly before attempting to run the fuzzer again. If the issue persists, please consult the Scribble documentation at https://docs.scribble.codes/tool/installation.
 
