@@ -147,7 +147,7 @@ class HardhatArtifacts(IDEArtifacts):
                 source_ids.append(source["id"])
                 source_paths[str(source["id"])] = source_name
 
-                if source_name in source_files:
+                if str(Path(source_name)) in source_files:
                     # we need to store the source file content and ast node for each source file
                     # belonging to the current build_info file. Same source file can be present in multiple
                     # build_info files, so we need to store the source file content and ast only from
