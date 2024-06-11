@@ -170,7 +170,14 @@ class FaasClient:
         if self.options.dry_run:  # pragma: no cover
             # if the env var FUZZ_DRY_RUN_NO_PRINT is set, don't print the payload
             if os.environ.get("FUZZ_DRY_RUN_NO_PRINT") is None:
-                print(json.dumps(api_payload, indent=4))
+                if self.options.dry_run_output is not None:
+                    with open(self.options.dry_run_output, "w") as f:
+                        f.write(json.dumps(api_payload, indent=4))
+                    print(
+                        f"Dry run output written to file {self.options.dry_run_output}"
+                    )
+                else:
+                    print(json.dumps(api_payload, indent=4))
             else:
                 print("Dry run enabled, not printing payload.")
             return "campaign not started due to --dry-run option"

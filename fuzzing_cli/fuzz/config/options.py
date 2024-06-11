@@ -106,6 +106,7 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
+    dry_run_output: Optional[str] = Field(None, exclude=True)
     smart_mode: bool = False
 
     include_library_contracts: bool = False

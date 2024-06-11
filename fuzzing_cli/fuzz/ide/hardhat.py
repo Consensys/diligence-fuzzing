@@ -146,13 +146,19 @@ class HardhatArtifacts(IDEArtifacts):
             for source_name, source in build_info["output"]["sources"].items():
                 source_ids.append(source["id"])
                 source_paths[str(source["id"])] = source_name
-                result_sources[source_name] = {
-                    "fileIndex": source["id"],
-                    "source": self.get_source(
-                        source_name, build_info["input"]["sources"]
-                    ),
-                    "ast": source["ast"],
-                }
+
+                if source_name in source_files:
+                    # we need to store the source file content and ast node for each source file
+                    # belonging to the current build_info file. Same source file can be present in multiple
+                    # build_info files, so we need to store the source file content and ast only from
+                    # the appropriate build_info file.
+                    result_sources[source_name] = {
+                        "fileIndex": source["id"],
+                        "source": self.get_source(
+                            source_name, build_info["input"]["sources"]
+                        ),
+                        "ast": source["ast"],
+                    }
 
             for source_file, contracts in source_files.items():
                 source_file_posix = self.as_posix(source_file)

@@ -1,5 +1,10 @@
 # History
 
+0.13.1 (2024-06-11)
+--------------------
+- Fix hardhat artifacts collection
+- Add `output` option to `fuzz run --dry-run` command
+
 0.13.0 (2024-06-04)
 --------------------
 - Add Windows support
