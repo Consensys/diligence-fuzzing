@@ -325,15 +325,11 @@ class IDEArtifacts(ABC):
                     f"https://docs.soliditylang.org/en/latest/using-the-compiler.html#library-linking"
                 )
 
-        used_file_ids = set()
+        used_files = set()
         for contract in result_contracts:
-            used_file_ids.update(contract["sourcePaths"].keys())
+            used_files.update(contract["sourcePaths"].values())
 
-        result_sources = {
-            k: v
-            for k, v in _result_sources.items()
-            if str(v["fileIndex"]) in used_file_ids
-        }
+        result_sources = {k: v for k, v in _result_sources.items() if k in used_files}
         return result_contracts, result_sources
 
     @abstractmethod

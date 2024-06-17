@@ -1,5 +1,9 @@
 # History
 
+0.13.3 (2024-06-17)
+--------------------
+- Fix hardhat artifacts collection
+
 0.13.2 (2024-06-17)
 --------------------
 - Fix hardhat artifacts collection
