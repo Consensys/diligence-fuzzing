@@ -132,6 +132,8 @@ class HardhatArtifacts(IDEArtifacts):
                 sources_in_multiple_build_info=_sources_in_multiple_build_info
             )
 
+        project_sources = list(_seen_source_files.keys())
+
         # each build_info file has a list of source files and their contracts
         # we need to process each build_info_path separately, as each build_info file has its own source_ids
         # and ast nodes
@@ -147,7 +149,26 @@ class HardhatArtifacts(IDEArtifacts):
                 source_ids.append(source["id"])
                 source_paths[str(source["id"])] = source_name
 
-                if str(Path(source_name)) in source_files:
+                source_name_path = str(Path(source_name))
+
+                if (
+                    source_name_path not in project_sources
+                    and source_name not in result_sources
+                ):
+                    # If the source_name isn't in project sources, it's some dependency outside the contracts dir.
+                    # Add one to result sources if it wasn't already.
+                    result_sources[source_name] = {
+                        "fileIndex": source["id"],
+                        "source": self.get_source(
+                            source_name, build_info["input"]["sources"]
+                        ),
+                        "ast": source["ast"],
+                    }
+
+                if (
+                    source_name_path in project_sources
+                    and source_name_path in source_files
+                ):
                     # we need to store the source file content and ast node for each source file
                     # belonging to the current build_info file. Same source file can be present in multiple
                     # build_info files, so we need to store the source file content and ast only from
