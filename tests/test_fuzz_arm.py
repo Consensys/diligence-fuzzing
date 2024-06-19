@@ -1,4 +1,6 @@
+import shutil
 import subprocess
+from pathlib import Path
 from typing import List, Optional
 from unittest.mock import Mock, patch
 
@@ -6,7 +8,12 @@ import pytest
 from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
-from tests.common import assert_is_equal, write_config
+from fuzzing_cli.util import executable_command
+from tests.common import (
+    _construct_scribble_error_message,
+    assert_is_equal,
+    write_config,
+)
 
 
 @pytest.mark.parametrize(
@@ -37,12 +44,12 @@ def test_fuzz_arm(
     params_in_config: bool,
 ):
     cmd = [
-        "scribble",
+        *executable_command("scribble"),
         "--arm",
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
         fake_process.any(),
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        str(Path(f"{tmp_path}/contracts/VulnerableToken.sol")),
     ]
     if params_in_config:
         write_config(
@@ -100,7 +107,7 @@ def test_fuzz_arm(
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process, ci_mode):
+def test_fuzz_arm_no_targets(tmp_path: Path, scribble_project, fake_process, ci_mode):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -117,7 +124,7 @@ def test_fuzz_arm_no_targets(tmp_path, scribble_project, fake_process, ci_mode):
     assert (
         result.output == "⚠️ Targets were not provided but the following files can "
         "be set as targets to be armed:\n"
-        f"  ◦ {tmp_path}/contracts/Migrations.sol\n  ◦ {tmp_path}/contracts/VulnerableToken.sol\n"
+        f"  ◦ {tmp_path.joinpath('contracts/Migrations.sol')}\n  ◦ {tmp_path.joinpath('contracts/VulnerableToken.sol')}\n"
         "Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
         "No files to instrument at provided targets\n"
     )
@@ -152,8 +159,8 @@ def test_fuzz_arm_process_error(tmp_path, scribble_project, fake_process, error:
 
     assert result.exit_code == 1
     assert (
-        f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{error}"
-        in result.output
+        f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{error}\n"
+        == result.output
     )
     assert len(fake_process.calls) == 1
 
@@ -191,16 +198,12 @@ def test_fuzz_arm_unknown_scribble_path(
         run_mock.side_effect = cb
         result = runner.invoke(cli, command)
 
-    assert (
-        f"Scribble not found at path \"{(scribble_path or 'scribble')}\". "
-        f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
-        f"or set one in config" in result.output
-    )
-    assert result.exit_code == 2
+    assert _construct_scribble_error_message(f"executable not found\n") in result.output
+    assert result.exit_code == 1
 
 
 @patch("pathlib.Path.exists", new=Mock(return_value=True))
-def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
+def test_fuzz_arm_folder_targets(tmp_path: Path, scribble_project, fake_process):
     write_config(
         config_path=f"{tmp_path}/.fuzz.yml",
         base_path=str(tmp_path),
@@ -218,14 +221,14 @@ def test_fuzz_arm_folder_targets(tmp_path, scribble_project, fake_process):
     assert_is_equal(
         fake_process.calls[0],
         [
-            "scribble",
+            *executable_command("scribble"),
             "--arm",
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
             "--no-assert",
-            f"{tmp_path}/contracts/Migrations.sol",
-            f"{tmp_path}/contracts/VulnerableToken.sol",
+            f"{tmp_path.joinpath('contracts/Migrations.sol')}",
+            f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
         ],
     )
 
@@ -246,8 +249,8 @@ def test_fuzz_arm_empty_folder_targets(tmp_path, scribble_project, fake_process)
     assert result.exit_code == 1
     assert (
         f"Error: ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n"
-        f"No files to instrument at provided targets"
-    )
+        f"No files to instrument at provided targets\n"
+    ) == result.output
     assert len(fake_process.calls) == 0
 
 
@@ -269,12 +272,12 @@ def test_fuzz_arm_smart_mode(
     monkeypatch.setenv("FUZZ_CI_MODE", "true" if ci_mode_flag else "false")
 
     cmd = [
-        "scribble",
+        *executable_command("scribble"),
         "--arm",
         "--output-mode=files",
         "--instrumentation-metadata-file=.scribble-arming.meta.json",
         fake_process.any(),
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        f"{tmp_path.joinpath('contracts/VulnerableToken.sol')}",
     ]
 
     out = (
@@ -289,8 +292,8 @@ def test_fuzz_arm_smart_mode(
     if not smart_mode:
         suggestion = (
             "⚠️ Targets were not provided but the following files can be set as targets to be armed:\n"
-            f"  ◦ {tmp_path}/contracts/Migrations.sol\n"
-            f"  ◦ {tmp_path}/contracts/VulnerableToken.sol"
+            f"  ◦ {tmp_path.joinpath('contracts/Migrations.sol')}\n"
+            f"  ◦ {tmp_path.joinpath('contracts/VulnerableToken.sol')}"
         )
         warnings = (
             "Warning: Build directory not specified. Using IDE defaults. "

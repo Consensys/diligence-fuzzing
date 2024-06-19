@@ -257,17 +257,17 @@ def test_fuzz(
     # and there's no way to hardcode `tmp_path` related paths
     if IDE_NAME == "truffle":
         processed_payload["sources"] = {
-            name.replace("artifacts", str(tmp_path)): data
+            str(tmp_path.joinpath(name[10:]).as_posix()): data
             for name, data in processed_payload["sources"].items()
         }
         processed_payload["contracts"] = [
             {
                 **c,
-                "mainSourceFile": c["mainSourceFile"].replace(
-                    "artifacts", str(tmp_path)
+                "mainSourceFile": str(
+                    tmp_path.joinpath(c["mainSourceFile"][10:]).as_posix()
                 ),
                 "sourcePaths": {
-                    k: v.replace("artifacts", str(tmp_path))
+                    k: str(tmp_path.joinpath(v[10:]).as_posix())
                     for k, v in c["sourcePaths"].items()
                 },
             }

@@ -231,7 +231,7 @@ def handle_validation_errors(
     "-s",
     "--map-to-original-source",
     is_flag=True,
-    default=None,
+    default=False,
     required=False,
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
@@ -241,6 +241,14 @@ def handle_validation_errors(
     is_flag=True,
     default=False,
     help="Outputs the data to be sent to the FaaS API without making the request.",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.STRING,
+    help="Output file for --dry-run output. If not provided, the data will be printed to stdout.",
+    default=None,
+    required=False,
 )
 @click.option(
     "-k",
@@ -271,10 +279,11 @@ def fuzz_run(
     address: str,
     more_addresses: str,
     corpus_target: str,
-    dry_run,
-    key,
-    map_to_original_source,
-    project,
+    dry_run: bool,
+    output: Optional[str],
+    key: Optional[str],
+    map_to_original_source: bool,
+    project: Optional[str],
     truffle_path: Optional[str],
 ):
     """Submit contracts to the Diligence Fuzzing API"""
@@ -289,6 +298,7 @@ def fuzz_run(
                 "map_to_original_source": map_to_original_source,
                 "corpus_target": corpus_target,
                 "dry_run": dry_run,
+                "dry_run_output": output,
                 "key": key,
                 "project": project,
                 "truffle_executable_path": truffle_path,

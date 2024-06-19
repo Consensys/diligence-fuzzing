@@ -1,9 +1,16 @@
 import json
+import re
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import cbor2
 
@@ -11,6 +18,10 @@ from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError, EmptyArtifactsError
 from fuzzing_cli.fuzz.types import Contract, IDEPayload, Source
 from fuzzing_cli.util import LOGGER, sol_files_by_directory
+
+ContractKind = Literal["contract", "interface", "library"]
+
+UNLINKED_LIB_HASH_REGEX = re.compile("__\$(\w{34})\$__")
 
 
 class IDEArtifacts(ABC):
@@ -38,7 +49,7 @@ class IDEArtifacts(ABC):
         include = set([])
         for target in targets:
             include.update(
-                [self.normalize_path(p) for p in sol_files_by_directory(target)]
+                [self.normalize_path(p) for p in sol_files_by_directory(Path(target))]
             )
         self._include = include
 
@@ -79,15 +90,13 @@ class IDEArtifacts(ABC):
         pass
 
     @staticmethod
-    def _get_build_artifacts(build_dir) -> Dict:
+    def _get_build_artifacts(build_dir: Path) -> Dict:
         # _get_build_artifacts goes through each .json build file and extracts the Source file it references
         # A source file may contain several contracts, so it is possible that a given source file
         # will be pointed to by multiple build artifacts
         # build_files_by_source_file is a dictionary where the key is a source file name
         # and the value is an array of build artifacts (contracts)
         build_files_by_source_file = {}
-
-        build_dir = Path(build_dir)
 
         if not build_dir.is_dir():
             raise BuildArtifactsError("Build directory doesn't exist")
@@ -105,7 +114,8 @@ class IDEArtifacts(ABC):
 
             data = json.loads(child.read_text("utf-8"))
 
-            source_path = data["sourcePath"]
+            source_path = str(Path(data["sourcePath"]).as_posix())
+            data["sourcePath"] = source_path
 
             if source_path not in build_files_by_source_file:
                 # initialize the array of contracts with a list
@@ -196,7 +206,41 @@ class IDEArtifacts(ABC):
                     return contract
         return None
 
+    @lru_cache(1)
+    def _contracts_kind_mapping(self) -> Dict[str, Dict[str, ContractKind]]:
+        _result_contracts, _result_sources = self.process_artifacts()
+        types_mapping = defaultdict(dict)
+        for source_file_name, _ in _result_contracts.items():
+            # we need to `get` `source_file_name` because it's possible that some source files
+            # are not present in the sources directory.
+            ast = _result_sources.get(source_file_name, {}).get("ast")
+            if not ast:
+                continue
+            for node in ast["nodes"]:
+                if node["nodeType"] != "ContractDefinition":
+                    continue
+                contract_name = node["name"]
+                types_mapping[source_file_name][contract_name] = node["contractKind"]
+        return types_mapping
+
+    def _get_contract_kind(self, contract: Contract) -> ContractKind:
+        return (
+            self._contracts_kind_mapping().get(contract["mainSourceFile"], {})
+            # if contract is not found in the mapping, we assume it's a contract
+            .get(contract["contractName"], "contract")
+        )
+
     def include_contract(self, contract: Contract) -> bool:
+        # if contract is library, we would not include it by default
+        # (because it will be included by default in the main contract). However,
+        # there are cases when we need to include libraries as well (because it supposed to be deployed),
+        # so we need to check `include_library_contracts` option.
+        if (
+            self._get_contract_kind(contract) == "library"
+            and not self._options.include_library_contracts
+        ):
+            return False
+
         if len(self._include) == 0:
             # for case when targets are not specified
             return True
@@ -212,7 +256,28 @@ class IDEArtifacts(ABC):
             in self._options.target_contracts[source_path]
         ):
             return False
+
         return True
+
+    @staticmethod
+    def fallback_check_unlinked_libraries(
+        contracts: List[Contract],
+    ) -> List[Tuple[Contract, Set[str]]]:
+        unlinked_libraries = []
+        for contract in contracts:
+            libs_hashes = set(
+                UNLINKED_LIB_HASH_REGEX.findall(contract["bytecode"])
+                + UNLINKED_LIB_HASH_REGEX.findall(contract["deployedBytecode"])
+            )
+            if len(libs_hashes) > 0:
+                unlinked_libraries.append((contract, libs_hashes))
+        return unlinked_libraries
+
+    @abstractmethod
+    def unlinked_libraries(
+        self,
+    ) -> List[Tuple[Contract, Dict[str, Set[str]]]]:  # pragma: no cover
+        pass
 
     @lru_cache(maxsize=1)
     def fetch_data(self) -> Tuple[List[Contract], Dict[str, Source]]:
@@ -223,15 +288,48 @@ class IDEArtifacts(ABC):
             if self.include_contract(contract)
         ]
 
-        used_file_ids = set()
-        for contract in result_contracts:
-            used_file_ids.update(contract["sourcePaths"].keys())
+        unlinked_libs = self.unlinked_libraries()
 
-        result_sources = {
-            k: v
-            for k, v in _result_sources.items()
-            if str(v["fileIndex"]) in used_file_ids
-        }
+        if len(unlinked_libs) > 0:
+            _details = []
+            for contract, libs in unlinked_libs:
+                for lib_path, lib_names in libs.items():
+                    for lib_name in lib_names:
+                        _details.append(
+                            f"  ◦ Contract: \"{contract['contractName']}\" "
+                            f"Contract path: \"{contract['mainSourceFile']}\" Library: \"{lib_name}\" Library path: \"{lib_path}\""
+                        )
+
+            details = "\n".join(_details)
+            raise BuildArtifactsError(
+                f"Following contracts have unlinked libraries:\n{details}\n"
+                f"For more info on library linking please visit "
+                f"https://docs.soliditylang.org/en/latest/using-the-compiler.html#library-linking"
+            )
+        else:
+            unlinked_libs = self.fallback_check_unlinked_libraries(result_contracts)
+            if len(unlinked_libs) > 0:
+                details = "\n".join(
+                    [
+                        f"  ◦ Contract: {contract['contractName']} "
+                        f"Contract path: {contract['mainSourceFile']} Library hash: {lib_hash}"
+                        for contract, libs in unlinked_libs
+                        for lib_hash in libs
+                    ]
+                )
+                raise BuildArtifactsError(
+                    f"Following contracts have unlinked libraries:\n{details}\n"
+                    f"Fuzzing CLI provides only library hashes because it wasn't able to one's name and path "
+                    f"from compilation artifacts. Please check your IDE settings to enable full solc compiler output.\n"
+                    f"For more info on library linking please visit "
+                    f"https://docs.soliditylang.org/en/latest/using-the-compiler.html#library-linking"
+                )
+
+        used_files = set()
+        for contract in result_contracts:
+            used_files.update(contract["sourcePaths"].values())
+
+        result_sources = {k: v for k, v in _result_sources.items() if k in used_files}
         return result_contracts, result_sources
 
     @abstractmethod
@@ -240,14 +338,18 @@ class IDEArtifacts(ABC):
     ) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:  # pragma: no cover
         pass
 
-    def normalize_path(self, path: str) -> str:
+    def normalize_path(self, path: Union[str, Path]) -> Path:
         if Path(path).is_absolute():
-            return path
-        _path = str(self.sources_dir.parent.joinpath(path))
+            return Path(path)
+        _path = self.sources_dir.parent.joinpath(path)
         LOGGER.debug(
             f'Normalizing path "{path}" relative to source_dir. Absolute path "{_path}"'
         )
         return _path
+
+    @staticmethod
+    def as_posix(path: str) -> str:
+        return str(Path(path).as_posix())
 
     def validate(self) -> None:
         if len(self.sources.keys()) == 0 or len(self.contracts) == 0:
@@ -295,3 +397,25 @@ class IDEArtifacts(ABC):
             for file_id, name in source_paths.items()
             if file_id in all_file_ids
         }
+
+    @staticmethod
+    def detect_unlinked_libs(contract: Dict[str, Any]) -> Dict[str, Set[str]]:
+        unlinked_libs: Dict[str, Set[str]] = defaultdict(set)
+
+        bytecode_link_ref = contract["evm"]["bytecode"].get("linkReferences", {})
+        deployed_bytecode_link_ref = contract["evm"]["deployedBytecode"].get(
+            "linkReferences", {}
+        )
+
+        if bytecode_link_ref:
+            # here we are collecting all the unlinked libraries for the contract
+            for lib_file_path in bytecode_link_ref.keys():
+                for lib_name in bytecode_link_ref[lib_file_path].keys():
+                    unlinked_libs[lib_file_path].add(lib_name)
+
+        if deployed_bytecode_link_ref:
+            for lib_file_path in deployed_bytecode_link_ref.keys():
+                for lib_name in deployed_bytecode_link_ref[lib_file_path].keys():
+                    unlinked_libs[lib_file_path].add(lib_name)
+
+        return unlinked_libs

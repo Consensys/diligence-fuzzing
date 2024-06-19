@@ -1,9 +1,10 @@
 import json
 import os
 import subprocess
+from pathlib import Path
 from typing import List, Optional, Tuple
 
-from fuzzing_cli.util import sol_files_by_directory
+from fuzzing_cli.util import executable_command, sol_files_by_directory
 
 SCRIBBLE_ARMING_META_FILE = ".scribble-arming.meta.json"
 
@@ -38,7 +39,8 @@ class ScribbleMixin:
         :return: The deserialized scribble JSON output object
         """
         process = subprocess.run(
-            [scribble_path, "--input-mode=source", "--output-mode=json"]
+            executable_command(scribble_path)
+            + ["--input-mode=source", "--output-mode=json"]
             + ([f"--path-remapping={';'.join(remappings)}"] if remappings else [])
             + [target],
             stdout=subprocess.PIPE,
@@ -51,7 +53,7 @@ class ScribbleMixin:
 
     @staticmethod
     def instrument_solc_in_place(
-        file_list: List[str],
+        file_list: List[Path],
         scribble_path: str,
         remappings: List[str] = None,
         solc_version: str = None,
@@ -66,7 +68,7 @@ class ScribbleMixin:
         :param solc_version: The solc compiler version to use
         """
         command = [
-            scribble_path,
+            *executable_command(scribble_path),
             "--arm",
             "--output-mode=files",
             f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
@@ -94,7 +96,7 @@ class ScribbleMixin:
         if len(sol_files) == 0:
             return 1, None, "No files to instrument at provided targets"
 
-        command.extend(sol_files)
+        command.extend([str(f) for f in sol_files])
 
         process = subprocess.run(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -104,14 +106,14 @@ class ScribbleMixin:
 
     @staticmethod
     def disarm_solc_in_place(
-        file_list: List[str], scribble_path: str
+        file_list: List[Path], scribble_path: str
     ) -> Tuple[int, Optional[str], Optional[str]]:
         """Un-instrument a collection of Solidity files in place.
 
         :param scribble_path: The path to the scribble executable
         """
         command = [
-            scribble_path,
+            *executable_command(scribble_path),
             "--disarm",
             f"--instrumentation-metadata-file={SCRIBBLE_ARMING_META_FILE}",
         ]
@@ -123,7 +125,7 @@ class ScribbleMixin:
         if len(sol_files) == 0:
             return 1, None, "No files to instrument at provided targets"
 
-        command.extend(sol_files)
+        command.extend([str(f) for f in sol_files])
 
         process = subprocess.run(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE

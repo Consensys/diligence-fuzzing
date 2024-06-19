@@ -1,0 +1,57 @@
+pragma solidity >=0.8.1;
+
+contract Bar {
+
+    uint256 private x;
+
+    function AAB() public view returns (uint256) {
+        if (x == 10) {
+            assert(false);
+            return 1;
+        }
+        if (x == 30) {
+            assert(false);
+            return 3;
+        }
+        if (x == 50) {
+            assert(false);
+            return 5;
+        }
+        if (x == 70) {
+            assert(false);
+            return 7;
+        }
+        if (x == 90) {
+            assert(false);
+            return 9;
+        }
+        if (x == 110) {
+            assert(false);
+            return 11;
+        }
+        if (x == 130) {
+            assert(false);
+            return 13;
+        }
+        if (x == 150) {
+            assert(false);
+            return 15;
+        }
+        if (x == 170) {
+            assert(false);
+            return 17;
+        }
+        if (x == 190) {
+            assert(false);
+            return 19;
+        }
+        if (x == 210) {
+            assert(false);
+            return 19;
+        }
+        return 0;
+    }
+    function SetNext(bool b) public {
+        x = 2*x + (b ? 1 : 0);
+    }
+}

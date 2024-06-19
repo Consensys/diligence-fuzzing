@@ -6,9 +6,10 @@ from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.util import executable_command
 from tests.common import assert_is_equal, get_test_case, write_config
 
-empty_build_command = ["forge", "build", "--build-info", "--force"]
+empty_build_command = [*executable_command("forge"), "build", "--build-info", "--force"]
 
 build_command = empty_build_command + [
     "--contracts",
@@ -30,7 +31,7 @@ def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
     [
         (
             None,
-            ["forge", "build", "--build-info", "--force"],
+            [*executable_command("forge"), "build", "--build-info", "--force"],
             [],
             lambda p: p["corpus"],
             lambda p: p["contracts"],
@@ -130,11 +131,11 @@ def test_foundry_tests(
 
     assert (
         foundry_test_list_mock.call_count(
-            ["forge", "test", "--list", "--json"] + list_args
+            [*executable_command("forge"), "test", "--list", "--json"] + list_args
         )
         == 1
     )
-    assert foundry_config_mock.call_count(["forge", "config"]) == 1
+    assert foundry_config_mock.call_count([*executable_command("forge"), "config"]) == 1
     assert foundry_build_mock.calls[0] == build_cmd
     assert foundry_build_mock.call_count(build_cmd) == 1
 

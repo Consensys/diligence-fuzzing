@@ -1,5 +1,34 @@
 # History
 
+0.13.3 (2024-06-17)
+--------------------
+- Fix hardhat artifacts collection
+
+0.13.2 (2024-06-17)
+--------------------
+- Fix hardhat artifacts collection
+
+0.13.1 (2024-06-11)
+--------------------
+- Fix hardhat artifacts collection
+- Add `output` option to `fuzz run --dry-run` command
+
+0.13.0 (2024-06-04)
+--------------------
+- Add Windows support
+- Drop support for Python 3.7
+- Add support for Python 3.12
+
+0.12.3 (2024-05-23)
+--------------------
+- Unlinked libraries detection for Foundry and Hardhat project
+- Update checks for fuzzing cli. Now fuzzing cli will check for new versions and notify the user if a new version is available
+
+0.12.2 (2024-04-23)
+--------------------
+- Fix hardhat artifacts collection
+- Ignore library contracts by default
+
 0.12.1 (2024-03-07)
 --------------------
 - Change `fuzz run` command behavior on contract targets absence (now it will emit warning instead of an error)

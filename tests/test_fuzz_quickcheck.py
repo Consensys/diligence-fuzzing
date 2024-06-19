@@ -10,6 +10,7 @@ from click.testing import CliRunner
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.config.utils import parse_config
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.util import executable_command
 from tests.common import assert_is_equal, write_config
 from tests.testdata.quickcheck_project.echidna.utils import (
     get_compilation_artifacts,
@@ -40,7 +41,7 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process, target
         "fuzzing_cli.fuzz.quickcheck.determine_campaign_name"
     ) as determine_campaign_name_mock:
         determine_ide_mock.return_value = truffle_echidna_project["ide"]
-        determine_targets_mock.return_value = [f"{tmp_path}/{t}" for t in targets]
+        determine_targets_mock.return_value = [tmp_path.joinpath(t) for t in targets]
         determine_cpu_cores_mock.return_value = 1
         determine_campaign_name_mock.return_value = "test-campaign"
 
@@ -51,7 +52,7 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process, target
 
     assert len(fake_process.calls) == 1
     assert fake_process.calls[0] == ["scribble-generate", "--targets"] + [
-        f"{tmp_path}/{t}" for t in targets
+        tmp_path.joinpath(t) for t in targets
     ]
 
     config = parse_config(
@@ -61,8 +62,8 @@ def test_fuzz_auto(tmp_path: Path, truffle_echidna_project, fake_process, target
     assert_is_equal(
         list(config["fuzz"].get("targets")),
         [
-            f"{tmp_path}/contracts/SecondVulnerableTokenTest.sol",
-            f"{tmp_path}/contracts/VulnerableTokenTest.sol",
+            str(tmp_path.joinpath("contracts/SecondVulnerableTokenTest.sol")),
+            str(tmp_path.joinpath("contracts/VulnerableTokenTest.sol")),
         ],
     )
     assert config["fuzz"].get("quick_check") == True
@@ -89,7 +90,7 @@ def test_no_annotated_contracts(tmp_path, truffle_echidna_project, fake_process)
         new=Mock(return_value="test-campaign"),
     ):
         determine_targets_mock.return_value = [
-            f"{tmp_path}/contracts/VulnerableToken.sol"
+            tmp_path.joinpath("contracts/VulnerableToken.sol"),
         ]
         runner = CliRunner()
         result = runner.invoke(cli, ["auto"])
@@ -101,7 +102,7 @@ def test_no_annotated_contracts(tmp_path, truffle_echidna_project, fake_process)
     assert fake_process.calls[0] == [
         "scribble-generate",
         "--targets",
-        f"{tmp_path}/contracts/VulnerableToken.sol",
+        tmp_path.joinpath("contracts/VulnerableToken.sol"),
     ]
 
 
@@ -148,7 +149,7 @@ def test_annotation_errors(
         "fuzzing_cli.fuzz.quickcheck.determine_campaign_name",
         new=Mock(return_value="test-campaign"),
     ):
-        determine_targets_mock.return_value = [f"{tmp_path}/contracts"]
+        determine_targets_mock.return_value = [tmp_path.joinpath("contracts")]
         if exc:
             with patch.object(subprocess, "run", new=Mock(side_effect=exc)):
                 runner = CliRunner()
@@ -160,7 +161,7 @@ def test_annotation_errors(
             assert fake_process.calls[0] == [
                 "scribble-generate",
                 "--targets",
-                f"{tmp_path}/contracts",
+                tmp_path.joinpath("contracts"),
             ]
 
     assert result.exit_code == 1
@@ -226,7 +227,12 @@ def test_fuzz_run(
 
     set_solc_version_mock.assert_called_once_with("v0.8.1", silent=True)
 
-    _sources = {f"{tmp_path}/{t}": {"urls": [f"{tmp_path}/{t}"]} for t in targets}
+    _sources = {
+        str(tmp_path.joinpath(t).as_posix()): {
+            "urls": [str(tmp_path.joinpath(t).as_posix())]
+        }
+        for t in targets
+    }
     compile_standard_mock.assert_called_once_with(
         solc_binary=None,
         input_data={
@@ -258,14 +264,14 @@ def test_fuzz_run(
     assert len(fake_process.calls) == 1
     assert fake_process.calls[0] == (
         [
-            "scribble",
+            *executable_command("scribble"),
             "--arm",
             "--output-mode=files",
             "--instrumentation-metadata-file=.scribble-arming.meta.json",
             "--debug-events",
             "--no-assert",
         ]
-        + [f"{tmp_path}/{t}" for t in targets]
+        + [str(tmp_path.joinpath(t)) for t in targets]
     )
 
     start_faas_campaign_mock.assert_called_once()

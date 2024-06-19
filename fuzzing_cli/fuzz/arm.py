@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import click
@@ -6,6 +7,7 @@ from click import ClickException, style
 
 from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import AnalyzeOptions, FuzzingOptions, omit_none
+from fuzzing_cli.fuzz.exceptions import ScribbleError
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.utils import detect_ide
 from fuzzing_cli.util import sol_files_by_directory
@@ -20,13 +22,13 @@ def handle_validation_errors(
     fuzzing_options: FuzzingOptions,
     prompt: bool = True,
     smart_mode: bool = False,
-) -> List[str]:
+) -> List[Path]:
     if len(targets) > 0:
-        return targets
+        return [Path(t) for t in targets]
 
     _IDEClass = detect_ide(fuzzing_options)
     suggested_targets = sorted(
-        sol_files_by_directory(str(_IDEClass.get_default_sources_dir()))
+        sol_files_by_directory(_IDEClass.get_default_sources_dir())
     )
 
     data = "\n".join([f"  ◦ {file_name}" for file_name in suggested_targets])
@@ -37,7 +39,7 @@ def handle_validation_errors(
     ):
         return suggested_targets
     click.secho(error_message)
-    return targets
+    return [Path(t) for t in targets]
 
 
 @click.command("arm")
@@ -46,7 +48,7 @@ def handle_validation_errors(
     "--scribble-path",
     type=click.Path(),
     default=None,
-    help="Path to a custom scribble executable (beta)",
+    help="Path to a custom scribble executable",
 )
 @click.option(
     "--remap-import",
@@ -142,11 +144,7 @@ def fuzz_arm(
             raise ClickException(
                 f"ScribbleError:\nThere was an error instrumenting your contracts with scribble:\n{err}"
             )
-    except FileNotFoundError:
-        raise click.exceptions.UsageError(
-            f'Scribble not found at path "{options.scribble_path}". '
-            f"Please provide scribble path using either `--scribble-path` option to `fuzz arm` command "
-            f"or set one in config"
-        )
-    except Exception as e:
+    except ClickException:
         raise
+    except Exception as e:
+        raise ScribbleError(e)

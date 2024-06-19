@@ -95,8 +95,8 @@ def test_config_show(tmp_path, monkeypatch, json: bool, give_analytics_consent: 
 
     faas_options_json = {
         "ide": "hardhat",
-        "build_directory": f"{tmp_path}/build",
-        "sources_directory": f"{tmp_path}/contracts",
+        "build_directory": f"{tmp_path.joinpath('build')}",
+        "sources_directory": f"{tmp_path.joinpath('contracts')}",
         "key": "dGVzdC1jbGllbnQtMTIzOjpleGFtcGxlLXVzLmNvbQ==::2",
         "project": None,
         "corpus_target": None,
@@ -122,6 +122,8 @@ def test_config_show(tmp_path, monkeypatch, json: bool, give_analytics_consent: 
         "target_contracts": None,
         "dry_run": False,
         "smart_mode": False,
+        "include_library_contracts": False,
+        "check_updates": False,
         "ci_mode": False,
     }
 

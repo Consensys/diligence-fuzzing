@@ -57,11 +57,13 @@ def yaml_config_settings_source(key="fuzz"):
     def loader(_) -> Dict[str, Any]:
         # this env variable is set by -c option in the cli (e.g. fuzz -c .fuzz-test.yaml run,
         # or FUZZ_CONFIG_FILE=.fuzz-test.yaml)
-        config_path = os.environ.get("FUZZ_CONFIG_FILE", ".fuzz.yml")
-        if Path(config_path).is_file():
+        config_path = Path(os.environ.get("FUZZ_CONFIG_FILE", ".fuzz.yml"))
+        if config_path.is_file():
             LOGGER.debug(f"Parsing config at {config_path}")
             with open(config_path) as config_f:
                 parsed_config = yaml.safe_load(config_f.read())
+                if not parsed_config:
+                    return {}
                 return parsed_config.get(key, {}) or {}
         return {}
 
@@ -104,7 +106,12 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
+    dry_run_output: Optional[str] = Field(None, exclude=True)
     smart_mode: bool = False
+
+    include_library_contracts: bool = False
+
+    check_updates: bool = True
 
     ci_mode: bool = Field(False)
 
@@ -326,6 +333,7 @@ class AdditionalOptions(BaseSettings):
     ci_mode: bool = Field(False)
     report_crashes: bool = Field(True)
     allow_analytics: bool = Field(True)
+    check_updates: bool = Field(True)
 
     def __init__(self, *args, **data: Any):
         try:
