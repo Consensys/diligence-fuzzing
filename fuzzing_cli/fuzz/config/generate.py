@@ -95,9 +95,11 @@ def __prompt_targets() -> List[Path]:
         f"{QM} Specify folder(s) or smart-contract(s) (comma-separated) to fuzz"
     )
     targets = [
-        Path(t.strip())
-        if Path(t.strip()).is_absolute()
-        else Path.cwd().absolute().joinpath(t.strip())
+        (
+            Path(t.strip())
+            if Path(t.strip()).is_absolute()
+            else Path.cwd().absolute().joinpath(t.strip())
+        )
         for t in target.split(",")
     ]
     return targets

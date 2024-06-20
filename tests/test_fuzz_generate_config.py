@@ -213,9 +213,11 @@ def test_determine_targets_manual_targets_selection(
 ):
     custom_targets_processed = (
         [
-            Path(t.strip())
-            if Path(t.strip()).is_absolute()
-            else tmp_path.joinpath(t.strip())
+            (
+                Path(t.strip())
+                if Path(t.strip()).is_absolute()
+                else tmp_path.joinpath(t.strip())
+            )
             for t in custom_targets.split(",")
         ]
         if custom_targets
@@ -349,9 +351,11 @@ def test_determine_build_dir(
         bds = style(tmp_path.joinpath(ide["build_directory"]), fg="yellow")
         assert click_confirm.call_count == 1
         assert click_confirm.call_args_list[0][0] == (
-            f"{QM} Is {bds} correct build directory for the project?"
-            if build_dir_exists
-            else f"{QM} We couldn't find build directory at {bds}. Have you configured a custom build directory?",
+            (
+                f"{QM} Is {bds} correct build directory for the project?"
+                if build_dir_exists
+                else f"{QM} We couldn't find build directory at {bds}. Have you configured a custom build directory?"
+            ),
         )
 
         if custom_build_dir:

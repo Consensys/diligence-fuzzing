@@ -38,9 +38,9 @@ def prepare_seed_state(
         artifacts.contracts, number_of_cores, corpus_target
     )
     for i, contract in enumerate(artifacts.contracts):
-        seed_state["analysis-setup"]["steps"][i][
-            "appendSetUpTx"
-        ] = artifacts.has_setup_method(contract)
+        seed_state["analysis-setup"]["steps"][i]["appendSetUpTx"] = (
+            artifacts.has_setup_method(contract)
+        )
     return seed_state
 
 

@@ -90,9 +90,9 @@ class BrownieArtifacts(IDEArtifacts):
                     ):
                         # we check if the current source file has a non instrumented version
                         # if it does, we include that one as the source code
-                        result_sources[source_file_dep][
-                            "source"
-                        ] = get_content_from_file(source_file_dep + ".original")
+                        result_sources[source_file_dep]["source"] = (
+                            get_content_from_file(source_file_dep + ".original")
+                        )
 
         # ( 'contracts/Token.sol', {'allSourcePaths':..., 'deployedSourceMap': ... } )
         for source_file, contracts in build_files_by_source_file.items():

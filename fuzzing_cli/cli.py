@@ -1,4 +1,5 @@
 """The main runtime of the Fuzzing CLI."""
+
 import logging
 import os
 import sys
