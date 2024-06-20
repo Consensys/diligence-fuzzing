@@ -3,7 +3,7 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -28,6 +28,7 @@ class FoundryArtifacts(IDEArtifacts):
         super(FoundryArtifacts, self).__init__(
             options, build_dir, sources_dir, targets, map_to_original_source
         )
+        self._unlinked_libraries: List[Tuple[Contract, Dict[str, Set[str]]]] = []
 
     @classmethod
     def get_name(cls) -> str:
@@ -91,6 +92,11 @@ class FoundryArtifacts(IDEArtifacts):
 
         return build_data
 
+    @property
+    @lru_cache(maxsize=1)
+    def build_info(self) -> Dict:
+        return self._get_build_info(self.build_dir)
+
     def get_source(self, source_path: str, sources: Dict[str, Dict[str, str]]) -> str:
         if (
             self.map_to_original_source
@@ -99,59 +105,69 @@ class FoundryArtifacts(IDEArtifacts):
             return get_content_from_file(self.normalize_path(source_path) + ".original")
         return sources[source_path]["content"]
 
+    def has_setup_method(self, contract: Contract) -> bool:
+        contracts_info = self.build_info["output"]["contracts"]
+        contracts = contracts_info[contract["mainSourceFile"]]
+        target_contract = contracts[contract["contractName"]]
+        return "setUp()" in target_contract["evm"]["methodIdentifiers"]
+
     @lru_cache(maxsize=1)
     def process_artifacts(self) -> Tuple[Dict[str, List[Contract]], Dict[str, Source]]:
-        build_info = self._get_build_info(self.build_dir)
-
         result_contracts = {}
         result_sources = {}
 
         source_ids: List[int] = []
         source_paths = {}
 
-        for source_name, source in build_info["output"]["sources"].items():
+        for source_name, source in self.build_info["output"]["sources"].items():
             source_ids.append(source["id"])
             source_paths[str(source["id"])] = source_name
             result_sources[source_name] = {
                 "fileIndex": source["id"],
-                "source": self.get_source(source_name, build_info["input"]["sources"]),
+                "source": self.get_source(
+                    source_name, self.build_info["input"]["sources"]
+                ),
                 "ast": source["ast"],
             }
 
-        for source_file, contracts in build_info["output"]["contracts"].items():
+        for source_file, contracts in self.build_info["output"]["contracts"].items():
             result_contracts[source_file] = []
             for contract_name, contract in contracts.items():
+                unlinked_libs = self.detect_unlinked_libs(contract)
+
                 try:
-                    result_contracts[source_file] += [
-                        {
-                            "sourcePaths": self.get_used_sources(
-                                source_paths,
-                                contract["evm"]["deployedBytecode"]["sourceMap"],
+                    contract_obj = {
+                        "sourcePaths": self.get_used_sources(
+                            source_paths,
+                            contract["evm"]["deployedBytecode"]["sourceMap"],
+                        ),
+                        "deployedSourceMap": contract["evm"]["deployedBytecode"][
+                            "sourceMap"
+                        ],
+                        "deployedBytecode": contract["evm"]["deployedBytecode"][
+                            "object"
+                        ],
+                        "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
+                        "bytecode": contract["evm"]["bytecode"]["object"],
+                        "contractName": contract_name,
+                        "mainSourceFile": source_file,
+                        "ignoredSources": self.get_ignored_sources(
+                            generated_sources=contract["evm"]["deployedBytecode"].get(
+                                "generatedSources"
                             ),
-                            "deployedSourceMap": contract["evm"]["deployedBytecode"][
-                                "sourceMap"
-                            ],
-                            "deployedBytecode": contract["evm"]["deployedBytecode"][
-                                "object"
-                            ],
-                            "sourceMap": contract["evm"]["bytecode"]["sourceMap"],
-                            "bytecode": contract["evm"]["bytecode"]["object"],
-                            "contractName": contract_name,
-                            "mainSourceFile": source_file,
-                            "ignoredSources": self.get_ignored_sources(
-                                generated_sources=contract["evm"][
-                                    "deployedBytecode"
-                                ].get("generatedSources"),
-                                source_map=contract["evm"]["deployedBytecode"][
-                                    "sourceMap"
-                                ],
-                                source_ids=source_ids,
-                            ),
-                        }
-                    ]
+                            source_map=contract["evm"]["deployedBytecode"]["sourceMap"],
+                            source_ids=source_ids,
+                        ),
+                    }
+                    result_contracts[source_file].append(contract_obj)
+                    if unlinked_libs:
+                        self._unlinked_libraries.append((contract_obj, unlinked_libs))
                 except KeyError as e:
                     raise BuildArtifactsError(
                         f"Build artifact did not contain expected key. Contract: {contract}: \n{e}"
                     )
 
         return result_contracts, result_sources
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Dict[str, Set[str]]]]:
+        return self._unlinked_libraries

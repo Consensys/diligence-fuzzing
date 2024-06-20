@@ -19,16 +19,16 @@ def merge(
 
 
 def update_config(config_path: Path, update: Dict[str, any]):
-    with config_path.open("r") as f:
+    with config_path.open("r", encoding="utf-8") as f:
         config = yaml.load(f)
         config = merge(config, update)
 
-    with config_path.open("w") as f:
+    with config_path.open("w", encoding="utf-8") as f:
         yaml.dump(config, f)
 
 
 def parse_config(config_path: Path) -> Dict[str, any]:
-    with config_path.open("r") as f:
+    with config_path.open("r", encoding="utf-8") as f:
         config = yaml.load(f)
     return config
 

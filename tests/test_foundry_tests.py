@@ -6,9 +6,10 @@ from click.testing import CliRunner
 
 from fuzzing_cli.cli import cli
 from fuzzing_cli.fuzz.faas import FaasClient
+from fuzzing_cli.util import executable_command
 from tests.common import assert_is_equal, get_test_case, write_config
 
-empty_build_command = ["forge", "build", "--build-info", "--force"]
+empty_build_command = [*executable_command("forge"), "build", "--build-info", "--force"]
 
 build_command = empty_build_command + [
     "--contracts",
@@ -30,8 +31,8 @@ def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
     [
         (
             None,
-            ["forge", "build", "--build-info", "--force"],
-            ["--match-path", "test/*"],
+            [*executable_command("forge"), "build", "--build-info", "--force"],
+            [],
             lambda p: p["corpus"],
             lambda p: p["contracts"],
             lambda p: p["sources"],
@@ -39,7 +40,7 @@ def filter_keys(d: Dict[str, Any], keys: List[str]) -> Dict[str, Any]:
         (
             ["--build-args=--contracts A B C --optimize --evm-version 0.8.1"],
             build_command,
-            ["--match-path", "test/*"],
+            [],
             lambda p: p["corpus"],
             lambda p: p["contracts"],
             lambda p: p["sources"],
@@ -122,7 +123,6 @@ def test_foundry_tests(
         if build_args:
             cmd += build_args
         result = runner.invoke(cli, cmd)
-
     assert result.exit_code == 0
     assert (
         f"You can view campaign here: http://localhost:9899/campaigns/{campaign_id}"
@@ -131,11 +131,11 @@ def test_foundry_tests(
 
     assert (
         foundry_test_list_mock.call_count(
-            ["forge", "test", "--list", "--json"] + list_args
+            [*executable_command("forge"), "test", "--list", "--json"] + list_args
         )
         == 1
     )
-    assert foundry_config_mock.call_count(["forge", "config"]) == 1
+    assert foundry_config_mock.call_count([*executable_command("forge"), "config"]) == 1
     assert foundry_build_mock.calls[0] == build_cmd
     assert foundry_build_mock.call_count(build_cmd) == 1
 
@@ -160,11 +160,10 @@ def test_foundry_tests(
             "VulnerableTokenTest": ["testTransfer"],
         },
     }
-    if list_args != ["--match-path", "test/*"]:
+    if list_args != []:
         foundry_tests_list = {
             "test/Counter.t.sol": {
                 "CounterTest": ["testIncrement", "testSetNumber"],
             },
         }
-
     assert payload["foundryTestsList"] == foundry_tests_list

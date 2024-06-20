@@ -31,7 +31,6 @@ RIGHT = "\x1b\x5b\x43"
 
 
 def test_generate_config(tmp_path, hardhat_project):
-    os.chdir(tmp_path)
     actions = ["y", "n", "y", "n", "y", "http://localhost:1111/", "4", "\n"]
     runner = CliRunner()
     result = runner.invoke(cli, ["config", "generate"], input="\n".join(actions))
@@ -190,13 +189,13 @@ def test_determine_targets(tmp_path, truffle_project):
         inquirer_prompt.assert_not_called()
         assert click_confirm.call_count == 2
         assert click_confirm.call_args_list[0][0] == (
-            f"{QM} Is {style(f'{tmp_path}/contracts', fg='yellow')} correct directory to fuzz contracts from?",
+            f"{QM} Is {style(tmp_path.joinpath('contracts'), fg='yellow')} correct directory to fuzz contracts from?",
         )
         assert click_confirm.call_args_list[1][0] == (
             f"{QM} Directories contain source files. Do you want to select them individually?",
         )
 
-    assert targets == [f"{tmp_path}/contracts"]
+    assert targets == [tmp_path.joinpath("contracts")]
 
 
 @pytest.mark.parametrize(
@@ -214,7 +213,9 @@ def test_determine_targets_manual_targets_selection(
 ):
     custom_targets_processed = (
         [
-            t.strip() if t.strip().startswith("/") else f"{tmp_path}/{t.strip()}"
+            Path(t.strip())
+            if Path(t.strip()).is_absolute()
+            else tmp_path.joinpath(t.strip())
             for t in custom_targets.split(",")
         ]
         if custom_targets
@@ -243,15 +244,27 @@ def test_determine_targets_manual_targets_selection(
             "targets",
             message="Please select target files (SPACE to select, RETURN to finish)",
             choices=[
-                ("contracts/ABC.sol", f"{tmp_path}/contracts/ABC.sol"),
-                ("contracts/Bar.sol", f"{tmp_path}/contracts/Bar.sol"),
-                ("contracts/Foo.sol", f"{tmp_path}/contracts/Foo.sol"),
-                ("contracts/Migrations.sol", f"{tmp_path}/contracts/Migrations.sol"),
+                (
+                    str(Path("contracts/ABC.sol")),
+                    tmp_path.joinpath("contracts/ABC.sol"),
+                ),
+                (
+                    str(Path("contracts/Bar.sol")),
+                    tmp_path.joinpath("contracts/Bar.sol"),
+                ),
+                (
+                    str(Path("contracts/Foo.sol")),
+                    tmp_path.joinpath("contracts/Foo.sol"),
+                ),
+                (
+                    str(Path("contracts/Migrations.sol")),
+                    tmp_path.joinpath("contracts/Migrations.sol"),
+                ),
             ],
         )
         assert click_confirm.call_count == 2
         assert click_confirm.call_args_list[0][0] == (
-            f"{QM} Is {style(f'{tmp_path}/contracts', fg='yellow')} correct directory to fuzz contracts from?",
+            f"{QM} Is {style(tmp_path.joinpath('contracts'), fg='yellow')} correct directory to fuzz contracts from?",
         )
         assert click_confirm.call_args_list[1][0] == (
             f"{QM} Directories contain source files. Do you want to select them individually?",
@@ -270,8 +283,8 @@ def test_determine_targets_manual_targets_selection(
         else:
             click_secho.assert_not_called()
 
-        assert targets == [f"{tmp_path}/{t}" for t in (targets_return or [])] + [
-            t for t in custom_targets_processed if t.endswith(".sol")
+        assert targets == [tmp_path.joinpath(t) for t in (targets_return or [])] + [
+            t for t in custom_targets_processed if t.name.endswith(".sol")
         ]
 
 
@@ -290,7 +303,7 @@ def test_determine_targets_source_dir_not_exists(
 
         assert click_confirm.call_count == 2
         assert click_confirm.call_args_list[0][0] == (
-            f"{QM} We couldn't find any contracts at {style(f'{tmp_path}/contracts', fg='yellow')}. "
+            f"{QM} We couldn't find any contracts at {style(tmp_path.joinpath('contracts'), fg='yellow')}. "
             f"Have you configured a custom contracts sources directory?",
         )
         assert click_confirm.call_args_list[1][0] == (
@@ -304,7 +317,7 @@ def test_determine_targets_source_dir_not_exists(
         else:
             click_prompt.assert_not_called()
 
-        assert targets == [f"{tmp_path}/contracts"]
+        assert targets == [tmp_path.joinpath("contracts")]
 
 
 @pytest.mark.parametrize("custom_build_dir", ["build_test", None])
@@ -333,7 +346,7 @@ def test_determine_build_dir(
 
         build_dir = determine_build_dir(ide["ide"])
 
-        bds = style(f'{tmp_path}/{ide["build_directory"]}', fg="yellow")
+        bds = style(tmp_path.joinpath(ide["build_directory"]), fg="yellow")
         assert click_confirm.call_count == 1
         assert click_confirm.call_args_list[0][0] == (
             f"{QM} Is {bds} correct build directory for the project?"
@@ -347,9 +360,9 @@ def test_determine_build_dir(
             click_prompt.assert_not_called()
 
         assert (
-            build_dir == f"{tmp_path}/{custom_build_dir}"
+            build_dir == str(tmp_path.joinpath(custom_build_dir))
             if custom_build_dir
-            else f"{tmp_path}/{ide['build_directory']}"
+            else str(tmp_path.joinpath(ide["build_directory"]))
         )
 
 
@@ -393,22 +406,22 @@ def test_determine_campaign_name(tmp_path: Path, truffle_project):
 
 def test_determine_sources_dir(tmp_path, truffle_project):
     assert determine_sources_dir([]) is None
-    assert determine_sources_dir([str(tmp_path.joinpath("contracts"))]) == str(
+    assert determine_sources_dir([tmp_path.joinpath("contracts")]) == (
         tmp_path.joinpath("contracts")
     )
     assert determine_sources_dir(
-        [str(tmp_path.joinpath("contracts", "ABC.sol"))]
-    ) == str(tmp_path.joinpath("contracts"))
+        [tmp_path.joinpath("contracts", "ABC.sol")]
+    ) == tmp_path.joinpath("contracts")
     assert determine_sources_dir(
         [
-            str(tmp_path.joinpath("contracts")),
-            str(tmp_path.joinpath("contracts", "Foo.sol")),
-            str(tmp_path.joinpath("contracts", "ABC.sol")),
+            tmp_path.joinpath("contracts"),
+            tmp_path.joinpath("contracts", "Foo.sol"),
+            tmp_path.joinpath("contracts", "ABC.sol"),
         ]
-    ) == str(tmp_path.joinpath("contracts"))
+    ) == tmp_path.joinpath("contracts")
     assert determine_sources_dir(
         [
-            str(tmp_path.joinpath("contracts", "Foo.sol")),
-            str(tmp_path.joinpath("contracts", "Bar.sol")),
+            tmp_path.joinpath("contracts", "Foo.sol"),
+            tmp_path.joinpath("contracts", "Bar.sol"),
         ]
-    ) == str(tmp_path.joinpath("contracts"))
+    ) == tmp_path.joinpath("contracts")

@@ -23,12 +23,32 @@ Table of Contents
     - [Foundry Tests](#foundry-tests)
   - [Configuration](#configuration)
   - [Commands](#commands)
+  - [Product Analytics Collection](#product-analytics-collection)
 
 ## Installing
-The Diligence Fuzzing CLI runs on Python 3.7+, including PyPy.
-
+The Diligence Fuzzing CLI runs on Python 3.8+, including PyPy.
+### Linux and macOS
 To get started, simply run
 
+```console
+$ pip3 install diligence-fuzzing
+```
+
+Alternatively, clone the repository and run
+
+```console
+$ pip3 install .
+```
+Or directly through Python's :code:`setuptools`:
+```console
+$ python3 setup.py install
+```
+> Don't forget to add the directory containing the `fuzz` executable to your system's PATH environment variable.
+
+### Windows
+> We recommend using Windows Subsystem for Linux (WSL) for a better experience
+1. Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for CLI's dependencies compilation
+2. Run the following command to install the CLI
 ```console
 $ pip3 install diligence-fuzzing
 ```
@@ -244,5 +264,8 @@ The `fuzz` CLI tool provides the following commands:
 
 Each command serves a specific purpose in the fuzzing process, and they can be used together to configure and execute fuzzing campaigns. For more information on each command, consult the corresponding documentation.
 
+## Product Analytics Collection
+This tool collects usage data to help us understand how the tool is being used and how we can improve it, but you can opt out of this data collection at any time.
+Please have a look at the [Product Analytics Collection](docs/analytics.md) documentation for more information.
 
 * Free software: Apache 2 license

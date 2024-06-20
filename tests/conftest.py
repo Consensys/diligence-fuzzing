@@ -1,10 +1,17 @@
+import base64
 import json
 import os
 import tarfile
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 
+from fuzzing_cli.fuzz.analytics import Session
+from fuzzing_cli.fuzz.config import AuthHandler
+from fuzzing_cli.fuzz.storage import LocalStorage
+
+# DO NOT DELETE: fixtures import
 from tests.testdata.foundry_tests_project.mocks import (
     foundry_build_mock,
     foundry_config_mock,
@@ -59,10 +66,10 @@ def truffle_project(tmp_path):
         "build_directory": "build/contracts",
         "sources_directory": "contracts",
         "targets": [
+            "contracts/Migrations.sol",
             "contracts/Foo.sol",
             "contracts/Bar.sol",
             "contracts/ABC.sol",
-            "contracts/Migrations.sol",
         ],
         "deployed_contract_address": "0x07D9Fb5736CD151C8561798dFBdA5dBCf54cB9E6",
         "additional_addresses": [
@@ -104,6 +111,32 @@ def hardhat_fuzzing_lessons_project(tmp_path):
 
 
 @pytest.fixture()
+def hardhat_project_with_unlinked_libraries(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "hardhat_project_with_unlinked_libraries", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "hardhat",
+        "build_directory": "artifacts",
+        "sources_directory": "contracts",
+        "targets": [
+            "contracts/ABC.sol",
+            "contracts/Bar.sol",
+            "contracts/Foo.sol",
+        ],
+        "deployed_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "additional_addresses": [
+            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+            "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+        ],
+    }
+
+
+@pytest.fixture()
 def hardhat_project(tmp_path):
     with tarfile.open(
         Path(__file__).parent.joinpath(
@@ -136,9 +169,9 @@ def hardhat_project(tmp_path):
         "build_directory": "artifacts",
         "sources_directory": "contracts",
         "targets": [
-            "contracts/Foo.sol",
-            "contracts/Bar.sol",
             "contracts/ABC.sol",
+            "contracts/Bar.sol",
+            "contracts/Foo.sol",
             "contracts/Migrations.sol",
         ],
         "deployed_contract_address": "0x128B125f3D14338E71AA0C213B3FfC3D545C8c47",
@@ -347,6 +380,28 @@ def foundry_project(tmp_path):
 
 
 @pytest.fixture()
+def foundry_project_with_unlinked_libraries(tmp_path):
+    with tarfile.open(
+        Path(__file__).parent.joinpath(
+            "testdata", "foundry_project_with_unlinked_libraries", "artifacts.tar.gz"
+        )
+    ) as f:
+        f.extractall(tmp_path)
+    os.chdir(tmp_path)
+    yield {
+        "ide": "foundry",
+        "build_directory": "out",
+        "sources_directory": "src",
+        "targets": ["src/Foo.sol", "src/Bar.sol", "src/ABC.sol"],
+        "deployed_contract_address": "0x0c91f9338228f19315BE34E5CA5307DF586CBD99",
+        "additional_addresses": [
+            "0x9B92063B8B94A9EF8b5fDE3Df8D375B39bC9fC10",
+            "0x694D08b77D2499E161635005Fd4A77233cedD761",
+        ],
+    }
+
+
+@pytest.fixture()
 def foundry_tests_project(tmp_path):
     with tarfile.open(
         Path(__file__).parent.joinpath(
@@ -375,3 +430,50 @@ def api_key(monkeypatch):
     )
     yield
     monkeypatch.delenv("FUZZ_API_KEY", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def setup_storages(tmp_path):
+    Session.set_session_path(Path(str(tmp_path) + "/session.json"))
+    LocalStorage.set_instance(LocalStorage(str(tmp_path)))
+
+
+@pytest.fixture(autouse=True)
+def mocked_auth_handler():
+    mocked_jwt_token = f"header.{base64.b64encode(json.dumps({'sub': 'test-user'}).encode()).decode()}.tail"
+    orig = AuthHandler._get_access_token
+    with patch.object(
+        AuthHandler,
+        "_get_access_token",
+        new=Mock(return_value=(mocked_jwt_token, 100000)),
+    ) as _get_access_token_mock:
+
+        def restore_original():
+            AuthHandler._get_access_token = orig
+
+        setattr(_get_access_token_mock, "restore_original", restore_original)
+        yield _get_access_token_mock
+
+
+@pytest.fixture(autouse=True)
+def no_analytics(monkeypatch):
+    monkeypatch.setenv("FUZZ_ALLOW_ANALYTICS", "false")
+
+
+@pytest.fixture()
+def ci_mode(monkeypatch):
+    monkeypatch.setenv("FUZZ_CI_MODE", "true")
+
+
+@pytest.fixture(autouse=True)
+def no_updates_check(monkeypatch):
+    monkeypatch.setenv("FUZZ_CHECK_UPDATES", "false")
+    yield
+    monkeypatch.delenv("FUZZ_CHECK_UPDATES", raising=False)
+
+
+@pytest.fixture()
+def allow_updates_check(monkeypatch):
+    monkeypatch.setenv("FUZZ_CHECK_UPDATES", "true")
+    yield
+    monkeypatch.delenv("FUZZ_CHECK_UPDATES", raising=False)

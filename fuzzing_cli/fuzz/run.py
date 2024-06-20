@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional
 import click
 from click import ClickException, UsageError, style
 
-from .config import AnalyzeOptions, FuzzingOptions, omit_none
+from .analytics import Session, trace
+from .config import AnalyzeOptions, AuthHandler, FuzzingOptions, omit_none
 from .corpus import CorpusRepository
 from .corpus.repository import NoTransactionFound
 from .exceptions import EmptyArtifactsError, FaaSError
@@ -13,6 +14,7 @@ from .faas import FaasClient
 from .ide import IDEArtifacts, IDERepository
 from .quickcheck_lib.quickcheck import QuickCheck, prepare_seed_state
 from .rpc.rpc import RPCClient
+from .utils import detect_ide
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
@@ -32,6 +34,7 @@ def handle_validation_errors(
 
     :param corpus_repo: Corpus repository
     :param prompt: Whether to prompt the user for automatic fixes
+    :param smart_mode: Whether to automatically apply fixes without prompting
     :return: List of suggested fixes
     """
     suggested_fixes = []
@@ -99,7 +102,8 @@ def handle_validation_errors(
                     }
                 )
                 continue
-            raise ClickException(error_message)
+            click.secho(error_message)
+            continue
 
         if validation_error["type"] == "source_target_not_set":
             data = "\n".join(
@@ -227,7 +231,7 @@ def handle_validation_errors(
     "-s",
     "--map-to-original-source",
     is_flag=True,
-    default=None,
+    default=False,
     required=False,
     help="Map the analyses results to the original source code, instead of the instrumented one. "
     "This is meant to be used with Scribble.",
@@ -237,6 +241,14 @@ def handle_validation_errors(
     is_flag=True,
     default=False,
     help="Outputs the data to be sent to the FaaS API without making the request.",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.STRING,
+    help="Output file for --dry-run output. If not provided, the data will be printed to stdout.",
+    default=None,
+    required=False,
 )
 @click.option(
     "-k",
@@ -260,25 +272,19 @@ def handle_validation_errors(
     default=None,
     help="[Optional] Truffle executable path (e.g. ./node_modules/.bin/truffle)",
 )
-@click.option(
-    "--no-prompts",
-    is_flag=True,
-    default=False,
-    help="Do not prompt for user input (to suggest an auto fix, for example). Instead, "
-    "fail if any of the validation errors are encountered. (CI/CD mode)",
-)
+@trace("fuzz_run", upload_session=True)
 def fuzz_run(
     targets,
     ide: Optional[str],
     address: str,
     more_addresses: str,
     corpus_target: str,
-    dry_run,
-    key,
-    map_to_original_source,
-    project,
+    dry_run: bool,
+    output: Optional[str],
+    key: Optional[str],
+    map_to_original_source: bool,
+    project: Optional[str],
     truffle_path: Optional[str],
-    no_prompts: bool,
 ):
     """Submit contracts to the Diligence Fuzzing API"""
 
@@ -292,13 +298,15 @@ def fuzz_run(
                 "map_to_original_source": map_to_original_source,
                 "corpus_target": corpus_target,
                 "dry_run": dry_run,
+                "dry_run_output": output,
                 "key": key,
                 "project": project,
                 "truffle_executable_path": truffle_path,
             }
         ),
-        no_prompts=no_prompts,
     )
+
+    auth_handler = AuthHandler(options)
 
     _corpus_target = options.corpus_target
     if options.incremental:
@@ -325,17 +333,14 @@ def fuzz_run(
     else:
         rpc_client = RPCClient(options.rpc_url, options.number_of_cores)
 
-        repo = IDERepository.get_instance()
-        if options.ide:
-            LOGGER.debug(f'"{options.ide}" IDE is specified')
-            _IDEClass = repo.get_ide(options.ide)
-        else:
-            LOGGER.debug("IDE not specified. Detecting one")
-            _IDEClass = repo.detect_ide()
-            if not _IDEClass:
-                LOGGER.debug("No supported IDE was detected")
-                raise UsageError(f"No supported IDE was detected")
-            LOGGER.debug(f'"{_IDEClass.get_name()}" IDE detected')
+        Session.set_local_context(
+            rpc_node_kind=rpc_client.get_rpc_node_info()["kind"],
+            rpc_node_version=rpc_client.get_rpc_node_info()["version"],
+            ci_mode=options.ci_mode,
+            user_id=auth_handler.user_id,
+        )
+
+        _IDEClass = detect_ide(options)
 
         artifacts: IDEArtifacts = _IDEClass(
             options=options,
@@ -349,7 +354,7 @@ def fuzz_run(
         corpus_repo = CorpusRepository(rpc_client, artifacts, options, _corpus_target)
         # if the no_prompts flag is set, we need to fail if there are any validation errors
         suggested_fixes = handle_validation_errors(
-            corpus_repo, prompt=not no_prompts, smart_mode=options.smart_mode
+            corpus_repo, prompt=not options.ci_mode, smart_mode=options.smart_mode
         )
         if suggested_fixes:
             corpus_repo.apply_auto_fix(suggested_fixes)
@@ -385,7 +390,7 @@ def fuzz_run(
                 f"or recompile contracts"
             )
 
-    return submit_campaign(options, project_type, artifacts, seed_state)
+    return submit_campaign(options, project_type, artifacts, seed_state, auth_handler)
 
 
 def submit_campaign(
@@ -393,8 +398,11 @@ def submit_campaign(
     project_type: str,
     artifacts: IDEArtifacts,
     seed_state: Dict[str, any],
+    auth_handler: AuthHandler,
 ) -> None:
-    faas_client = FaasClient(options=options, project_type=project_type)
+    faas_client = FaasClient(
+        options=options, project_type=project_type, auth_handler=auth_handler
+    )
 
     try:
         campaign_id = faas_client.create_faas_campaign(

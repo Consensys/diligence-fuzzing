@@ -75,17 +75,17 @@ def test_fuzz_run(
     # and there's no way to hardcode `tmp_path` related paths
     if IDE_NAME == "truffle":
         processed_payload["sources"] = {
-            name.replace("artifacts", str(tmp_path)): data
+            str(tmp_path.joinpath(name[10:]).as_posix()): data
             for name, data in processed_payload["sources"].items()
         }
         processed_payload["contracts"] = [
             {
                 **c,
-                "mainSourceFile": c["mainSourceFile"].replace(
-                    "artifacts", str(tmp_path)
+                "mainSourceFile": str(
+                    tmp_path.joinpath(c["mainSourceFile"][10:]).as_posix()
                 ),
                 "sourcePaths": {
-                    k: v.replace("artifacts", str(tmp_path))
+                    k: str(tmp_path.joinpath(v[10:]).as_posix())
                     for k, v in c["sourcePaths"].items()
                 },
             }
@@ -160,18 +160,6 @@ def test_fuzz_run_with_auto_fixes(
         else:
             result = runner.invoke(cli, ["run"])
 
-    if not provide_targets and not provide_addresses:
-        assert result.exit_code == 2
-        assert (
-            "Usage: cli run [OPTIONS] [TARGETS]...\n"
-            "Try 'cli run --help' for help.\n"
-            "\n"
-            "Error: Invalid config: No targets specified. Please specify "
-            "at least one target (deployed contract address or targets).\n"
-            == result.output
-        )
-        return
-
     message = ""
     prompt = ""
 
@@ -182,7 +170,7 @@ def test_fuzz_run_with_auto_fixes(
                 if contract["address"] == address:
                     data.append(
                         f"  ◦ Address: {address.lower()}"
-                        f" Target: {tmp_path}/{contract['contractPath']}"
+                        f" Target: {tmp_path.joinpath(contract['contractPath'])}"
                     )
                     break
         data = "\n".join(data)
@@ -198,7 +186,7 @@ def test_fuzz_run_with_auto_fixes(
                 if contract["contractPath"] == target:
                     data.append(
                         f"  ◦ Address: {contract['address'].lower()}"
-                        f" Source File: {tmp_path}/{contract['contractPath']}"
+                        f" Source File: {tmp_path.joinpath(contract['contractPath'])}"
                         f" Contract Name: {contract_name}"
                     )
                     break
@@ -208,6 +196,22 @@ def test_fuzz_run_with_auto_fixes(
             f"respective contracts as addresses under test:\n{data}"
         )
         prompt = "Add them to addresses under test"
+    elif not provide_addresses and not provide_targets:
+        data = []
+        for target in ide["targets"]:
+            for contract_name, contract in contracts.items():
+                if contract["contractPath"] == target:
+                    data.append(
+                        f"  ◦ Address: {contract['address'].lower()}"
+                        f" Source File: {tmp_path.joinpath(contract['contractPath'])}"
+                        f" Contract Name: {contract_name}"
+                    )
+                    break
+        data = "\n".join(data)
+        message = (
+            f"⚠️ Following contracts were not included into the seed state:\n{data}"
+        )
+        prompt = "Add them to targets"
 
     expected_output = construct_output(
         message,
@@ -227,17 +231,17 @@ def test_fuzz_run_with_auto_fixes(
     # and there's no way to hardcode `tmp_path` related paths
     if IDE_NAME == "truffle":
         processed_payload["sources"] = {
-            name.replace("artifacts", str(tmp_path)): data
+            str(tmp_path.joinpath(name[10:]).as_posix()): data
             for name, data in processed_payload["sources"].items()
         }
         processed_payload["contracts"] = [
             {
                 **c,
-                "mainSourceFile": c["mainSourceFile"].replace(
-                    "artifacts", str(tmp_path)
+                "mainSourceFile": str(
+                    tmp_path.joinpath(c["mainSourceFile"][10:]).as_posix()
                 ),
                 "sourcePaths": {
-                    k: v.replace("artifacts", str(tmp_path))
+                    k: str(tmp_path.joinpath(v[10:]).as_posix())
                     for k, v in c["sourcePaths"].items()
                 },
             }

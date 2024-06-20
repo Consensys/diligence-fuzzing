@@ -3,7 +3,6 @@
 deepdiff==6.3.0
 
 bumpversion==0.6.0
-twine==4.0.2
 
 black==23.3.0
 isort==5.11.0

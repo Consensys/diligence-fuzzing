@@ -2,7 +2,7 @@ import logging
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import QuickCheckError
@@ -10,23 +10,18 @@ from fuzzing_cli.fuzz.ide import IDEArtifacts
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 from fuzzing_cli.fuzz.solidity import SolidityJob
 from fuzzing_cli.fuzz.types import Contract, Source
-from fuzzing_cli.util import get_content_from_file
-
-from .utils import mk_contract_address
+from fuzzing_cli.util import executable_command, get_content_from_file
 
 LOGGER = logging.getLogger("fuzzing-cli")
 
 BASE_ADDRESS = "affeaffeaffeaffeaffeaffeaffeaffeaffeaffe"
 
 
-def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List[Path]:
+def annotate_contracts(targets: List[Path], scribble_generator_path: str) -> List[Path]:
     LOGGER.debug(
         f"Annotating targets: {str(targets)} using scribble-generator at path: {scribble_generator_path}"
     )
-    _targets = [Path(t) for t in targets]
-    # for cases when it's complex command. e.g.: npx scribble-generate
-    _scribble_generator_path = scribble_generator_path.split(" ")
-    command = _scribble_generator_path + ["--targets"] + targets
+    command = executable_command(scribble_generator_path) + ["--targets"] + targets
 
     annotated_files: List[Path] = []
 
@@ -40,7 +35,7 @@ def annotate_contracts(targets: List[str], scribble_generator_path: str) -> List
                 f"QuickCheckError: Annotating failed\nDetail: {reason}"
             )
 
-        for target in _targets:
+        for target in targets:
             if target.is_dir():  # find all annotated contracts
                 _changed_files = [x for x in target.rglob("*.sol.sg_original")]
                 _files = [f.parent.joinpath(f.stem) for f in _changed_files]
@@ -157,7 +152,7 @@ class QuickCheck(IDEArtifacts):
 
     def arm_contracts(self):
         ScribbleMixin.instrument_solc_in_place(
-            file_list=self.targets,
+            file_list=[Path(t) for t in self.targets],
             scribble_path=self.scribble_path,
             remappings=self.remappings,
             solc_version=self.solc_version,
@@ -267,3 +262,6 @@ class QuickCheck(IDEArtifacts):
                 )
 
         return result_contracts, result_sources
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Set[str]]]:
+        return []

@@ -6,6 +6,7 @@ from typing import List, Optional
 import click
 from click import UsageError, style
 
+from fuzzing_cli.fuzz.analytics import trace
 from fuzzing_cli.fuzz.config import generate_yaml
 from fuzzing_cli.fuzz.config.generate import (
     determine_campaign_name,
@@ -28,7 +29,7 @@ def create_config(
     no_assert: Optional[bool] = None,
 ) -> Path:
     config_path = Path().cwd().joinpath(config_name)
-    with config_path.open("w") as f:
+    with config_path.open("w", encoding="utf-8") as f:
         f.write(
             generate_yaml(
                 {
@@ -102,6 +103,7 @@ def generate_config_name(suffix: Optional[str] = None, randomize_name=False):
     help="If specified execution will not halt when an invariant is violated (only an event will be emitted).",
 )
 @click.pass_obj
+@trace("fuzz_quickcheck")
 def fuzz_auto(
     ctx,
     individual: bool,

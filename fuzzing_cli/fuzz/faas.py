@@ -1,8 +1,9 @@
 import json
 import logging
+import os
 import random
 import string
-from typing import Dict, Optional
+from typing import Dict
 from urllib.parse import urljoin
 
 import requests
@@ -10,13 +11,8 @@ from requests.structures import CaseInsensitiveDict
 
 from fuzzing_cli.fuzz.scribble import ScribbleMixin
 
-from .config import FuzzingOptions
-from .exceptions import (
-    AuthorizationError,
-    BadStatusCode,
-    RequestError,
-    ScribbleMetaError,
-)
+from .config import AuthHandler, FuzzingOptions
+from .exceptions import BadStatusCode, RequestError, ScribbleMetaError
 from .ide.generic import IDEArtifacts
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -29,35 +25,19 @@ class FaasClient:
     API can consume and submits it, also triggering the start of a Campaign.
     """
 
-    def __init__(self, options: FuzzingOptions, project_type: str):
+    def __init__(
+        self, options: FuzzingOptions, project_type: str, auth_handler: AuthHandler
+    ):
         self.options = options
         self.project_type = project_type
+        self.auth_handler = auth_handler
 
     @property
     def headers(self):
         headers = CaseInsensitiveDict()
         headers["Content-Type"] = "application/json"
-        headers["Authorization"] = "Bearer " + str(self.api_key)
+        headers["Authorization"] = f"Bearer {self.auth_handler.api_key}"
         return headers
-
-    @property
-    def api_key(self):
-        response = requests.post(
-            f"https://{self.options.auth_endpoint}/oauth/token",
-            data={
-                "grant_type": "refresh_token",
-                "client_id": self.options.auth_client_id,
-                "refresh_token": self.options.refresh_token,
-            },
-        )
-        body = response.json()
-        if response.status_code != 200:
-            error = body.get("error", "")
-            description = body.get("error_description", "")
-            raise AuthorizationError(
-                f"Authorization failed. Error: {error}", detail=description
-            )
-        return body.get("access_token")
 
     def generate_campaign_name(self):
         """Return a random name with the provided prefix self.campaign_name_prefix."""
@@ -71,7 +51,11 @@ class FaasClient:
             req_url = urljoin(
                 self.options.faas_url, "api/campaigns/?start_immediately=true"
             )
+            response_status_code = -1
             response = requests.post(req_url, json=payload, headers=self.headers)
+            # We need to store the response status code before we call response.json() because .json() may raise an exception
+            # and we want to be able to access the status code in the exception handler to handle the 502s.
+            response_status_code = response.status_code
             response_data = response.json()
             if response.status_code != requests.codes.ok:
                 if (
@@ -93,6 +77,13 @@ class FaasClient:
                 )
             return response_data["id"]
         except Exception as e:
+            if response_status_code == 502:
+                # This is just a hotfix for the 502 error, which we think is caused by the payload being too large. However,the campaign is still
+                # created, just not started. Even stranger, upon a second request, the campaign is started. So there might be caching involved.
+                raise RequestError(
+                    "Error starting FaaS campaign. If the issue persists, contact support at support@fuzzing.zendesk.com or use the widget on https://fuzzing.diligence.tools .",
+                    detail="Server side error, it is possible that the campaign payload is too large.",
+                )
             if isinstance(e, BadStatusCode):
                 raise e
             raise RequestError(
@@ -157,6 +148,16 @@ class FaasClient:
             if self.options.foundry_tests_list is not None:
                 api_payload["foundryTestsList"] = self.options.foundry_tests_list
 
+        if self.options.max_sequence_length is not None:
+            api_payload["parameters"][
+                "max-sequence-length"
+            ] = self.options.max_sequence_length
+
+        if self.options.ignore_code_hash is not None:
+            api_payload["parameters"][
+                "ignore-code-hash"
+            ] = self.options.ignore_code_hash
+
         try:
             instr_meta = ScribbleMixin.get_arming_instr_meta()
             if instr_meta is not None:
@@ -167,7 +168,18 @@ class FaasClient:
             )
 
         if self.options.dry_run:  # pragma: no cover
-            print(json.dumps(api_payload, indent=4))
+            # if the env var FUZZ_DRY_RUN_NO_PRINT is set, don't print the payload
+            if os.environ.get("FUZZ_DRY_RUN_NO_PRINT") is None:
+                if self.options.dry_run_output is not None:
+                    with open(self.options.dry_run_output, "w") as f:
+                        f.write(json.dumps(api_payload, indent=4))
+                    print(
+                        f"Dry run output written to file {self.options.dry_run_output}"
+                    )
+                else:
+                    print(json.dumps(api_payload, indent=4))
+            else:
+                print("Dry run enabled, not printing payload.")
             return "campaign not started due to --dry-run option"
 
         campaign_id = self.start_faas_campaign(api_payload)

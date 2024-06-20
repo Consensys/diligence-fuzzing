@@ -5,7 +5,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CompletedProcess, TimeoutExpired, run
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from fuzzing_cli.fuzz.config import FuzzingOptions
 from fuzzing_cli.fuzz.exceptions import BuildArtifactsError
@@ -222,7 +222,7 @@ class TruffleArtifacts(IDEArtifacts):
         for contract in result["project"]["contracts"]:
             contracts[contract["name"]] = list(
                 map(
-                    lambda x: x["source"]["sourcePath"],
+                    lambda x: str(Path(x["source"]["sourcePath"]).as_posix()),
                     contract["compilation"]["processedSources"],
                 )
             )
@@ -235,3 +235,7 @@ class TruffleArtifacts(IDEArtifacts):
     @staticmethod
     def get_default_sources_dir() -> Path:
         return Path.cwd().joinpath("contracts")
+
+    def unlinked_libraries(self) -> List[Tuple[Contract, Set[str]]]:
+        # We'll deprecate Truffle in the future, so we don't implement this method
+        return []

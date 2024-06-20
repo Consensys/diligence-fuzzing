@@ -9,12 +9,14 @@ import yaml
 
 from fuzzing_cli import __version__
 from fuzzing_cli.fuzz.arm import fuzz_arm
+from fuzzing_cli.fuzz.config import AdditionalOptions
 from fuzzing_cli.fuzz.disarm import fuzz_disarm
 from fuzzing_cli.fuzz.foundry_tests import cli as foundry_test
 from fuzzing_cli.fuzz.fuzz_config import cli as fuzz_config
 from fuzzing_cli.fuzz.fuzzing_lessons import cli as fuzz_lesson
 from fuzzing_cli.fuzz.quickcheck import fuzz_auto
 from fuzzing_cli.fuzz.run import fuzz_run
+from fuzzing_cli.fuzz.utils import check_latest_version
 from fuzzing_cli.fuzz.version import fuzz_version
 
 LOGGER = logging.getLogger("fuzzing-cli")
@@ -49,9 +51,8 @@ def cli(ctx, debug: bool, config: str) -> None:
 
     # set loggers to debug mode
     if debug:
-        logging.basicConfig(level=logging.DEBUG)
-        for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).setLevel(logging.DEBUG)
+        LOGGER.setLevel(logging.DEBUG)
+        LOGGER.addHandler(logging.StreamHandler())
 
     LOGGER.debug("Initializing configuration context")
     if Path(config).is_file():
@@ -71,6 +72,9 @@ def cli(ctx, debug: bool, config: str) -> None:
     }
 
     LOGGER.debug(f"Initializing tool name middleware with {__version__}")
+
+    options = AdditionalOptions()
+    check_latest_version(options)
 
 
 LOGGER.debug("Registering main commands")

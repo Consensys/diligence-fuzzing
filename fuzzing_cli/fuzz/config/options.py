@@ -26,15 +26,44 @@ def repr_errors(error: ValidationError) -> str:
     return ", ".join(errors)
 
 
+class BaseModelConfig:
+    env_prefix = "fuzz_"
+    env_file = ".env"
+    env_file_encoding = "utf-8"
+    allow_population_by_field_name = True
+    yaml_key = "fuzz"
+
+    @classmethod
+    def customise_sources(
+        cls,
+        init_settings,
+        env_settings,
+        file_secret_settings,
+    ):
+        # load in order (from the least priority to the highest priority):
+        # 1. config settings from config file
+        # 2. .env file
+        # 3. environment variables
+        # 4. command arguments
+        return (
+            init_settings,
+            env_settings,
+            yaml_config_settings_source(cls.yaml_key),
+            file_secret_settings,
+        )
+
+
 def yaml_config_settings_source(key="fuzz"):
     def loader(_) -> Dict[str, Any]:
         # this env variable is set by -c option in the cli (e.g. fuzz -c .fuzz-test.yaml run,
         # or FUZZ_CONFIG_FILE=.fuzz-test.yaml)
-        config_path = os.environ.get("FUZZ_CONFIG_FILE", ".fuzz.yml")
-        if Path(config_path).is_file():
+        config_path = Path(os.environ.get("FUZZ_CONFIG_FILE", ".fuzz.yml"))
+        if config_path.is_file():
             LOGGER.debug(f"Parsing config at {config_path}")
             with open(config_path) as config_f:
                 parsed_config = yaml.safe_load(config_f.read())
+                if not parsed_config:
+                    return {}
                 return parsed_config.get(key, {}) or {}
         return {}
 
@@ -63,6 +92,8 @@ class FuzzingOptions(BaseSettings):
 
     enable_cheat_codes: Optional[bool] = None
     chain_id: Optional[str] = None
+    max_sequence_length: Optional[int] = None
+    ignore_code_hash: Optional[bool] = None
     incremental: bool = False
     truffle_executable_path: Optional[str] = None
     quick_check: bool = False
@@ -75,11 +106,15 @@ class FuzzingOptions(BaseSettings):
     target_contracts: Optional[Dict[str, Set[str]]] = None
 
     dry_run: bool = False
+    dry_run_output: Optional[str] = Field(None, exclude=True)
     smart_mode: bool = False
 
-    no_prompts: bool = Field(
-        True, exclude=True, description="Disable all prompts. Useful for CI/CD."
-    )
+    include_library_contracts: bool = False
+
+    check_updates: bool = True
+
+    ci_mode: bool = Field(False)
+
     no_build_directory: bool = Field(False, exclude=True)
     no_key: bool = Field(False, exclude=True)
     no_deployed_contract_address: bool = Field(False, exclude=True)
@@ -131,30 +166,8 @@ class FuzzingOptions(BaseSettings):
                 )
         return addresses
 
-    class Config:
-        env_prefix = "fuzz_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        allow_population_by_field_name = True
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            # load in order (from the least priority to the highest priority):
-            # 1. config settings from config file
-            # 2. .env file
-            # 3. environment variables
-            # 4. command arguments
-            return (
-                init_settings,
-                env_settings,
-                yaml_config_settings_source(),
-                file_secret_settings,
-            )
+    class Config(BaseModelConfig):
+        pass
 
     @validator("chain_id")
     def _validate_chain_id(cls, chain_id: Optional[Union[str, int]]) -> Optional[str]:
@@ -248,12 +261,6 @@ class FuzzingOptions(BaseSettings):
         if values.get("smart_mode"):
             return values
 
-        if not values.get("targets") and not values.get("deployed_contract_address"):
-            raise ValueError(
-                "No targets specified. "
-                "Please specify at least one target (deployed contract address or targets)."
-            )
-
         if not values.get("no_build_directory") and not values.get("build_directory"):
             click.secho(
                 "Warning: Build directory not specified. Using IDE defaults. For a proper seed state check "
@@ -269,7 +276,7 @@ class FuzzingOptions(BaseSettings):
         # If prompts are disabled, we need to make sure that all the required parameters are provided
         # because we won't be able to ask the user for them.
         if (
-            values.get("no_prompts")
+            values.get("ci_mode", False)
             and not values.get("no_deployed_contract_address")
             and not values.get("quick_check", False)
             and not values.get("deployed_contract_address")
@@ -277,7 +284,7 @@ class FuzzingOptions(BaseSettings):
             raise ValueError("Deployed contract address not provided.")
 
         if (
-            values.get("no_prompts")
+            values.get("ci_mode", False)
             and not values.get("no_targets")
             and not values.get("targets")
         ):
@@ -317,6 +324,34 @@ class FuzzingOptions(BaseSettings):
         return values
 
 
+class AdditionalOptions(BaseSettings):
+    dry_run: bool = False
+    analytics_endpoint: str = Field(
+        "https://fuzzing.diligence.tools/api/analytics", exclude=True
+    )
+
+    ci_mode: bool = Field(False)
+    report_crashes: bool = Field(True)
+    allow_analytics: bool = Field(True)
+    check_updates: bool = Field(True)
+
+    def __init__(self, *args, **data: Any):
+        try:
+            super().__init__(*args, **data)
+        except ValidationError as e:
+            raise click.exceptions.UsageError(f"Invalid config: {repr_errors(e)}")
+        except:
+            raise
+
+    @property
+    def no_prompts(self):
+        # In CI mode, we don't want to prompt the user for anything
+        return self.ci_mode
+
+    class Config(BaseModelConfig):
+        extra = "ignore"
+
+
 class AnalyzeOptions(BaseSettings):
     solc_version: Optional[str] = Field(
         None, alias="solc-version", env="ANALYZE_SOLC_VERSION"
@@ -336,27 +371,6 @@ class AnalyzeOptions(BaseSettings):
         except:
             raise
 
-    class Config:
+    class Config(BaseModelConfig):
         env_prefix = "analyze_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        allow_population_by_field_name = True
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            # load in order (from the least priority to the highest priority):
-            # 1. config settings from config file
-            # 2. .env file
-            # 3. environment variables
-            # 4. command arguments
-            return (
-                init_settings,
-                env_settings,
-                yaml_config_settings_source("analyze"),
-                file_secret_settings,
-            )
+        yaml_key = "analyze"
